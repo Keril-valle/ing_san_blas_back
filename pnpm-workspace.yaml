@@ -1,0 +1,9 @@
+packages:
+  - '.'
+
+allowBuilds:
+  unrs-resolver: true
+
+overrides:
+  multer: "2.2.0"
+  js-yaml: "4.2.0"
