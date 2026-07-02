@@ -2,6 +2,7 @@ packages:
   - '.'
 
 allowBuilds:
+  better-sqlite3: true
   unrs-resolver: true
 
 overrides:
