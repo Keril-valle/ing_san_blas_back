@@ -29,7 +29,6 @@ export class AuthController {
 
   @Get('prueba')
   @Auth(Role.USER)
-  @UseGuards(AuthGuard)
   prueba(@Req() req: RequestWithUser) {
     return this.authService.prueba(req.user);
   }
