@@ -1,4 +1,4 @@
-import { Role } from 'src/Auth/Decorators/Roles';
+import { Role } from '../../Common/Enums/Roles';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
@@ -19,5 +19,8 @@ export class Usuario {
     //@Column({ type: 'enum', default: Role.USER, enum: Role })
     @Column({ default: Role.USER })
     role: string;
+    // usuario.entity.ts (agregar esta columna)
+@Column({ select: false, nullable: true, type: 'varchar' })
+refreshTokenHash: string | null;
 }
 

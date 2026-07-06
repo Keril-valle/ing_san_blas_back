@@ -14,6 +14,7 @@ import { Usuario } from './Users/Entities/usuario.entity';
       database: ':memory:',  // BD en RAM, no requiere servidor
       entities: [Usuario],
       synchronize: true,
+
     }),
     UsuarioModule,
     AuthModule,

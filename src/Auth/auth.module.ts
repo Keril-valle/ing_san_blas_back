@@ -12,7 +12,7 @@ import { UsuarioModule } from '../Users/usuario.module';
     JwtModule.register({
       global: true,
       secret: 'secret-key',
-      signOptions: { expiresIn: '1h' },//el signoption es para que el token expire en una hora
+      signOptions: { expiresIn: '15m' },//el signoption es para que el token expire en | 15 minutos, esto es importante para la seguridad de la aplicacion
     }),//las configuraciones de jwt se ponen aqui, al ser global el token estara disponible en todos los modulos
   ],
   controllers: [AuthController],
