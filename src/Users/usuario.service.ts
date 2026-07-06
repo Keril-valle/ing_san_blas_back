@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Usuario } from './Entities/usuario.entity';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
 @Injectable()
 export class UsuarioService {
@@ -22,7 +22,7 @@ export class UsuarioService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} usuario`;
+    return this.usuarioRepository.findOneBy({ id });
   }
   findOneByEmail(email: string) {
     return this.usuarioRepository.findOneBy({ email });
@@ -39,6 +39,20 @@ export class UsuarioService {
       }
     });
   }
+  async findByIdWithRefreshToken(id: number) {
+    const rows = await this.usuarioRepository.manager.query(
+      'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = ?',
+      [id],
+    );
+    return rows.length > 0 ? rows[0] as Usuario : null;
+}
+
+async setRefreshTokenHash(id: number, hash: string | null) {
+  await this.usuarioRepository.manager.query(
+    'UPDATE usuario SET "refreshTokenHash" = ? WHERE id = ?',
+    [hash, id],
+  );
+}
 
   update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
     return `This action updates a #${id} usuario`;
