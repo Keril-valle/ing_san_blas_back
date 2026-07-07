@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { LoginDto } from './DTO/login.dto';
 import { RegisterDto } from './DTO/register.dto';
 import { UsuarioService } from '../Users/usuario.service';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -27,12 +28,14 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
-
+private hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
   // Método para actualizar el hash del token de actualización en la base de datos.
-  private async updateRefreshTokenHash(userId: number, refreshToken: string) {
-    const hash = await bcrypt.hash(refreshToken, 10);
-    await this.usuarioService.setRefreshTokenHash(userId, hash);
-  }
+ private async updateRefreshTokenHash(userId: number, refreshToken: string) {
+  const hash = this.hashToken(refreshToken);
+  await this.usuarioService.setRefreshTokenHash(userId, hash);
+}
 
   // Método para autenticar un usuario mediante email y contraseña.
   async login(loginDto: LoginDto) {
@@ -68,7 +71,8 @@ export class AuthService {
     const user = await this.usuarioService.findByIdWithRefreshToken(userId);
     if (!user || !user.refreshTokenHash) throw new ForbiddenException('Acceso denegado');
 
-    const matches = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+    const incomingHash = this.hashToken(refreshToken);
+const matches = incomingHash === user.refreshTokenHash;
     if (!matches) throw new ForbiddenException('Acceso denegado');
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
