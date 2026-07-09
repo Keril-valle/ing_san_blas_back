@@ -62,9 +62,14 @@ private hashToken(token: string): string {
       throw new BadRequestException('Usuario ya existe');
     }
 
-    //esta linea de codigo sirve para encriptar la contraseña y son 12 vueltas que da para encriptarla
-    registerDto.password = await bcrypt.hash(registerDto.password, 12);
-    return this.usuarioService.create(registerDto);
+    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+    await this.usuarioService.create({
+      nombre: registerDto.nombre,
+      email: registerDto.email,
+      password: hashedPassword,
+    });
+
+    return this.login(registerDto);
   }
   // Método para refrescar los tokens de acceso y actualización utilizando un token de actualización válido.
    async refreshTokens(userId: number, refreshToken: string) {
@@ -73,7 +78,11 @@ private hashToken(token: string): string {
 
     const incomingHash = this.hashToken(refreshToken);
 const matches = incomingHash === user.refreshTokenHash;
-    if (!matches) throw new ForbiddenException('Acceso denegado');
+    if (!matches) {
+      // Si el hash del token de actualización no coincide, se elimina el hash de la base de datos y se lanza una excepción.
+      await this.usuarioService.setRefreshTokenHash(userId, null);
+      throw new ForbiddenException('Acceso denegado');
+    }
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);

@@ -3,6 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsuarioModule } from '../Users/usuario.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from './Guards/auth.guard';
+import { RolesGuard } from './Guards/roles.guard';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { UsuarioModule } from '../Users/usuario.module';
     }),//las configuraciones de jwt se ponen aqui, al ser global el token estara disponible en todos los modulos
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService,
+     { provide: APP_GUARD, useClass: AuthGuard },   // se ejecuta en TODAS las rutas de la app
+    { provide: APP_GUARD, useClass: RolesGuard },  // se ejecuta después, revisa @Roles si existe
+  ],
 })
 export class AuthModule {}

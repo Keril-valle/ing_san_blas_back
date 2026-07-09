@@ -8,6 +8,8 @@ import { Role } from '../Common/Enums/Roles';
 import { AuthGuard } from './Guards/auth.guard';
 import { RefreshAuthGuard } from './Guards/refresh-auth.guard';
 import type { RequestWithUser } from '../Common/Interfaces/requestWithUser.interface';
+import { Public } from './Decorators/public.decorator';
+import { Roles } from './Decorators/roles.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -15,6 +17,7 @@ export class AuthController {
 
   // Endpoint para iniciar sesión y obtener un token JWT.
   @Throttle({ default: { limit: 5, ttl: 60000 } })// limita a 5 intentos por minuto para prevenir ataques de fuerza bruta
+   @Public() // login no requiere estar autenticado (obvio, es como te autenticás)
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
@@ -22,24 +25,27 @@ export class AuthController {
 
   // Endpoint para crear un nuevo usuario en el sistema.
   @Throttle({ default: { limit: 3, ttl: 60000 } })// limita a 3 intentos por minuto para prevenir abusos en el registro
+   @Public() // login no requiere estar autenticado (obvio, es como te autenticás)
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
   @Get('prueba')
-  @Auth(Role.USER)
+ @Roles(Role.USER) // ya no hace falta @Auth() combinado, el guard global ya corre siempre
   prueba(@Req() req: RequestWithUser) {
     return this.authService.prueba(req.user);
   }
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Public()
    @Post('refresh')
   @UseGuards(RefreshAuthGuard)
   refresh(@Req() req: RequestWithUser) {
     return this.authService.refreshTokens(req.user.sub, req.refreshToken!);
   }
-
+  @Public()
   @Post('logout')
-  @UseGuards(AuthGuard)
+  @UseGuards(RefreshAuthGuard)
   logout(@Req() req: RequestWithUser) {
     return this.authService.logout(req.user.sub);
   }
