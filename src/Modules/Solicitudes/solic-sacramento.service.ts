@@ -35,29 +35,32 @@ export class SolicSacramentoService {
       where: { Nombre: nombre },
     });
     if (solicitudes.length === 0) {
-      throw new NotFoundException(`No se encontraron solicitudes con el nombre ${nombre}`);
+      throw new NotFoundException(
+        `No se encontraron solicitudes con el nombre ${nombre}`,
+      );
     }
     return solicitudes;
   }
 
   async BuscarSolicPorApellido(apellido: string) {
     const solicitudes = await this.solicSacraRepository.find({
-      where: [
-        { PrimerApellido: apellido },
-        { SegundoApellido: apellido },
-      ],
-    }); 
+      where: [{ PrimerApellido: apellido }, { SegundoApellido: apellido }],
+    });
     if (solicitudes.length === 0) {
-      throw new NotFoundException(`No se encontraron solicitudes con el apellido ${apellido}`);
+      throw new NotFoundException(
+        `No se encontraron solicitudes con el apellido ${apellido}`,
+      );
     }
     return solicitudes;
   }
   async BuscarSolicPorCedula(cedula: number) {
     const solicitudes = await this.solicSacraRepository.find({
       where: { Cedula: cedula },
-    }); 
+    });
     if (solicitudes.length === 0) {
-      throw new NotFoundException(`No se encontraron solicitudes con la cédula ${cedula}`);
+      throw new NotFoundException(
+        `No se encontraron solicitudes con la cédula ${cedula}`,
+      );
     }
     return solicitudes;
   }
@@ -66,20 +69,23 @@ export class SolicSacramentoService {
       where: { Estado: estado },
     });
     if (solicitudes.length === 0) {
-      throw new NotFoundException(`No se encontraron solicitudes con el estado ${estado}`);
+      throw new NotFoundException(
+        `No se encontraron solicitudes con el estado ${estado}`,
+      );
     }
     return solicitudes;
   }
   async BuscarPorTipoSacramento(tipoSacramento: TipoSacramento) {
     const solicitudes = await this.solicSacraRepository.find({
       where: { TipoSacramento: tipoSacramento },
-    }); 
+    });
     if (solicitudes.length === 0) {
-      throw new NotFoundException(`No se encontraron solicitudes con el tipo de sacramento ${tipoSacramento}`);
+      throw new NotFoundException(
+        `No se encontraron solicitudes con el tipo de sacramento ${tipoSacramento}`,
+      );
     }
     return solicitudes;
   }
-
 
   async CambiarEstadoSolicitud(id: number, nuevoEstado: EstadoSolicitud) {
     const solicitud = await this.solicSacraRepository.findOneBy({ id });

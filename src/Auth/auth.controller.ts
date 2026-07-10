@@ -36,7 +36,7 @@ export class AuthController {
   prueba(@Req() req: RequestWithUser) {
     return this.authService.prueba(req.user);
   }
-  
+
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Public()
   @Post('refresh')

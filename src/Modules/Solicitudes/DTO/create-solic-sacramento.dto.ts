@@ -1,4 +1,10 @@
-import { IsString, IsNumber, IsEmail, IsOptional, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEmail,
+  IsOptional,
+  IsEnum,
+} from 'class-validator';
 import { TipoSacramento } from 'src/Common/Enums/TipoSacramento';
 
 export class CreateSolicSacramentoDto {
@@ -21,7 +27,6 @@ export class CreateSolicSacramentoDto {
   Telefono: number;
 
   @IsEnum(TipoSacramento)
-  
   TipoSacramento: TipoSacramento;
 
   @IsString()

@@ -11,7 +11,7 @@ export class RegisterDto {
   email: string;
 
   @Transform(({ value }) => value.trim())
-   @IsString()
+  @IsString()
   @MinLength(8)
   @Matches(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/,

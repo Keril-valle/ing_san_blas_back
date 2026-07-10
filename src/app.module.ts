@@ -9,6 +9,8 @@ import { UsuarioModule } from './Users/usuario.module';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';
 import { SolicSacramentoModule } from './Modules/Solicitudes/solic-sacramento.module';
+import { Evento } from './Modules/Eventos/Entities/evento.entity';
+import { EventosModule } from './Modules/Eventos/evento.module';
 
 @Module({
   imports: [
@@ -16,7 +18,7 @@ import { SolicSacramentoModule } from './Modules/Solicitudes/solic-sacramento.mo
     TypeOrmModule.forRoot({
       type: 'better-sqlite3',
       database: ':memory:', // BD en RAM, no requiere servidor
-      entities: [Usuario, SolicSacramento],
+      entities: [Usuario, SolicSacramento, Evento],
       synchronize: true,
     }),
     // Configuración del módulo de limitación de solicitudes (throttling)
@@ -29,6 +31,7 @@ import { SolicSacramentoModule } from './Modules/Solicitudes/solic-sacramento.mo
     UsuarioModule,
     AuthModule,
     SolicSacramentoModule,
+    EventosModule,
   ],
   controllers: [AppController],
   providers: [

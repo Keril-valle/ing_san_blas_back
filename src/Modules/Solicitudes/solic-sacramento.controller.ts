@@ -54,7 +54,9 @@ export class SolicSacramentoController {
   }
 
   @Get('buscar/tipo/:tipoSacramento')
-  async BuscarPorTipoSacramento(@Param('tipoSacramento') tipoSacramento: TipoSacramento) {
+  async BuscarPorTipoSacramento(
+    @Param('tipoSacramento') tipoSacramento: TipoSacramento,
+  ) {
     return this.solicSacraService.BuscarPorTipoSacramento(tipoSacramento);
   }
 
@@ -81,7 +83,10 @@ export class SolicSacramentoController {
     @Param('id') id: string,
     @Body() cambiarEstadoDto: CambiarEstadoSolicitudDto,
   ) {
-    return this.solicSacraService.CambiarEstadoSolicitud(+id, cambiarEstadoDto.nuevoEstado);
+    return this.solicSacraService.CambiarEstadoSolicitud(
+      +id,
+      cambiarEstadoDto.nuevoEstado,
+    );
   }
 
   @Delete(':id')

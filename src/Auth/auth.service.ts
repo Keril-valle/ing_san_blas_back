@@ -30,7 +30,7 @@ export class AuthService {
         expiresIn: '7d',
       }),
     ]);
-    
+
     return { accessToken, refreshToken };
   }
   // Método para generar un hash seguro del token de actualización utilizando SHA-256.
@@ -73,7 +73,7 @@ export class AuthService {
     if (existingUser) {
       throw new BadRequestException('Usuario ya existe');
     }
-   // esto da una vuelta de 12 veces al hash para hacerlo más seguro, pero también más lento de calcular, lo que dificulta los ataques de fuerza bruta.
+    // esto da una vuelta de 12 veces al hash para hacerlo más seguro, pero también más lento de calcular, lo que dificulta los ataques de fuerza bruta.
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
     await this.usuarioService.create({
       nombre: registerDto.nombre,
