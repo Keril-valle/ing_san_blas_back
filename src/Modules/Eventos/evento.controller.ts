@@ -16,11 +16,12 @@ import { Public } from '../../Auth/Decorators/public.decorator';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
 
-@Controller('Evento')
+@Controller('api/Evento')
 export class EventoController {
   constructor(private readonly eventoService: EventoService) {}
 
   @Public()
+  //ruta para obtener todos los eventos publicos es http://localhost:3000/api/Eventos/publicos
   @Get('publicos')
   findPublicos() {
     return this.eventoService.findPublicos();
@@ -37,9 +38,10 @@ export class EventoController {
   findOne(@Param('id') id: string) {
     return this.eventoService.findOne(+id);
   }
-
+  //la ruta para el post es http://localhost:3000/api/Eventos
+@Public()
   @Post()
-  @Roles(Role.ADMIN)
+  //@Roles(Role.ADMIN)
   create(@Body() createEventoDto: CreateEventoDto) {
     return this.eventoService.create(createEventoDto);
   }

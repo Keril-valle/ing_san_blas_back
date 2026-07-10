@@ -5,19 +5,19 @@ export class Evento {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
   titulo: string;
 
-  @Column('text')
+  @Column({ type: 'text' })
   descripcion: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   fechaInicio: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   fechaFin: string | null;
 
-  @Column()
+  @Column({ type: 'varchar' })
   lugar: string;
 
   @Column({ default: false })
