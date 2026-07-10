@@ -1,5 +1,6 @@
 import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -14,6 +15,14 @@ async function bootstrap() {
     origin: ['http://localhost:4200', 'http://localhost:5173'],
     credentials: true,
   });
+  //esto sirve para usar class validator
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 3000);
 }

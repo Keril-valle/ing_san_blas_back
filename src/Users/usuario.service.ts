@@ -7,11 +7,10 @@ import { Repository, DataSource } from 'typeorm';
 
 @Injectable()
 export class UsuarioService {
-
   constructor(
     @InjectRepository(Usuario)
-    private readonly usuarioRepository: Repository<Usuario>
-  ) { }
+    private readonly usuarioRepository: Repository<Usuario>,
+  ) {}
 
   create(createUsuarioDto: CreateUsuarioDto) {
     return this.usuarioRepository.save(createUsuarioDto);
@@ -35,8 +34,8 @@ export class UsuarioService {
         nombre: true,
         email: true,
         password: true,
-        role: true
-      }
+        role: true,
+      },
     });
   }
   async findByIdWithRefreshToken(id: number) {
@@ -44,15 +43,15 @@ export class UsuarioService {
       'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = ?',
       [id],
     );
-    return rows.length > 0 ? rows[0] as Usuario : null;
-}
+    return rows.length > 0 ? (rows[0] as Usuario) : null;
+  }
 
-async setRefreshTokenHash(id: number, hash: string | null) {
-  await this.usuarioRepository.manager.query(
-    'UPDATE usuario SET "refreshTokenHash" = ? WHERE id = ?',
-    [hash, id],
-  );
-}
+  async setRefreshTokenHash(id: number, hash: string | null) {
+    await this.usuarioRepository.manager.query(
+      'UPDATE usuario SET "refreshTokenHash" = ? WHERE id = ?',
+      [hash, id],
+    );
+  }
 
   update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
     return `This action updates a #${id} usuario`;

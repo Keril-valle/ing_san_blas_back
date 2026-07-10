@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
@@ -13,10 +18,10 @@ export class AuthGuard implements CanActivate {
   ) {} //inyectamos el jwtService y el reflector para poder usarlo en el guard
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
- // Antes de validar nada, preguntamos: ¿esta ruta está marcada como pública?
+    // Antes de validar nada, preguntamos: ¿esta ruta está marcada como pública?
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(), // revisa el decorator a nivel de método (ej. @Public() en login())
-      context.getClass(),   // revisa el decorator a nivel de controller completo
+      context.getClass(), // revisa el decorator a nivel de controller completo
     ]);
 
     if (isPublic) {
