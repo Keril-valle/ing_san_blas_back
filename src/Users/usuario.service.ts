@@ -4,6 +4,7 @@ import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Usuario } from './Entities/usuario.entity';
 import { Repository, DataSource } from 'typeorm';
+import getNombreCedula from 'src/Common/Helpers/nombreCedula';
 
 @Injectable()
 export class UsuarioService {
@@ -60,4 +61,11 @@ export class UsuarioService {
   remove(id: number) {
     return `This action removes a #${id} usuario`;
   }
+
+  async obtenerNombrePorCedula(cedula: string) {
+    const data = await getNombreCedula(cedula);
+    return data;
+  }
 }
+
+
