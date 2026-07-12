@@ -13,9 +13,9 @@ import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { CambiarEstadoSolicitudDto } from './DTO/cambiar-estado-solicitud.dto';
 import { SolicSacramentoService } from './solic-sacramento.service';
-import { EstadoSolicitud } from 'src/Common/Enums/EstadoSolicitud';
-import { TipoSacramento } from 'src/Common/Enums/TipoSacramento';
-import { Public } from 'src/Auth/Decorators/public.decorator';
+import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
+import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
+import { Public } from '../../Auth/Decorators/public.decorator';
 
 @Controller('solic-sacramento')
 export class SolicSacramentoController {

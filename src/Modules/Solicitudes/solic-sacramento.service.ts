@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { SolicSacramento } from './Entities/solic-sacramento.entity';
-import { EstadoSolicitud } from 'src/Common/Enums/EstadoSolicitud';
-import { TipoSacramento } from 'src/Common/Enums/TipoSacramento';
+import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
+import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
 
 @Injectable()
 export class SolicSacramentoService {

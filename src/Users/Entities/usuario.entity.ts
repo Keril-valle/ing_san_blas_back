@@ -16,8 +16,8 @@ export class Usuario {
   password: string;
   //cuidado con eso por la base de datos como estoy usando sqlite no me deja poner un enum
   //cuando nos cambiemos a postgresql si nos va a dejar poner un enum
-  //@Column({ type: 'enum', default: Role.USER, enum: Role })
-  @Column({ default: Role.USER })
+  @Column({ type: 'enum', default: Role.USER, enum: Role })
+  //@Column({ default: Role.USER })
   role: string;
   // usuario.entity.ts (agregar esta columna)
   @Column({ select: false, nullable: true, type: 'varchar' })

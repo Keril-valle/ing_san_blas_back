@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsEnum,
 } from 'class-validator';
-import { TipoSacramento } from 'src/Common/Enums/TipoSacramento';
+import { TipoSacramento } from '../../../Common/Enums/TipoSacramento';
 
 export class CreateSolicSacramentoDto {
   @IsString()

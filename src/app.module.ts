@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -14,13 +15,27 @@ import { EventosModule } from './Modules/Eventos/evento.module';
 
 @Module({
   imports: [
-    // Configuración de TypeORM con SQLite en memoria para desarrollo y pruebas.
-    TypeOrmModule.forRoot({
-      type: 'better-sqlite3',
-      database: ':memory:', // BD en RAM, no requiere servidor
-      entities: [Usuario, SolicSacramento, Evento],
-      synchronize: true,
+    // Carga el .env una sola vez y lo deja disponible en toda la app (isGlobal: true)
+    // sin esto, ConfigService no tendría de dónde leer DATABASE_URL más abajo.
+    ConfigModule.forRoot({ isGlobal: true }),
+
+    // Configuración de TypeORM con Postgres (Supabase).
+    // forRootAsync en vez de forRoot porque necesitamos inyectar ConfigService
+    // para leer la connection string del .env antes de armar la conexión.
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        url: config.get<string>('DATABASE_URL'),
+        entities: [Usuario, SolicSacramento, Evento],
+        synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
+        ssl: {
+          rejectUnauthorized: false, // Supabase exige conexión SSL
+        },
+      }),
     }),
+
     // Configuración del módulo de limitación de solicitudes (throttling)
     ThrottlerModule.forRoot([
       {

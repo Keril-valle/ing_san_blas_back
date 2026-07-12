@@ -4,7 +4,7 @@ import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Usuario } from './Entities/usuario.entity';
 import { Repository, DataSource } from 'typeorm';
-import getNombreCedula from 'src/Common/Helpers/nombreCedula';
+import getNombreCedula from '../Common/Helpers/nombreCedula';
 
 @Injectable()
 export class UsuarioService {
@@ -41,7 +41,7 @@ export class UsuarioService {
   }
   async findByIdWithRefreshToken(id: number) {
     const rows = await this.usuarioRepository.manager.query(
-      'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = ?',
+      'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = $1',
       [id],
     );
     return rows.length > 0 ? (rows[0] as Usuario) : null;
@@ -49,7 +49,7 @@ export class UsuarioService {
 
   async setRefreshTokenHash(id: number, hash: string | null) {
     await this.usuarioRepository.manager.query(
-      'UPDATE usuario SET "refreshTokenHash" = ? WHERE id = ?',
+      'UPDATE usuario SET "refreshTokenHash" = $1 WHERE id = $2',
       [hash, id],
     );
   }

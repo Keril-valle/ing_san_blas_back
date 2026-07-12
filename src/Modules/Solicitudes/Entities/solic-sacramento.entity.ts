@@ -1,5 +1,5 @@
-import { EstadoSolicitud } from 'src/Common/Enums/EstadoSolicitud';
-import { TipoSacramento } from 'src/Common/Enums/TipoSacramento';
+import { EstadoSolicitud } from '../../../Common/Enums/EstadoSolicitud';
+import { TipoSacramento } from '../../../Common/Enums/TipoSacramento';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()

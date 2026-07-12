@@ -10,7 +10,7 @@ import {
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
-import { Public } from 'src/Auth/Decorators/public.decorator';
+import { Public } from '../Auth/Decorators/public.decorator';
 
 @Controller('usuario')
 export class UsuarioController {
