@@ -16,12 +16,12 @@ import { Public } from '../../Auth/Decorators/public.decorator';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
 
-@Controller('api/Evento')
+@Controller('Evento')
 export class EventoController {
   constructor(private readonly eventoService: EventoService) {}
 
   @Public()
-  //ruta para obtener todos los eventos publicos es http://localhost:3000/api/Eventos/publicos
+  //ruta para obtener todos los eventos publicos es http://localhost:3000/Evento/publicos
   @Get('publicos')
   findPublicos() {
     return this.eventoService.findPublicos();

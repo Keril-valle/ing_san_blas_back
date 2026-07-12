@@ -19,6 +19,15 @@ import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity
 import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
 import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
 import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registro-sacramentos.module';
+import { InscripcionCatequesis } from './Modules/Catequesis/Entities/inscripcion-catequesis.entity';
+import { Catequizando } from './Modules/Catequesis/Entities/catequizando.entity';
+import { BautismoCatequizando } from './Modules/Catequesis/Entities/bautismo-catequizando.entity';
+import { AdecuacionCatequizando } from './Modules/Catequesis/Entities/adecuacion-catequizando.entity';
+import { CondicionSaludCatequizando } from './Modules/Catequesis/Entities/condicion-salud-catequizando.entity';
+import { MadreCatequizando } from './Modules/Catequesis/Entities/madre-catequizando.entity';
+import { PagoInscripcionCatequesis } from './Modules/Catequesis/Entities/pago-inscripcion-catequesis.entity';
+import { PersonaInscribeCatequesis } from './Modules/Catequesis/Entities/persona-inscribe-catequesis.entity';
+import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
 
 @Module({
   imports: [
@@ -35,7 +44,7 @@ import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registr
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [Usuario, SolicSacramento, Evento, Donacion, Bautismo, Comunion, Confirmacion, Matrimonio],
+        entities: [Usuario, SolicSacramento, Evento, Donacion, Bautismo, Comunion, Confirmacion, Matrimonio, InscripcionCatequesis, Catequizando, BautismoCatequizando, AdecuacionCatequizando, CondicionSaludCatequizando, MadreCatequizando, PagoInscripcionCatequesis, PersonaInscribeCatequesis],
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL
@@ -56,6 +65,7 @@ import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registr
     EventosModule,
     DonacionesModule,
     RegistroSacramentosModule,
+    CatequesisModule,
   ],
   controllers: [AppController],
   providers: [
