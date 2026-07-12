@@ -2,8 +2,14 @@ packages:
   - '.'
 
 allowBuilds:
+  better-sqlite3: true
   unrs-resolver: true
 
 overrides:
+  # CVE patches
   multer: "2.2.0"
   js-yaml: "4.2.0"
+  # cross-spawn: CVE-2024-21538 (command injection) — patched in 7.0.6
+  cross-spawn: ">=7.0.6"
+  # semver: CVE-2022-25883 (ReDoS) — patched in 7.5.2
+  semver: ">=7.5.2"
