@@ -1,16 +1,25 @@
-// Auth/Guards/refresh-auth.guard.ts
 import {
   CanActivate,
   ExecutionContext,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class RefreshAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  private readonly refreshSecret: string;
+
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {
+    this.refreshSecret =
+      this.configService.get<string>('JWT_REFRESH_SECRET') ??
+      'secretRefreshToken';
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -20,10 +29,10 @@ export class RefreshAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: 'secretRefreshToken', // usa el secret/expiresIn global (refresh)
+        secret: this.refreshSecret,
       });
       request['user'] = payload;
-      request['refreshToken'] = token; // lo necesitamos para comparar el hash
+      request['refreshToken'] = token;
       return true;
     } catch {
       throw new UnauthorizedException();
