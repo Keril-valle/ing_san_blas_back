@@ -11,28 +11,24 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DonacionesService } from './donaciones.service';
 import { CreateDonacionDto } from './DTO/create-donacion.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
 
-@ApiTags('Donacion')
 @Controller('Donacion')
 export class DonacionesController {
   constructor(private readonly donacionesService: DonacionesService) {}
 
   @Get()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Listar donaciones (Admin)' })
   findAll() {
     return this.donacionesService.findAll();
   }
 
   @Get(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Obtener donación por ID (Admin)' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const donacion = await this.donacionesService.findById(id);
     if (!donacion) {
@@ -44,7 +40,7 @@ export class DonacionesController {
   @Public()
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crear solicitud de donación (público)' })
+  
   async create(@Body() createDonacionDto: CreateDonacionDto) {
     try {
       return await this.donacionesService.create(createDonacionDto);
@@ -57,9 +53,6 @@ export class DonacionesController {
 
   @Patch(':id/estado')
   @Roles(Role.ADMIN)
-  @ApiOperation({
-    summary: 'Actualizar estado de donación (Admin, body string JSON)',
-  })
   updateEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body() nuevoEstado: unknown,

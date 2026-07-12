@@ -8,9 +8,3 @@ export class DonacionResponseDto {
   detalle: string;
   estado: string;
 }
-
-export class UpdateDonacionEstadoResponseDto {
-  donacion: DonacionResponseDto;
-  correoEnviado: boolean;
-  mensajeCorreo: string;
-}
