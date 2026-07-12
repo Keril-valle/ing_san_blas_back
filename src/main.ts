@@ -5,6 +5,10 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const corsOrigins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
   // Configuración de Helmet para mejorar la seguridad de la aplicación
   //estoy usando helmet para proteger la app de vulnerabilidades conocidas, como XSS, clickjacking, etc.
@@ -12,7 +16,10 @@ async function bootstrap() {
   app.use(helmet());
 
   app.enableCors({
-    origin: ['http://localhost:4200', 'http://localhost:5173', 'http://localhost:3000'],
+    origin:
+      corsOrigins.length > 0
+        ? corsOrigins
+        : ['http://localhost:4200', 'http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
   });
   //esto sirve para usar class validator
