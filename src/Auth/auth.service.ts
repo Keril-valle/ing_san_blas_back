@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { LoginDto } from './DTO/login.dto';
@@ -14,37 +16,42 @@ import { createHash } from 'crypto';
 
 @Injectable()
 export class AuthService {
+  private readonly refreshSecret: string;
+
   constructor(
     private readonly usuarioService: UsuarioService,
     private readonly jwtService: JwtService,
-  ) {}
-  // Método para generar tokens de acceso y actualización para un usuario autenticado.
+    private readonly configService: ConfigService,
+  ) {
+    // Secret para refresh token desde env o fallback hardcoded
+    this.refreshSecret =
+      this.configService.get<string>('JWT_REFRESH_SECRET') ??
+      'secretRefreshToken';
+  }
+
   private async getTokens(userId: number, email: string, role: string) {
-    const payload = { jti: randomUUID(), sub: userId, email, role }; //siempre se usa informacion publica, no poner nada privado porque cualquiera lo puede ver
-    //jti al inicio para que el token difiera dentro de los primeros 72 bytes (límite de bcrypt)
+    const payload = { jti: randomUUID(), sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload), // usa el secret/expiresIn global (access) //firmamos el payload con la clave secreta
+      this.jwtService.signAsync(payload),
       this.jwtService.signAsync(payload, {
-        secret: 'secretRefreshToken', // usa el secret/expiresIn global (refresh)
+        secret: this.refreshSecret,
         expiresIn: '7d',
       }),
     ]);
 
     return { accessToken, refreshToken };
   }
-  // Método para generar un hash seguro del token de actualización utilizando SHA-256.
-  //esto retorna un input de 64 bytes (256 bits) sin importar el tamaño del token de entrada, lo que lo hace seguro para almacenar en la base de datos.
+
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
-  // Método para actualizar el hash del token de actualización en la base de datos.
+
   private async updateRefreshTokenHash(userId: number, refreshToken: string) {
     const hash = this.hashToken(refreshToken);
     await this.usuarioService.setRefreshTokenHash(userId, hash);
   }
 
-  // Método para autenticar un usuario mediante email y contraseña.
   async login(loginDto: LoginDto) {
     const user = await this.usuarioService.findByEmailWithPassword(
       loginDto.email,
@@ -65,7 +72,6 @@ export class AuthService {
     return { ...tokens, email: user.email };
   }
 
-  // Método para registrar un nuevo usuario y cifrar su contraseña antes de guardarla.
   async register(registerDto: RegisterDto) {
     const existingUser = await this.usuarioService.findOneByEmail(
       registerDto.email,
@@ -73,7 +79,6 @@ export class AuthService {
     if (existingUser) {
       throw new BadRequestException('Usuario ya existe');
     }
-    // esto da una vuelta de 12 veces al hash para hacerlo más seguro, pero también más lento de calcular, lo que dificulta los ataques de fuerza bruta.
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
     await this.usuarioService.create({
       nombre: registerDto.nombre,
@@ -83,7 +88,7 @@ export class AuthService {
 
     return this.login(registerDto);
   }
-  // Método para refrescar los tokens de acceso y actualización utilizando un token de actualización válido.
+
   async refreshTokens(userId: number, refreshToken: string) {
     const user = await this.usuarioService.findByIdWithRefreshToken(userId);
     if (!user || !user.refreshTokenHash)
@@ -92,7 +97,6 @@ export class AuthService {
     const incomingHash = this.hashToken(refreshToken);
     const matches = incomingHash === user.refreshTokenHash;
     if (!matches) {
-      // Si el hash del token de actualización no coincide, se elimina el hash de la base de datos y se lanza una excepción.
       await this.usuarioService.setRefreshTokenHash(userId, null);
       throw new ForbiddenException('Acceso denegado');
     }
@@ -102,7 +106,7 @@ export class AuthService {
 
     return tokens;
   }
-  // Método para cerrar sesión de un usuario, eliminando el hash del token de actualización de la base de datos.
+
   async logout(userId: number) {
     await this.usuarioService.setRefreshTokenHash(userId, null);
     return { message: 'Sesión cerrada' };

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createWriteStream, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -16,8 +16,10 @@ const ALLOWED_EXTENSIONS = new Set([
 
 @Injectable()
 export class CatequesisFileStorageService {
+  private readonly logger = new Logger(CatequesisFileStorageService.name);
   private readonly uploadRoot: string;
   private readonly maxFileSizeBytes: number;
+  private readonly storageAvailable: boolean;
 
   constructor(private readonly configService: ConfigService) {
     const uploadPath =
@@ -25,13 +27,31 @@ export class CatequesisFileStorageService {
     this.uploadRoot = join(process.cwd(), uploadPath);
     const maxMb = this.configService.get<number>('app.uploadMaxSizeMb') ?? 5;
     this.maxFileSizeBytes = maxMb * 1024 * 1024;
-    mkdirSync(this.uploadRoot, { recursive: true });
+
+    // Intentamos crear el directorio, si falla (Vercel = read-only) seguimos sin crash
+    let available = false;
+    try {
+      mkdirSync(this.uploadRoot, { recursive: true });
+      available = true;
+    } catch {
+      this.logger.warn(
+        `No se pudo crear ${this.uploadRoot} — el almacenamiento de archivos no estará disponible (probablemente Vercel).`,
+      );
+    }
+    this.storageAvailable = available;
   }
 
   async saveCatequesisFile(
     file: Express.Multer.File,
     category: string,
   ): Promise<string> {
+    if (!this.storageAvailable) {
+      throw new BadRequestException({
+        mensaje:
+          'El almacenamiento de archivos no está disponible en este entorno.',
+      });
+    }
+
     if (!file || file.size <= 0) {
       throw new BadRequestException({ mensaje: 'El archivo está vacío.' });
     }
@@ -64,7 +84,10 @@ export class CatequesisFileStorageService {
       await copyFile(file.path, absolutePath);
       await unlink(file.path).catch(() => undefined);
     } else if (file.stream) {
-      await pipeline(Readable.from(file.stream), createWriteStream(absolutePath));
+      await pipeline(
+        Readable.from(file.stream),
+        createWriteStream(absolutePath),
+      );
     } else {
       throw new BadRequestException({ mensaje: 'El archivo está vacío.' });
     }
