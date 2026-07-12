@@ -12,13 +12,11 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ComunionService } from './comunion.service';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
 import { normalizeComunionInput } from '../../Common/Utils/sacramento-input-normalizer';
 
-@ApiTags('Comunion')
 @Controller('Comunion')
 @Roles(Role.ADMIN)
 export class ComunionController {

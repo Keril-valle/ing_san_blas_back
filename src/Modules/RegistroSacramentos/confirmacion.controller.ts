@@ -12,13 +12,11 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfirmacionService } from './confirmacion.service';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
 import { normalizeConfirmacionInput } from '../../Common/Utils/sacramento-input-normalizer';
 
-@ApiTags('Confirmacion')
 @Controller('Confirmacion')
 @Roles(Role.ADMIN)
 export class ConfirmacionController {

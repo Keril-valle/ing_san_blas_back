@@ -12,13 +12,11 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MatrimonioService } from './matrimonio.service';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
 import { normalizeMatrimonioInput } from '../../Common/Utils/sacramento-input-normalizer';
 
-@ApiTags('Matrimonio')
 @Controller('Matrimonio')
 @Roles(Role.ADMIN)
 export class MatrimonioController {

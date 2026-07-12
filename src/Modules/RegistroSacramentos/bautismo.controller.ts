@@ -12,26 +12,22 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BautismoService } from './bautismo.service';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
 import { normalizeBautismoInput } from '../../Common/Utils/sacramento-input-normalizer';
 
-@ApiTags('Bautismo')
 @Controller('Bautismo')
 @Roles(Role.ADMIN)
 export class BautismoController {
   constructor(private readonly bautismoService: BautismoService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar registros de bautismo (Admin)' })
   findAll() {
     return this.bautismoService.findAll();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener registro de bautismo por ID (Admin)' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const record = await this.bautismoService.findById(id);
     if (!record) {
@@ -39,17 +35,31 @@ export class BautismoController {
     }
     return record;
   }
+// la ruta es http://localhost:3000/Bautismo
+/**
+{
+  
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "fechaNacimiento": "2000-01-01",
+  "lugarNacimiento": "Ciudad",
+  "nombrePadre": "Carlos",
+  "nombreMadre": "Maria",
+  "fechaBautismo": "2020-01-01",
+  "lugarBautismo": "Iglesia",
+  "nombrePadrino": "Jose",
+  "nombreMadrina": "Ana"
+}
+ */
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crear registro de bautismo (Admin)' })
   create(@Body() body: Record<string, unknown>) {
     return this.bautismoService.create(normalizeBautismoInput(body));
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Actualizar registro de bautismo (Admin)' })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: Record<string, unknown>,
@@ -69,7 +79,6 @@ export class BautismoController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar registro de bautismo (Admin)' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     const deleted = await this.bautismoService.remove(id);
     if (!deleted) {

@@ -14,6 +14,11 @@ import { Evento } from './Modules/Eventos/Entities/evento.entity';
 import { EventosModule } from './Modules/Eventos/evento.module';
 import { Donacion } from './Modules/Donaciones/Entities/donacion.entity';
 import { DonacionesModule } from './Modules/Donaciones/donaciones.module';
+import { Bautismo } from './Modules/RegistroSacramentos/Entities/bautismo.entity';
+import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity';
+import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
+import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
+import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registro-sacramentos.module';
 
 @Module({
   imports: [
@@ -30,7 +35,7 @@ import { DonacionesModule } from './Modules/Donaciones/donaciones.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [Usuario, SolicSacramento, Evento, Donacion],
+        entities: [Usuario, SolicSacramento, Evento, Donacion, Bautismo, Comunion, Confirmacion, Matrimonio],
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL
@@ -50,6 +55,7 @@ import { DonacionesModule } from './Modules/Donaciones/donaciones.module';
     SolicSacramentoModule,
     EventosModule,
     DonacionesModule,
+    RegistroSacramentosModule,
   ],
   controllers: [AppController],
   providers: [
