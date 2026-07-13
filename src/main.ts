@@ -10,11 +10,7 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  // Configuración de Helmet para mejorar la seguridad de la aplicación
-  //estoy usando helmet para proteger la app de vulnerabilidades conocidas, como XSS, clickjacking, etc.
-  //y la forma como funciona es que agrega cabeceras HTTP de seguridad a las respuestas del servidor, lo que ayuda a prevenir ataques comunes en aplicaciones web.
-  app.use(helmet());
-
+  // CORS primero para que los preflight OPTIONS se respondan antes que cualquier otro middleware
   app.enableCors({
     origin:
       corsOrigins.length > 0
@@ -22,6 +18,9 @@ async function bootstrap() {
         : ['http://localhost:4200', 'http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
   });
+
+  // Helmet después de CORS — agrega cabeceras de seguridad sin interferir con CORS
+  app.use(helmet());
   //esto sirve para usar class validator
   app.useGlobalPipes(
     new ValidationPipe({
