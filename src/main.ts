@@ -5,17 +5,28 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const corsOrigins = (process.env.CORS_ORIGINS ?? '')
+  const configuredCorsOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+  const defaultCorsOrigins = [
+    'http://localhost:4200',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:4200',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+  ];
+
+  const corsOrigins =
+    configuredCorsOrigins.length > 0
+      ? [...new Set([...configuredCorsOrigins, ...defaultCorsOrigins])]
+      : defaultCorsOrigins;
+
   // CORS primero para que los preflight OPTIONS se respondan antes que cualquier otro middleware
   app.enableCors({
-    origin:
-      corsOrigins.length > 0
-        ? corsOrigins
-        : ['http://localhost:4200', 'http://localhost:5173', 'http://localhost:3000'],
+    origin: corsOrigins,
     credentials: true,
   });
 
@@ -32,4 +43,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+
+void bootstrap();
