@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Usuario } from './Entities/usuario.entity';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import getNombreCedula from '../Common/Helpers/nombreCedula';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class UsuarioService {
   }
 
   findAll() {
-    return `This action returns all usuario`;
+    return this.usuarioRepository.find();
   }
 
   findOne(id: number) {
@@ -55,6 +55,7 @@ export class UsuarioService {
   }
 
   update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
+    
     return `This action updates a #${id} usuario`;
   }
 
@@ -66,6 +67,16 @@ export class UsuarioService {
     const data = await getNombreCedula(cedula);
     return data;
   }
+
+  async findByUserName(userName: string) {
+    const data = await this.usuarioRepository.find({
+      where: {
+        nombre: ILike(`%${userName}%`),
+      },
+    });
+    if (data.length === 0) {
+      throw new NotFoundException('No existen coincidencias');
+    }
+    return data;
+  }
 }
-
-

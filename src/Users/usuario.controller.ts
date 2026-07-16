@@ -25,25 +25,26 @@ export class UsuarioController {
   findAll() {
     return this.usuarioService.findAll();
   }
-   @Public()
-   // la ruta es http://localhost:3000/usuario/cedula/:cedula, donde :cedula es el parámetro que se pasa en la URL
-
-   @Get('cedula/:cedula')
-   //esto solo es un ejemplo de como se puede usar el servicio para obtener el nombre de una persona a partir de su cédula
-   async obtenerNombrePorCedula(@Param('cedula') cedula: string) {
-     const datosCedula = await this.usuarioService.obtenerNombrePorCedula(cedula);
-     return {
+  @Public() // la ruta es http://localhost:3000/usuario/cedula/:cedula, donde :cedula es el parámetro que se pasa en la URL
+  @Get('cedula/:cedula')
+  //esto solo es un ejemplo de como se puede usar el servicio para obtener el nombre de una persona a partir de su cédula
+  async obtenerNombrePorCedula(@Param('cedula') cedula: string) {
+    const datosCedula = await this.usuarioService.obtenerNombrePorCedula(cedula);
+    return {
       "mi nombre es": datosCedula?.nombre,
       "mi primer apellido es": datosCedula?.apellido1,
-      "mi segundo apellido es": datosCedula?.apellido2
-     }
-   }
+      "mi segundo apellido es": datosCedula?.apellido2,
+    };
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usuarioService.findOne(+id);
   }
-
+  @Get('nombre/:nombre')
+  findUserByName(@Param('nombre') userName: string) {
+    return this.usuarioService.findByUserName(userName);
+  }
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUsuarioDto: UpdateUsuarioDto) {
     return this.usuarioService.update(+id, updateUsuarioDto);
