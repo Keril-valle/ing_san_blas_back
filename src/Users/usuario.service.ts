@@ -55,7 +55,7 @@ export class UsuarioService {
     );
   }
 
-  async UserUpdate(id: number, updateUsuarioDto: UpdateUsuarioDto) {//falta la validacion del correo que no exista ya en la db
+  async UserUpdate(id: number, updateUsuarioDto: UpdateUsuarioDto) {
     const user = await this.usuarioRepository.findOneBy({ id });
 
     if (!user) {
@@ -70,10 +70,7 @@ export class UsuarioService {
       }
     }
     user.nombre = updateUsuarioDto.nombre ?? user.nombre;
-    user.email = updateUsuarioDto.email ?? user.email;
     return await this.usuarioRepository.save(user);
-    //hay alguien en el codigo que ya valida los requisitos de la contraseña, puedo reutilizarlo para la acutalizacion
-    //para comproobar que si se haga como tiene q hacerse
   }
 
   remove(id: number) {
