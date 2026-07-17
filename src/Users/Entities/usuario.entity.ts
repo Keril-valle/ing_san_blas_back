@@ -23,6 +23,3 @@ export class Usuario {
   @Column({ select: false, nullable: true, type: 'varchar' })
   refreshTokenHash: string | null;
 }
-
-
-//QUITAR EL CONFIRM PASSWORD, no tiene sentido guardarlo en la tabla
