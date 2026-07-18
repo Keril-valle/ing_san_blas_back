@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateUsuarioDto } from './DTO/create-usuario.dto';
+import { RegisterDto } from '../Auth/DTO/register.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Usuario } from './Entities/usuario.entity';
 import { Repository, ILike } from 'typeorm';
 import getNombreCedula from '../Common/Helpers/nombreCedula';
-import bcrypt from 'node_modules/bcryptjs/umd/types';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsuarioService {
@@ -14,8 +14,20 @@ export class UsuarioService {
     private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
-  create(createUsuarioDto: CreateUsuarioDto) {
-    return this.usuarioRepository.save(createUsuarioDto); //esto no se usa, cuando se hace un user se pasa por el register que tiene un controlador distinto
+  async createUser(registerDto: RegisterDto) {
+    const existingUser = await this.findOneByEmail(registerDto.email);
+    if (existingUser) {
+      throw new BadRequestException('El email ya está registrado');
+    }
+
+    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+    const user = this.usuarioRepository.create({
+      nombre: registerDto.nombre,
+      email: registerDto.email,
+      password: hashedPassword,
+    });
+
+    return this.usuarioRepository.save(user);
   }
 
   findAll() {
@@ -25,10 +37,12 @@ export class UsuarioService {
   findOne(id: number) {
     return this.usuarioRepository.findOneBy({ id });
   }
+
   findOneByEmail(email: string) {
     return this.usuarioRepository.findOneBy({ email });
   }
-  findByEmailWithPassword(email: string) {//esto lo usa Auth
+
+  findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
       where: { email },
       select: {
@@ -40,7 +54,8 @@ export class UsuarioService {
       },
     });
   }
-  async findByIdWithRefreshToken(id: number) {//esto lo usa Auth
+
+  async findByIdWithRefreshToken(id: number) {
     const rows = await this.usuarioRepository.manager.query(
       'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = $1',
       [id],
@@ -48,28 +63,31 @@ export class UsuarioService {
     return rows.length > 0 ? (rows[0] as Usuario) : null;
   }
 
-  async setRefreshTokenHash(id: number, hash: string | null) {//esto lo usa Auth
+  async setRefreshTokenHash(id: number, hash: string | null) {
     await this.usuarioRepository.manager.query(
       'UPDATE usuario SET "refreshTokenHash" = $1 WHERE id = $2',
       [hash, id],
     );
   }
 
-  async UserUpdate(id: number, updateUsuarioDto: UpdateUsuarioDto) {
+  async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
     const user = await this.usuarioRepository.findOneBy({ id });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
     }
 
-    if (updateUsuarioDto.password !== undefined) {//valida si el usuario solicita cambiar la contraseña
+    if (updateUsuarioDto.password !== undefined) {
       if (updateUsuarioDto.confirmPassword !== updateUsuarioDto.password) {
-        throw new BadRequestException('La contraseña no coincide');
-      } else {
-        user.password = await bcrypt.hash(updateUsuarioDto.password, 10);
+        throw new BadRequestException('Las contraseñas no coinciden');
       }
+      user.password = await bcrypt.hash(updateUsuarioDto.password, 12);
     }
-    user.nombre = updateUsuarioDto.nombre ?? user.nombre;
+
+    if (updateUsuarioDto.nombre !== undefined) {
+      user.nombre = updateUsuarioDto.nombre;
+    }
+
     return await this.usuarioRepository.save(user);
   }
 

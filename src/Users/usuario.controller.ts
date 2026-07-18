@@ -8,7 +8,7 @@ import {
   Delete,
 } from '@nestjs/common';
 import { UsuarioService } from './usuario.service';
-import { CreateUsuarioDto } from './DTO/create-usuario.dto';
+import { RegisterDto } from '../Auth/DTO/register.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Public } from '../Auth/Decorators/public.decorator';
 
@@ -17,17 +17,17 @@ export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) {}
 
   @Post()
-  create(@Body() createUsuarioDto: CreateUsuarioDto) {
-    return this.usuarioService.create(createUsuarioDto);
+  create(@Body() registerDto: RegisterDto) {
+    return this.usuarioService.createUser(registerDto);
   }
 
   @Get()
   findAll() {
     return this.usuarioService.findAll();
   }
-  @Public() // la ruta es http://localhost:3000/usuario/cedula/:cedula, donde :cedula es el parámetro que se pasa en la URL
+
+  @Public()
   @Get('cedula/:cedula')
-  //esto solo es un ejemplo de como se puede usar el servicio para obtener el nombre de una persona a partir de su cédula
   async obtenerNombrePorCedula(@Param('cedula') cedula: string) {
     const datosCedula = await this.usuarioService.obtenerNombrePorCedula(cedula);
     return {
@@ -41,14 +41,17 @@ export class UsuarioController {
   findOne(@Param('id') id: string) {
     return this.usuarioService.findOne(+id);
   }
+
   @Get('nombre/:nombre')
   findUserByName(@Param('nombre') userName: string) {
     return this.usuarioService.findByUserName(userName);
   }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUsuarioDto: UpdateUsuarioDto) {
-    return this.usuarioService.UserUpdate(+id, updateUsuarioDto);
+    return this.usuarioService.update(+id, updateUsuarioDto);
   }
+
   @Get('email/:email')
   findOneByEmail(@Param('email') email: string) {
     return this.usuarioService.findOneByEmail(email);

@@ -1,9 +1,9 @@
 import { OmitType, PartialType } from '@nestjs/mapped-types';
-import { CreateUsuarioDto } from './create-usuario.dto';
+import { RegisterDto } from '../../Auth/DTO/register.dto';
 import { IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 
 export class UpdateUsuarioDto extends PartialType(
-  OmitType(CreateUsuarioDto, ['email'] as const), //hereda todo menos el email
+  OmitType(RegisterDto, ['email'] as const),
 ) {
   @ValidateIf((object) => object.password !== undefined)
   @IsString()
