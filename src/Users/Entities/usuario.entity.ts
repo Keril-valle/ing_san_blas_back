@@ -22,4 +22,7 @@ export class Usuario {
   // usuario.entity.ts (agregar esta columna)
   @Column({ select: false, nullable: true, type: 'varchar' })
   refreshTokenHash: string | null;
+
+  @Column({ select: false, default: true })
+  IsActive: boolean;
 }
