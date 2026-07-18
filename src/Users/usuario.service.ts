@@ -15,9 +15,13 @@ export class UsuarioService {
   ) {}
 
   async createUser(registerDto: RegisterDto) {
+    if (registerDto.password !== registerDto.confirmPassword) {
+      throw new BadRequestException('Las contraseñas no coinciden');
+    }
+
     const existingUser = await this.findOneByEmail(registerDto.email);
     if (existingUser) {
-      throw new BadRequestException('El email ya está registrado');
+      throw new BadRequestException('El ingresado email ya está registrado');
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
