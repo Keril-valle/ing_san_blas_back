@@ -35,20 +35,20 @@ export class UsuarioService {
   }
 
   findAll() {
-    return this.usuarioRepository.find();
+    return this.usuarioRepository.find({ where: { IsActive: true } });
   }
 
   findOne(id: number) {
-    return this.usuarioRepository.findOneBy({ id });
+    return this.usuarioRepository.findOneBy({ id, IsActive: true });
   }
 
   findOneByEmail(email: string) {
-    return this.usuarioRepository.findOneBy({ email });
+    return this.usuarioRepository.findOneBy({ email, IsActive: true });
   }
 
   findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
-      where: { email },
+      where: { email, IsActive: true },
       select: {
         id: true,
         nombre: true,
@@ -61,7 +61,7 @@ export class UsuarioService {
 
   async findByIdWithRefreshToken(id: number) {
     const rows = await this.usuarioRepository.manager.query(
-      'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = $1',
+      'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = $1 AND "IsActive" = true',
       [id],
     );
     return rows.length > 0 ? (rows[0] as Usuario) : null;
@@ -75,7 +75,7 @@ export class UsuarioService {
   }
 
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
-    const user = await this.usuarioRepository.findOneBy({ id });
+    const user = await this.usuarioRepository.findOneBy({ id, IsActive: true });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
@@ -95,8 +95,15 @@ export class UsuarioService {
     return await this.usuarioRepository.save(user);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} usuario`;
+  async remove(id: number) {
+    const user = await this.usuarioRepository.findOneBy({ id, IsActive: true });
+
+    if (!user) {
+      throw new NotFoundException(`El usuario con el id ${id} no existe`);
+    }
+
+    user.IsActive = false;
+    return await this.usuarioRepository.save(user);
   }
 
   async obtenerNombrePorCedula(cedula: string) {
@@ -108,6 +115,7 @@ export class UsuarioService {
     const data = await this.usuarioRepository.find({
       where: {
         nombre: ILike(`%${userName}%`),
+        IsActive: true,
       },
     });
     if (data.length === 0) {
