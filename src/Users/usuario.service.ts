@@ -35,20 +35,20 @@ export class UsuarioService {
   }
 
   findAll() {
-    return this.usuarioRepository.find({ where: { IsActive: true } });
+    return this.usuarioRepository.find({ where: { isActive: true } });
   }
 
   findOne(id: number) {
-    return this.usuarioRepository.findOneBy({ id, IsActive: true });
+    return this.usuarioRepository.findOneBy({ id, isActive: true });
   }
 
   findOneByEmail(email: string) {
-    return this.usuarioRepository.findOneBy({ email, IsActive: true });
+    return this.usuarioRepository.findOneBy({ email, isActive: true });
   }
 
   findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
-      where: { email, IsActive: true },
+      where: { email, isActive: true },
       select: {
         id: true,
         nombre: true,
@@ -61,7 +61,7 @@ export class UsuarioService {
 
   async findByIdWithRefreshToken(id: number) {
     const rows = await this.usuarioRepository.manager.query(
-      'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = $1 AND "IsActive" = true',
+      'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = $1 AND "isActive" = true',
       [id],
     );
     return rows.length > 0 ? (rows[0] as Usuario) : null;
@@ -75,7 +75,7 @@ export class UsuarioService {
   }
 
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
-    const user = await this.usuarioRepository.findOneBy({ id, IsActive: true });
+    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
@@ -96,13 +96,13 @@ export class UsuarioService {
   }
 
   async remove(id: number) {
-    const user = await this.usuarioRepository.findOneBy({ id, IsActive: true });
+    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
     }
 
-    user.IsActive = false;
+    user.isActive = false;
     return await this.usuarioRepository.save(user);
   }
 
@@ -115,7 +115,7 @@ export class UsuarioService {
     const data = await this.usuarioRepository.find({
       where: {
         nombre: ILike(`%${userName}%`),
-        IsActive: true,
+        isActive: true,
       },
     });
     if (data.length === 0) {

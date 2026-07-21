@@ -2,7 +2,7 @@ import { Role } from '../../Common/Enums/Roles';
 import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 @Entity()
-@Index(['email'], { unique: true, where: '"IsActive" = true' })
+@Index(['email'], { unique: true, where: '"isActive" = true' })
 export class Usuario {
   @PrimaryGeneratedColumn()
   id: number;
@@ -23,5 +23,5 @@ export class Usuario {
   refreshTokenHash: string | null;
 
   @Column({ default: true })
-  IsActive: boolean;
+  isActive: boolean;
 }
