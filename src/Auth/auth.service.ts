@@ -1,7 +1,5 @@
 import {
-  BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -23,7 +21,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
-    // Secret para refresh token desde env o fallback hardcoded
     this.refreshSecret =
       this.configService.get<string>('JWT_REFRESH_SECRET') ??
       'secretRefreshToken';
@@ -73,19 +70,7 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.usuarioService.findOneByEmail(
-      registerDto.email,
-    );
-    if (existingUser) {
-      throw new BadRequestException('Usuario ya existe');
-    }
-    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
-    await this.usuarioService.create({
-      nombre: registerDto.nombre,
-      email: registerDto.email,
-      password: hashedPassword,
-    });
-
+    await this.usuarioService.createUser(registerDto);
     return this.login(registerDto);
   }
 

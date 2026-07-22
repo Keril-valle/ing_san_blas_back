@@ -1,7 +1,8 @@
 import { Role } from '../../Common/Enums/Roles';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 @Entity()
+@Index(['email'], { unique: true, where: '"isActive" = true' })
 export class Usuario {
   @PrimaryGeneratedColumn()
   id: number;
@@ -9,17 +10,18 @@ export class Usuario {
   @Column({ nullable: true })
   nombre: string;
 
-  @Column({ unique: true })
+  @Column()
   email: string;
 
   @Column({ select: false })
   password: string;
-  //cuidado con eso por la base de datos como estoy usando sqlite no me deja poner un enum
-  //cuando nos cambiemos a postgresql si nos va a dejar poner un enum
+
   @Column({ type: 'enum', default: Role.USER, enum: Role })
-  //@Column({ default: Role.USER })
   role: string;
-  // usuario.entity.ts (agregar esta columna)
+
   @Column({ select: false, nullable: true, type: 'varchar' })
   refreshTokenHash: string | null;
+
+  @Column({ default: true })
+  isActive: boolean;
 }
