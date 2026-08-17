@@ -12,10 +12,12 @@ import { BautismoController } from './bautismo.controller';
 import { ComunionController } from './comunion.controller';
 import { ConfirmacionController } from './confirmacion.controller';
 import { MatrimonioController } from './matrimonio.controller';
+import { SacramentoModule } from './sacramento.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Bautismo, Comunion, Confirmacion, Matrimonio]),
+    SacramentoModule,
   ],
   controllers: [
     BautismoController,

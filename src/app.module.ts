@@ -18,6 +18,7 @@ import { Bautismo } from './Modules/RegistroSacramentos/Entities/bautismo.entity
 import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity';
 import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
 import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
+import { Sacramento } from './Modules/RegistroSacramentos/Entities/sacramento.entity';
 import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registro-sacramentos.module';
 import { InscripcionCatequesis } from './Modules/Catequesis/Entities/inscripcion-catequesis.entity';
 import { Catequizando } from './Modules/Catequesis/Entities/catequizando.entity';
@@ -53,6 +54,7 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
           Comunion,
           Confirmacion,
           Matrimonio,
+          Sacramento,
           InscripcionCatequesis,
           Catequizando,
           BautismoCatequizando,
