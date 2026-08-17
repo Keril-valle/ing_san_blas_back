@@ -1,17 +1,20 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @Transform(({ value }) => value.trim())
   @IsString()
+  @IsNotEmpty()
   @MinLength(3)
   nombre: string;
 
   @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @Transform(({ value }) => value.trim())
   @IsString()
+  @IsNotEmpty()
   @MinLength(8)
   @Matches(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/,
@@ -21,4 +24,8 @@ export class RegisterDto {
     },
   )
   password: string;
+
+  @IsString()
+  @IsNotEmpty()
+  confirmPassword: string;
 }
