@@ -44,7 +44,24 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [Usuario, SolicSacramento, Evento, Donacion, Bautismo, Comunion, Confirmacion, Matrimonio, InscripcionCatequesis, Catequizando, BautismoCatequizando, AdecuacionCatequizando, CondicionSaludCatequizando, MadreCatequizando, PagoInscripcionCatequesis, PersonaInscribeCatequesis],
+        entities: [
+          Usuario,
+          SolicSacramento,
+          Evento,
+          Donacion,
+          Bautismo,
+          Comunion,
+          Confirmacion,
+          Matrimonio,
+          InscripcionCatequesis,
+          Catequizando,
+          BautismoCatequizando,
+          AdecuacionCatequizando,
+          CondicionSaludCatequizando,
+          MadreCatequizando,
+          PagoInscripcionCatequesis,
+          PersonaInscribeCatequesis,
+        ],
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL
