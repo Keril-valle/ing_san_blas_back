@@ -9,6 +9,7 @@ import { Bautismo } from './Modules/RegistroSacramentos/Entities/bautismo.entity
 import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity';
 import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
 import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
+import { Sacramento } from './Modules/RegistroSacramentos/Entities/sacramento.entity';
 import { InscripcionCatequesis } from './Modules/Catequesis/Entities/inscripcion-catequesis.entity';
 import { Catequizando } from './Modules/Catequesis/Entities/catequizando.entity';
 import { BautismoCatequizando } from './Modules/Catequesis/Entities/bautismo-catequizando.entity';
@@ -32,6 +33,7 @@ export default new DataSource({
     Comunion,
     Confirmacion,
     Matrimonio,
+    Sacramento,
     InscripcionCatequesis,
     Catequizando,
     BautismoCatequizando,
