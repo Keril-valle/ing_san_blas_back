@@ -29,11 +29,12 @@ export class UsuarioController {
   @Public()
   @Get('cedula/:cedula')
   async obtenerNombrePorCedula(@Param('cedula') cedula: string) {
-    const datosCedula = await this.usuarioService.obtenerNombrePorCedula(cedula);
+    const datosCedula =
+      await this.usuarioService.obtenerNombrePorCedula(cedula);
     return {
-      "mi nombre es": datosCedula?.nombre,
-      "mi primer apellido es": datosCedula?.apellido1,
-      "mi segundo apellido es": datosCedula?.apellido2,
+      'mi nombre es': datosCedula?.nombre,
+      'mi primer apellido es': datosCedula?.apellido1,
+      'mi segundo apellido es': datosCedula?.apellido2,
     };
   }
 

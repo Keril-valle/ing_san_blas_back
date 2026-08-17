@@ -37,7 +37,10 @@ export class MatrimonioService {
     return this.toDto(saved);
   }
 
-  async update(id: number, input: MatrimonioInput): Promise<MatrimonioDto | null> {
+  async update(
+    id: number,
+    input: MatrimonioInput,
+  ): Promise<MatrimonioDto | null> {
     if (id !== input.id) {
       return null;
     }

@@ -63,10 +63,7 @@ export class CatequesisController {
 
   @Get('exportar')
   @Roles(Role.ADMIN)
-  async exportar(
-    @Query('estado') estado: string,
-    @Res() response: Response,
-  ) {
+  async exportar(@Query('estado') estado: string, @Res() response: Response) {
     if (!estado?.trim()) {
       throw new BadRequestException({ mensaje: 'El estado es obligatorio.' });
     }
@@ -248,7 +245,9 @@ export class CatequesisController {
       parent = '',
     ) => {
       for (const error of validationErrors) {
-        const property = parent ? `${parent}.${error.property}` : error.property;
+        const property = parent
+          ? `${parent}.${error.property}`
+          : error.property;
 
         if (error.constraints) {
           errores[property] = Object.values(error.constraints);
@@ -274,7 +273,9 @@ export class CatequesisController {
     }
 
     const message =
-      error instanceof Error ? error.message : 'No se pudo procesar la solicitud.';
+      error instanceof Error
+        ? error.message
+        : 'No se pudo procesar la solicitud.';
     throw new BadRequestException({ mensaje: message });
   }
 }

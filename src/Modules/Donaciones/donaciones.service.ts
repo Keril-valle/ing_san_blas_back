@@ -8,7 +8,6 @@ import { normalizeDonacionEstado } from '../../Common/Utils/donacion-estado';
 
 @Injectable()
 export class DonacionesService {
-
   constructor(
     @InjectRepository(Donacion)
     private readonly donacionesRepository: Repository<Donacion>,

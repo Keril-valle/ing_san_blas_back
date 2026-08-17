@@ -27,9 +27,13 @@ export class Catequizando {
   @Column({ name: 'DireccionExacta', type: 'text', nullable: true })
   direccionExacta: string | null;
 
-  @OneToOne(() => InscripcionCatequesis, (inscripcion) => inscripcion.catequizando, {
-    onDelete: 'CASCADE',
-  })
+  @OneToOne(
+    () => InscripcionCatequesis,
+    (inscripcion) => inscripcion.catequizando,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'InscripcionCatequesisId' })
   inscripcion: InscripcionCatequesis;
 }

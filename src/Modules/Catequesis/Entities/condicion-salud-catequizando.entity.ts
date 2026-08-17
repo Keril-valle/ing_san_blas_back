@@ -15,7 +15,11 @@ export class CondicionSaludCatequizando {
   @Column({ name: 'InscripcionCatequesisId' })
   inscripcionCatequesisId: number;
 
-  @Column({ name: 'PortadorEnfermedadCronica', type: 'boolean', nullable: true })
+  @Column({
+    name: 'PortadorEnfermedadCronica',
+    type: 'boolean',
+    nullable: true,
+  })
   portadorEnfermedadCronica: boolean | null;
 
   @Column({ name: 'DescripcionEnfermedad', type: 'text', nullable: true })

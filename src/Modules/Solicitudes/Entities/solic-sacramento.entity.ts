@@ -33,4 +33,16 @@ export class SolicSacramento {
 
   @Column({ default: EstadoSolicitud.PENDIENTE })
   Estado?: string;
+
+  @Column({ nullable: true })
+  MotivoRechazo?: string;
+
+  @Column({ nullable: true })
+  DetalleRechazo?: string;
+
+  @Column({ nullable: true })
+  RechazadoPor?: number;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  FechaRechazo?: Date;
 }

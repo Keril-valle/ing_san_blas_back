@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterDto } from '../Auth/DTO/register.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';

@@ -48,7 +48,9 @@ export class DatosCatequizandoDto {
   fechaNacimiento: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'La dirección exacta del catequizando es obligatoria.' })
+  @IsNotEmpty({
+    message: 'La dirección exacta del catequizando es obligatoria.',
+  })
   direccionExacta: string;
 }
 
@@ -80,7 +82,9 @@ export class DatosAdecuacionDto {
   })
   requiereAdecuacionCentroEducativo: boolean;
 
-  @ValidateIf((dto: DatosAdecuacionDto) => dto.requiereAdecuacionCentroEducativo)
+  @ValidateIf(
+    (dto: DatosAdecuacionDto) => dto.requiereAdecuacionCentroEducativo,
+  )
   @IsString()
   @IsNotEmpty({
     message:
@@ -127,11 +131,15 @@ export class DatosMadreDto {
   ciudad: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'La provincia de la madre o encargada es obligatoria.' })
+  @IsNotEmpty({
+    message: 'La provincia de la madre o encargada es obligatoria.',
+  })
   provincia: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'El teléfono de la madre o encargada es obligatorio.' })
+  @IsNotEmpty({
+    message: 'El teléfono de la madre o encargada es obligatorio.',
+  })
   telefono: string;
 }
 
@@ -237,8 +245,9 @@ export class ActualizarEstadoInscripcionDto {
   })
   estado: string;
 
-  @ValidateIf((dto: ActualizarEstadoInscripcionDto) =>
-    dto.estado?.toLowerCase() === 'rechazada',
+  @ValidateIf(
+    (dto: ActualizarEstadoInscripcionDto) =>
+      dto.estado?.toLowerCase() === 'rechazada',
   )
   @IsString()
   @IsNotEmpty({
