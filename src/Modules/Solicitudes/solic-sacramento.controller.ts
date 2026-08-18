@@ -8,12 +8,15 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Query,
   Req,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { CambiarEstadoSolicitudDto } from './DTO/cambiar-estado-solicitud.dto';
 import { RechazarSolicitudDto } from './DTO/rechazar-solicitud.dto';
+import { SearchSolicSacramentoDto } from './DTO/search-solic-sacramento.dto';
 import { SolicSacramentoService } from './solic-sacramento.service';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
 import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
@@ -32,9 +35,10 @@ export class SolicSacramentoController {
     return this.solicSacraService.create(createSolicSacramentoDto);
   }
 
+  @SkipThrottle()
   @Get()
-  findAll() {
-    return this.solicSacraService.findAll();
+  findAll(@Query() filters: SearchSolicSacramentoDto) {
+    return this.solicSacraService.findAll(filters);
   }
 
   @Get('buscar/nombre/:nombre')

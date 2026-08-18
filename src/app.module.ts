@@ -76,8 +76,8 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
     // Configuración del módulo de limitación de solicitudes (throttling)
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, //el limite de peticiones por minuto es de 10, si se supera este limite se bloquea la IP por 1 minuto
-        limit: 10,
+        ttl: 60000,
+        limit: 100,
       },
     ]),
     UsuarioModule,
