@@ -35,8 +35,8 @@ export class BautismoController {
     }
     return record;
   }
-// la ruta es http://localhost:3000/Bautismo
-/**
+  // la ruta es http://localhost:3000/Bautismo
+  /**
 {
   
   "nombre": "Juan",

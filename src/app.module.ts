@@ -9,6 +9,7 @@ import { AuthModule } from './Auth/auth.module';
 import { UsuarioModule } from './Users/usuario.module';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';
+import { HistorialRechazos } from './Modules/Solicitudes/Entities/historial-rechazos.entity';
 import { SolicSacramentoModule } from './Modules/Solicitudes/solic-sacramento.module';
 import { Evento } from './Modules/Eventos/Entities/evento.entity';
 import { EventosModule } from './Modules/Eventos/evento.module';
@@ -18,6 +19,7 @@ import { Bautismo } from './Modules/RegistroSacramentos/Entities/bautismo.entity
 import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity';
 import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
 import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
+import { Sacramento } from './Modules/RegistroSacramentos/Entities/sacramento.entity';
 import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registro-sacramentos.module';
 import { InscripcionCatequesis } from './Modules/Catequesis/Entities/inscripcion-catequesis.entity';
 import { Catequizando } from './Modules/Catequesis/Entities/catequizando.entity';
@@ -44,7 +46,26 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [Usuario, SolicSacramento, Evento, Donacion, Bautismo, Comunion, Confirmacion, Matrimonio, InscripcionCatequesis, Catequizando, BautismoCatequizando, AdecuacionCatequizando, CondicionSaludCatequizando, MadreCatequizando, PagoInscripcionCatequesis, PersonaInscribeCatequesis],
+        entities: [
+          Usuario,
+          SolicSacramento,
+          HistorialRechazos,
+          Evento,
+          Donacion,
+          Bautismo,
+          Comunion,
+          Confirmacion,
+          Matrimonio,
+          Sacramento,
+          InscripcionCatequesis,
+          Catequizando,
+          BautismoCatequizando,
+          AdecuacionCatequizando,
+          CondicionSaludCatequizando,
+          MadreCatequizando,
+          PagoInscripcionCatequesis,
+          PersonaInscribeCatequesis,
+        ],
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL

@@ -16,7 +16,9 @@ const COLUMNAS_EXPORTADAS = [
 export class CatequesisExportService {
   constructor(private readonly catequesisService: CatequesisService) {}
 
-  async exportar(estado: string): Promise<{ buffer: Buffer; fileName: string }> {
+  async exportar(
+    estado: string,
+  ): Promise<{ buffer: Buffer; fileName: string }> {
     const filas = await this.catequesisService.findForExport(estado);
     const buffer = await this.generarContenidoExcel(filas, estado);
 

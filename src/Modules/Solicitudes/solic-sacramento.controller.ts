@@ -8,14 +8,18 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { CambiarEstadoSolicitudDto } from './DTO/cambiar-estado-solicitud.dto';
+import { RechazarSolicitudDto } from './DTO/rechazar-solicitud.dto';
 import { SolicSacramentoService } from './solic-sacramento.service';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
 import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
 import { Public } from '../../Auth/Decorators/public.decorator';
+import { Roles } from '../../Auth/Decorators/roles.decorator';
+import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
 
 @Controller('solic-sacramento')
 export class SolicSacramentoController {
@@ -65,6 +69,12 @@ export class SolicSacramentoController {
     return this.solicSacraService.verEstadoSolicitud(+id);
   }
 
+  @Get('historial-rechazos')
+  @Roles('Administrador', 'Secretario')
+  async obtenerHistorialRechazos() {
+    return this.solicSacraService.obtenerHistorialRechazos();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.solicSacraService.findOne(+id);
@@ -93,5 +103,20 @@ export class SolicSacramentoController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.solicSacraService.remove(+id);
+  }
+
+  @Patch(':id/rechazar')
+  @Roles('Administrador', 'Secretario')
+  async rechazarSolicitud(
+    @Param('id') id: string,
+    @Body() rechazarSolicitudDto: RechazarSolicitudDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.solicSacraService.rechazarSolicitud(
+      +id,
+      rechazarSolicitudDto.motivoRechazo,
+      rechazarSolicitudDto.detalleRechazo,
+      req.user.sub,
+    );
   }
 }

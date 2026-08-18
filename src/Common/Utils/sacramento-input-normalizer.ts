@@ -73,12 +73,8 @@ export const normalizeBautismoInput = (
   nombreParroquia: String(
     pick(source, ['nombreParroquia', 'NombreParroquia']) ?? '',
   ),
-  fechaBautismo: String(
-    pick(source, ['fechaBautismo', 'FechaBautismo']) ?? '',
-  ),
-  annioBautismo: Number(
-    pick(source, ['annioBautismo', 'AnnioBautismo']) ?? 0,
-  ),
+  fechaBautismo: String(pick(source, ['fechaBautismo', 'FechaBautismo']) ?? ''),
+  annioBautismo: Number(pick(source, ['annioBautismo', 'AnnioBautismo']) ?? 0),
   prebispero: String(pick(source, ['prebispero', 'Prebispero']) ?? ''),
   fechaNacimiento: String(
     pick(source, ['fechaNacimiento', 'FechaNacimiento']) ?? '',
@@ -101,12 +97,8 @@ export const normalizeComunionInput = (
   nombre: String(pick(source, ['nombre', 'Nombre']) ?? ''),
   diaComunion: String(pick(source, ['diaComunion', 'DiaComunion']) ?? ''),
   mesComunion: String(pick(source, ['mesComunion', 'MesComunion']) ?? ''),
-  annioComunion: Number(
-    pick(source, ['annioComunion', 'AnnioComunion']) ?? 0,
-  ),
-  lugarComunion: String(
-    pick(source, ['lugarComunion', 'LugarComunion']) ?? '',
-  ),
+  annioComunion: Number(pick(source, ['annioComunion', 'AnnioComunion']) ?? 0),
+  lugarComunion: String(pick(source, ['lugarComunion', 'LugarComunion']) ?? ''),
 });
 
 export const normalizeConfirmacionInput = (
@@ -138,12 +130,8 @@ export const normalizeMatrimonioInput = (
   nombreContrayente2: String(
     pick(source, ['nombreContrayente2', 'NombreContrayente2']) ?? '',
   ),
-  diaMatrimonio: String(
-    pick(source, ['diaMatrimonio', 'DiaMatrimonio']) ?? '',
-  ),
-  mesMatrimonio: String(
-    pick(source, ['mesMatrimonio', 'MesMatrimonio']) ?? '',
-  ),
+  diaMatrimonio: String(pick(source, ['diaMatrimonio', 'DiaMatrimonio']) ?? ''),
+  mesMatrimonio: String(pick(source, ['mesMatrimonio', 'MesMatrimonio']) ?? ''),
   annioMatrimonio: Number(
     pick(source, ['annioMatrimonio', 'AnnioMatrimonio']) ?? 0,
   ),
