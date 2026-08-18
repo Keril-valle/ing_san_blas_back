@@ -115,6 +115,29 @@ export class SolicSacramentoService {
     return solicitud.Estado;
   }
 
+  async obtenerHistorialRechazos() {
+    const registros = await this.historialRechazosRepository.find({
+      order: { creadoEn: 'DESC' },
+      relations: {
+        solicitud: true,
+        usuario: true,
+      },
+    });
+
+    return registros.map((registro) => ({
+      id: registro.id,
+      solicitud_id: registro.solicitudId,
+      usuario_id: registro.usuarioId,
+      motivo: registro.motivo,
+      detalle: registro.detalle,
+      creado_en: registro.creadoEn,
+      nombre_solicitante: registro.solicitud
+        ? `${registro.solicitud.Nombre} ${registro.solicitud.PrimerApellido ?? ''} ${registro.solicitud.SegundoApellido ?? ''}`.trim()
+        : null,
+      nombre_usuario_rechazo: registro.usuario?.nombre ?? null,
+    }));
+  }
+
   async update(id: number, updateSolicSacramentoDto: UpdateSolicSacramentoDto) {
     const solicitud = await this.solicSacraRepository.findOneBy({ id });
     if (!solicitud) {

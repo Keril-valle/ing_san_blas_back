@@ -69,6 +69,12 @@ export class SolicSacramentoController {
     return this.solicSacraService.verEstadoSolicitud(+id);
   }
 
+  @Get('historial-rechazos')
+  @Roles('Administrador', 'Secretario')
+  async obtenerHistorialRechazos() {
+    return this.solicSacraService.obtenerHistorialRechazos();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.solicSacraService.findOne(+id);
