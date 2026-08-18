@@ -11,7 +11,12 @@ export class Sacramento {
   @Column({ name: 'PrimerNombre', length: 100 })
   primerNombre: string;
 
-  @Column({ name: 'SegundoNombre', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'SegundoNombre',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   segundoNombre: string | null;
 
   @Column({ name: 'PrimerApellido', length: 100 })

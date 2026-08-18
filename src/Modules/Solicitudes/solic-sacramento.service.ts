@@ -4,10 +4,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, QueryRunner } from 'typeorm';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { SolicSacramento } from './Entities/solic-sacramento.entity';
+import { HistorialRechazos } from './Entities/historial-rechazos.entity';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
 import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
 import { isEstadoPendiente } from '../../Common/Utils/estado-solicitud';
@@ -17,6 +18,8 @@ export class SolicSacramentoService {
   constructor(
     @InjectRepository(SolicSacramento)
     private readonly solicSacraRepository: Repository<SolicSacramento>,
+    @InjectRepository(HistorialRechazos)
+    private readonly historialRechazosRepository: Repository<HistorialRechazos>,
   ) {}
 
   create(createSolicSacramentoDto: CreateSolicSacramentoDto) {
@@ -135,40 +138,66 @@ export class SolicSacramentoService {
     detalleRechazo: string | undefined,
     rechazadoPor: number,
   ) {
-    const solicitud = await this.solicSacraRepository.findOneBy({ id });
-    if (!solicitud) {
-      throw new NotFoundException(`Solicitud con ID ${id} no encontrada`);
+    const queryRunner =
+      this.solicSacraRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const solicitud = await queryRunner.manager.findOne(SolicSacramento, {
+        where: { id },
+      });
+      if (!solicitud) {
+        throw new NotFoundException(`Solicitud con ID ${id} no encontrada`);
+      }
+
+      if (!isEstadoPendiente(solicitud.Estado)) {
+        throw new BadRequestException(
+          `No se puede rechazar una solicitud que ya está ${solicitud.Estado}`,
+        );
+      }
+
+      if (!motivoRechazo || motivoRechazo.trim() === '') {
+        throw new BadRequestException(
+          'El motivo de rechazo no puede estar vacío',
+        );
+      }
+
+      if (detalleRechazo && detalleRechazo.length > 500) {
+        throw new BadRequestException(
+          'El detalle de rechazo no debe exceder 500 caracteres',
+        );
+      }
+
+      solicitud.Estado = 'Rechazado';
+      solicitud.MotivoRechazo = motivoRechazo;
+      solicitud.DetalleRechazo = detalleRechazo;
+      solicitud.RechazadoPor = rechazadoPor;
+      solicitud.FechaRechazo = new Date();
+
+      await queryRunner.manager.save(solicitud);
+
+      const historial = this.historialRechazosRepository.create({
+        solicitudId: solicitud.id,
+        usuarioId: rechazadoPor,
+        motivo: motivoRechazo,
+        detalle: detalleRechazo,
+        creadoEn: new Date(),
+      });
+
+      await queryRunner.manager.save(historial);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        mensaje: 'Solicitud rechazada exitosamente',
+        estado: 'Rechazado',
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    if (!isEstadoPendiente(solicitud.Estado)) {
-      throw new BadRequestException(
-        `No se puede rechazar una solicitud que ya está ${solicitud.Estado}`,
-      );
-    }
-
-    if (!motivoRechazo || motivoRechazo.trim() === '') {
-      throw new BadRequestException(
-        'El motivo de rechazo no puede estar vacío',
-      );
-    }
-
-    if (detalleRechazo && detalleRechazo.length > 500) {
-      throw new BadRequestException(
-        'El detalle de rechazo no debe exceder 500 caracteres',
-      );
-    }
-
-    solicitud.Estado = 'Rechazado';
-    solicitud.MotivoRechazo = motivoRechazo;
-    solicitud.DetalleRechazo = detalleRechazo;
-    solicitud.RechazadoPor = rechazadoPor;
-    solicitud.FechaRechazo = new Date();
-
-    await this.solicSacraRepository.save(solicitud);
-
-    return {
-      mensaje: 'Solicitud rechazada exitosamente',
-      estado: 'Rechazado',
-    };
   }
 }
