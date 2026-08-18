@@ -11,7 +11,6 @@ import { SacramentoService } from './sacramento.service';
 import { SearchSacramentoDto } from './DTO/search-sacramento.dto';
 import { Public } from 'src/Auth/Decorators/public.decorator';
 
- 
 // http://localhost:3000/sacramento/
 @Controller('sacramento')
 export class SacramentoController {
@@ -19,7 +18,7 @@ export class SacramentoController {
 
   // Busca registros usando cualquiera de los filtros permitidos.
   //
- @Public()
+  @Public()
   @Get('buscar')
   @HttpCode(HttpStatus.OK)
   async search(@Query() filters: SearchSacramentoDto) {

@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';
+import { HistorialRechazos } from './Modules/Solicitudes/Entities/historial-rechazos.entity';
 import { Evento } from './Modules/Eventos/Entities/evento.entity';
 import { Donacion } from './Modules/Donaciones/Entities/donacion.entity';
 import { Bautismo } from './Modules/RegistroSacramentos/Entities/bautismo.entity';
@@ -27,6 +28,7 @@ export default new DataSource({
   entities: [
     Usuario,
     SolicSacramento,
+    HistorialRechazos,
     Evento,
     Donacion,
     Bautismo,

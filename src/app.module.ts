@@ -9,6 +9,7 @@ import { AuthModule } from './Auth/auth.module';
 import { UsuarioModule } from './Users/usuario.module';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';
+import { HistorialRechazos } from './Modules/Solicitudes/Entities/historial-rechazos.entity';
 import { SolicSacramentoModule } from './Modules/Solicitudes/solic-sacramento.module';
 import { Evento } from './Modules/Eventos/Entities/evento.entity';
 import { EventosModule } from './Modules/Eventos/evento.module';
@@ -48,6 +49,7 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
         entities: [
           Usuario,
           SolicSacramento,
+          HistorialRechazos,
           Evento,
           Donacion,
           Bautismo,
