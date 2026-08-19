@@ -1,8 +1,14 @@
 import { EstadoSolicitud } from '../../../Common/Enums/EstadoSolicitud';
 import { TipoSacramento } from '../../../Common/Enums/TipoSacramento';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
+@Index('IDX_solic_sacramento_nombre', ['Nombre'])
+@Index('IDX_solic_sacramento_primer_apellido', ['PrimerApellido'])
+@Index('IDX_solic_sacramento_segundo_apellido', ['SegundoApellido'])
+@Index('IDX_solic_sacramento_cedula', ['Cedula'])
+@Index('IDX_solic_sacramento_estado', ['Estado'])
+@Index('IDX_solic_sacramento_tipo', ['TipoSacramento'])
 export class SolicSacramento {
   @PrimaryGeneratedColumn()
   id: number;

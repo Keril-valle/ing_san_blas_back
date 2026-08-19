@@ -1,4 +1,12 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { EstadoSolicitud } from '../../../Common/Enums/EstadoSolicitud';
 
 export class SearchSolicSacramentoDto {
@@ -15,4 +23,10 @@ export class SearchSolicSacramentoDto {
   @IsOptional()
   @IsEnum(EstadoSolicitud)
   estado?: EstadoSolicitud;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
 }

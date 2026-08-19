@@ -40,6 +40,22 @@ export class SolicSacramentoService {
       const nombre = filters.nombre?.trim();
       const cedula = filters.cedula?.trim();
       const estado = filters.estado;
+      const page = filters.page ?? 1;
+      const pageSize = 10;
+      const skip = (page - 1) * pageSize;
+
+      query.select([
+        'solic.id',
+        'solic.Nombre',
+        'solic.PrimerApellido',
+        'solic.SegundoApellido',
+        'solic.Cedula',
+        'solic.Correo',
+        'solic.Telefono',
+        'solic.TipoSacramento',
+        'solic.Motivo',
+        'solic.Estado',
+      ]);
 
       if (nombre) {
         query.andWhere(
@@ -58,8 +74,13 @@ export class SolicSacramentoService {
         query.andWhere('solic."Estado" = :estado', { estado });
       }
 
-      const result = await query.orderBy('solic.id', 'DESC').getMany();
-      return Array.isArray(result) ? result : [];
+      const [result, total] = await query
+        .orderBy('solic.id', 'DESC')
+        .take(pageSize)
+        .skip(skip)
+        .getManyAndCount();
+
+      return { data: result, total };
     } catch (error) {
       this.logger.error(
         'Error al consultar solicitudes sacramentales',
@@ -74,9 +95,10 @@ export class SolicSacramentoService {
   }
 
   async BuscarSolicPorNombre(nombre: string) {
-    const solicitudes = await this.solicSacraRepository.find({
-      where: { Nombre: nombre },
-    });
+    const solicitudes = await this.solicSacraRepository
+      .createQueryBuilder('solic')
+      .where('solic."Nombre" ILIKE :nombre', { nombre: `%${nombre.trim()}%` })
+      .getMany();
     if (solicitudes.length === 0) {
       throw new NotFoundException(
         `No se encontraron solicitudes con el nombre ${nombre}`,
@@ -86,9 +108,13 @@ export class SolicSacramentoService {
   }
 
   async BuscarSolicPorApellido(apellido: string) {
-    const solicitudes = await this.solicSacraRepository.find({
-      where: [{ PrimerApellido: apellido }, { SegundoApellido: apellido }],
-    });
+    const solicitudes = await this.solicSacraRepository
+      .createQueryBuilder('solic')
+      .where(
+        '(solic."PrimerApellido" ILIKE :apellido OR solic."SegundoApellido" ILIKE :apellido)',
+        { apellido: `%${apellido.trim()}%` },
+      )
+      .getMany();
     if (solicitudes.length === 0) {
       throw new NotFoundException(
         `No se encontraron solicitudes con el apellido ${apellido}`,
