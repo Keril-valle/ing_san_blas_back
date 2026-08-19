@@ -17,6 +17,7 @@ import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { CambiarEstadoSolicitudDto } from './DTO/cambiar-estado-solicitud.dto';
 import { RechazarSolicitudDto } from './DTO/rechazar-solicitud.dto';
 import { SearchSolicSacramentoDto } from './DTO/search-solic-sacramento.dto';
+import { BuscarSolicSacramentoDto } from './DTO/buscar-solic-sacramento.dto';
 import { SolicSacramentoService } from './solic-sacramento.service';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
 import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
@@ -39,6 +40,12 @@ export class SolicSacramentoController {
   @Get()
   findAll(@Query() filters: SearchSolicSacramentoDto) {
     return this.solicSacraService.findAll(filters);
+  }
+
+  @Get('buscar')
+  @Roles('admin', 'secretary', 'Administrador', 'Secretario')
+  buscar(@Query() filters: BuscarSolicSacramentoDto) {
+    return this.solicSacraService.buscar(filters);
   }
 
   @Get('buscar/nombre/:nombre')

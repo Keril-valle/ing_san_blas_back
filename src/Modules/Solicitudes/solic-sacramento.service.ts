@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { SearchSolicSacramentoDto } from './DTO/search-solic-sacramento.dto';
+import { BuscarSolicSacramentoDto } from './DTO/buscar-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { SolicSacramento } from './Entities/solic-sacramento.entity';
 import { HistorialRechazos } from './Entities/historial-rechazos.entity';
@@ -60,7 +61,7 @@ export class SolicSacramentoService {
 
       if (nombre) {
         query.andWhere(
-          `CONCAT(solic."Nombre", ' ', solic."PrimerApellido", ' ', COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
+          `(solic."Nombre" || ' ' || solic."PrimerApellido" || ' ' || COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
           { nombre: `%${nombre}%` },
         );
       }
@@ -88,6 +89,64 @@ export class SolicSacramentoService {
         error instanceof Error ? error.stack : String(error),
       );
       throw error;
+    }
+  }
+
+  async buscar(filters: BuscarSolicSacramentoDto = {}) {
+    try {
+      const query = this.solicSacraRepository.createQueryBuilder('solic');
+
+      query.select([
+        'solic.id',
+        'solic.Nombre',
+        'solic.PrimerApellido',
+        'solic.SegundoApellido',
+        'solic.Cedula',
+        'solic.Correo',
+        'solic.Telefono',
+        'solic.TipoSacramento',
+        'solic.Motivo',
+        'solic.Estado',
+      ]);
+
+      if (filters.nombre) {
+        query.andWhere(
+          `(solic."Nombre" || ' ' || solic."PrimerApellido" || ' ' || COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
+          { nombre: `%${filters.nombre}%` },
+        );
+      }
+
+      if (filters.cedula) {
+        query.andWhere('solic."Cedula" = :cedula', {
+          cedula: Number(filters.cedula),
+        });
+      }
+
+      if (filters.tipo) {
+        query.andWhere('solic."TipoSacramento" = :tipo', {
+          tipo: filters.tipo,
+        });
+      }
+
+      if (filters.estado) {
+        const estado =
+          filters.estado === 'Aprobada'
+            ? EstadoSolicitud.APROBADA
+            : filters.estado === 'Rechazada'
+              ? EstadoSolicitud.RECHAZADA
+              : EstadoSolicitud.PENDIENTE;
+        query.andWhere('solic."Estado" = :estado', { estado });
+      }
+
+      return await query.orderBy('solic.id', 'DESC').getMany();
+    } catch (error) {
+      this.logger.error(
+        'Error al procesar la búsqueda de solicitudes sacramentales',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Error al procesar la búsqueda, intente de nuevo',
+      );
     }
   }
 

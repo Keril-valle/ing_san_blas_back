@@ -90,7 +90,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return payload.message.join(' ');
       }
 
-      if (typeof payload.message === 'string' && this.isSafeUserMessage(payload.message)) {
+      if (
+        typeof payload.message === 'string' &&
+        this.isSafeUserMessage(payload.message)
+      ) {
         return payload.message;
       }
     }
@@ -104,7 +107,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     if (exception.getStatus() === HttpStatus.UNAUTHORIZED) {
-      return 'Su sesión ha expirado o no está autenticado.';
+      return 'No autorizado, debés iniciar sesión para acceder a esta función';
     }
 
     if (exception.getStatus() === HttpStatus.FORBIDDEN) {
