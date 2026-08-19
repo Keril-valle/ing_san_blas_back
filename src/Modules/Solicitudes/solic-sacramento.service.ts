@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
@@ -172,7 +173,17 @@ export class SolicSacramentoService {
     }
 
     solicitud.Estado = nuevoEstado;
-    return this.solicSacraRepository.save(solicitud);
+    try {
+      return await this.solicSacraRepository.save(solicitud);
+    } catch (error) {
+      this.logger.error(
+        `Error al guardar los cambios de la solicitud sacramental con ID ${id}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Error al guardar los cambios, intentá de nuevo',
+      );
+    }
   }
 
   async verEstadoSolicitud(id: number) {
