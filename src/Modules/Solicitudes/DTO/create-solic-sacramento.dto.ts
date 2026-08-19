@@ -4,6 +4,7 @@ import {
   IsString,
   IsEmail,
   IsEnum,
+  IsOptional,
   Length,
   Matches,
   MaxLength,
@@ -68,6 +69,11 @@ export class CreateSolicSacramentoDto {
 
   @IsEnum(TipoSacramento)
   TipoSacramento: TipoSacramento;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  FormaEntrega?: string;
 
   @Transform(normalizarTexto)
   @IsString()

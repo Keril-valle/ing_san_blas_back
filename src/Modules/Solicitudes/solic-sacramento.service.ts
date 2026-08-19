@@ -31,6 +31,7 @@ export class SolicSacramentoService {
   create(createSolicSacramentoDto: CreateSolicSacramentoDto) {
     const solicitud = this.solicSacraRepository.create({
       ...createSolicSacramentoDto,
+      FormaEntrega: createSolicSacramentoDto.FormaEntrega ?? 'Digital',
       Estado: EstadoSolicitud.PENDIENTE,
     });
     return this.solicSacraRepository.save(solicitud);

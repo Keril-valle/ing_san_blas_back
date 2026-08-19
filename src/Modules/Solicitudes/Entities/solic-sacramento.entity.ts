@@ -34,6 +34,9 @@ export class SolicSacramento {
   @Column({ type: 'varchar' })
   TipoSacramento: TipoSacramento;
 
+  @Column({ type: 'varchar', default: 'Digital' })
+  FormaEntrega: string;
+
   @Column()
   Motivo: string;
 
