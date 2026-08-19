@@ -12,6 +12,8 @@ import { BautismoController } from './bautismo.controller';
 import { ComunionController } from './comunion.controller';
 import { ConfirmacionController } from './confirmacion.controller';
 import { MatrimonioController } from './matrimonio.controller';
+import { BusquedaSacramentosController } from './busqueda-sacramentos.controller';
+import { BusquedaSacramentosService } from './busqueda-sacramentos.service';
 import { SacramentoModule } from './sacramento.module';
 
 @Module({
@@ -24,12 +26,14 @@ import { SacramentoModule } from './sacramento.module';
     ComunionController,
     ConfirmacionController,
     MatrimonioController,
+    BusquedaSacramentosController,
   ],
   providers: [
     BautismoService,
     ComunionService,
     ConfirmacionService,
     MatrimonioService,
+    BusquedaSacramentosService,
   ],
 })
 export class RegistroSacramentosModule {}
