@@ -155,6 +155,15 @@ export const formatHoraNacimiento = (value: unknown): string => {
     return '';
   }
 
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const hours = String(obj.hours ?? obj.hours ?? '');
+    const minutes = String(obj.minutes ?? obj.minutes ?? '');
+    if (hours !== '' || minutes !== '') {
+      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    }
+  }
+
   const raw = String(value);
   const match = raw.match(/(\d{1,2}):(\d{2})/);
   if (!match) {
