@@ -1,11 +1,13 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
+import { SearchSolicSacramentoDto } from './DTO/search-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { SolicSacramento } from './Entities/solic-sacramento.entity';
 import { HistorialRechazos } from './Entities/historial-rechazos.entity';
@@ -15,6 +17,8 @@ import { isEstadoPendiente } from '../../Common/Utils/estado-solicitud';
 
 @Injectable()
 export class SolicSacramentoService {
+  private readonly logger = new Logger(SolicSacramentoService.name);
+
   constructor(
     @InjectRepository(SolicSacramento)
     private readonly solicSacraRepository: Repository<SolicSacramento>,
@@ -30,8 +34,39 @@ export class SolicSacramentoService {
     return this.solicSacraRepository.save(solicitud);
   }
 
-  findAll() {
-    return this.solicSacraRepository.find();
+  async findAll(filters: SearchSolicSacramentoDto = {}) {
+    try {
+      const query = this.solicSacraRepository.createQueryBuilder('solic');
+      const nombre = filters.nombre?.trim();
+      const cedula = filters.cedula?.trim();
+      const estado = filters.estado;
+
+      if (nombre) {
+        query.andWhere(
+          `CONCAT(solic."Nombre", ' ', solic."PrimerApellido", ' ', COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
+          { nombre: `%${nombre}%` },
+        );
+      }
+
+      if (cedula) {
+        query.andWhere('CAST(solic."Cedula" AS TEXT) ILIKE :cedula', {
+          cedula: `%${cedula}%`,
+        });
+      }
+
+      if (estado) {
+        query.andWhere('solic."Estado" = :estado', { estado });
+      }
+
+      const result = await query.orderBy('solic.id', 'DESC').getMany();
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      this.logger.error(
+        'Error al consultar solicitudes sacramentales',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
   }
 
   findOne(id: number) {
