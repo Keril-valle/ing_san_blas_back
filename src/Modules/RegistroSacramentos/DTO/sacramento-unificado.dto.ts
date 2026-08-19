@@ -1,4 +1,5 @@
-export type TipoSacramento = 'Bautismo' | 'Comunion' | 'Confirmacion' | 'Matrimonio';
+export type TipoSacramento =
+  'Bautismo' | 'Comunion' | 'Confirmacion' | 'Matrimonio';
 
 /** Item unificado devuelto por la búsqueda. Alineado a la forma que arma el frontend. */
 export class SacramentoUnificadoDto {

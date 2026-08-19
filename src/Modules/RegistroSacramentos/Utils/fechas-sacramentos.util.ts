@@ -60,7 +60,9 @@ export function parseFechaDDMMAAAA(
   const anio = Number(match[3]);
 
   if (mes < 1 || mes > 12 || dia < 1 || dia > 31) {
-    throw new Error('La fecha ingresada no es válida. Revise e intente de nuevo.');
+    throw new Error(
+      'La fecha ingresada no es válida. Revise e intente de nuevo.',
+    );
   }
 
   const fecha = new Date(Date.UTC(anio, mes - 1, dia));
@@ -70,7 +72,9 @@ export function parseFechaDDMMAAAA(
     fecha.getUTCDate() === dia;
 
   if (!valido) {
-    throw new Error('La fecha ingresada no es válida. Revise e intente de nuevo.');
+    throw new Error(
+      'La fecha ingresada no es válida. Revise e intente de nuevo.',
+    );
   }
 
   return {

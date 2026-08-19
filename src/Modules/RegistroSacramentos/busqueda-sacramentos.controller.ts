@@ -45,9 +45,11 @@ export class BusquedaSacramentosController {
   }
 
   private validarFechas(filtros: BuscarSacramentosDto): void {
-    const fechas = [filtros.fecha, filtros.fechaDesde, filtros.fechaHasta].filter(
-      (f) => !!f,
-    );
+    const fechas = [
+      filtros.fecha,
+      filtros.fechaDesde,
+      filtros.fechaHasta,
+    ].filter((f) => !!f);
 
     for (const f of fechas) {
       this.validarFechaOpcional(f);

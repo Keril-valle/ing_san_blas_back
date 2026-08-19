@@ -50,7 +50,9 @@ export class BusquedaSacramentosService {
     const resultados = await Promise.all([
       this.buscarBautismos(nombre, cedula),
       cedula ? this.buscarComunionesVacio() : this.buscarComuniones(nombre),
-      cedula ? this.buscarConfirmacionesVacio() : this.buscarConfirmaciones(nombre),
+      cedula
+        ? this.buscarConfirmacionesVacio()
+        : this.buscarConfirmaciones(nombre),
       cedula ? this.buscarMatrimoniosVacio() : this.buscarMatrimonios(nombre),
     ]);
 
@@ -81,7 +83,9 @@ export class BusquedaSacramentosService {
 
     const total = todos.length;
     const inicio = (page - 1) * pageSize;
-    const pagina = todos.slice(inicio, inicio + pageSize).map((item) => item.dto);
+    const pagina = todos
+      .slice(inicio, inicio + pageSize)
+      .map((item) => item.dto);
 
     return {
       items: pagina,
@@ -132,7 +136,7 @@ export class BusquedaSacramentosService {
         fechaISO,
         dto: {
           id: b.id,
-          tipo: 'Bautismo' as TipoSacramento,
+          tipo: 'Bautismo',
           nombre:
             `${b.nombre} ${b.primerApellido} ${b.segundoApellido}`.trim() ||
             'Sin nombre',
@@ -163,7 +167,7 @@ export class BusquedaSacramentosService {
         fechaISO,
         dto: {
           id: c.id,
-          tipo: 'Comunion' as TipoSacramento,
+          tipo: 'Comunion',
           nombre: c.nombre || 'Sin nombre',
           cedula: '',
           fechaCelebracion: fechaISO ? this.isoADate(fechaISO) : '',
@@ -192,7 +196,7 @@ export class BusquedaSacramentosService {
         fechaISO,
         dto: {
           id: cf.id,
-          tipo: 'Confirmacion' as TipoSacramento,
+          tipo: 'Confirmacion',
           nombre: cf.nombre || 'Sin nombre',
           cedula: '',
           fechaCelebracion: fechaISO ? this.isoADate(fechaISO) : '',
@@ -231,7 +235,7 @@ export class BusquedaSacramentosService {
         fechaISO,
         dto: {
           id: m.id,
-          tipo: 'Matrimonio' as TipoSacramento,
+          tipo: 'Matrimonio',
           nombre:
             `${m.nombreContrayente} y ${m.nombreContrayente2}`.trim() ||
             'Sin nombre',

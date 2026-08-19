@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './Auth/auth.module';
 import { UsuarioModule } from './Users/usuario.module';
+import { LandingModule } from './landing/landing.module';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';
 import { HistorialRechazos } from './Modules/Solicitudes/Entities/historial-rechazos.entity';
@@ -30,6 +31,7 @@ import { MadreCatequizando } from './Modules/Catequesis/Entities/madre-catequiza
 import { PagoInscripcionCatequesis } from './Modules/Catequesis/Entities/pago-inscripcion-catequesis.entity';
 import { PersonaInscribeCatequesis } from './Modules/Catequesis/Entities/persona-inscribe-catequesis.entity';
 import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -87,6 +89,8 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
     DonacionesModule,
     RegistroSacramentosModule,
     CatequesisModule,
+    LandingModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
