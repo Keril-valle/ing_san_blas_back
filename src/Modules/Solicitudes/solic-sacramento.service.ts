@@ -138,6 +138,13 @@ export class SolicSacramentoService {
     if (!solicitud) {
       throw new NotFoundException(`Solicitud con ID ${id} no encontrada`);
     }
+
+    if (!isEstadoPendiente(solicitud.Estado)) {
+      throw new BadRequestException(
+        'Esta solicitud ya fue procesada y no puede modificarse',
+      );
+    }
+
     solicitud.Estado = nuevoEstado;
     return this.solicSacraRepository.save(solicitud);
   }
