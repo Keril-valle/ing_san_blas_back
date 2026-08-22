@@ -21,6 +21,15 @@ import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity
 import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
 import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
 import { Sacramento } from './Modules/RegistroSacramentos/Entities/sacramento.entity';
+import { PersonaSacramento } from './Modules/RegistroSacramentos/Entities/persona-sacramento.entity';
+import { ParroquiaSacramento } from './Modules/RegistroSacramentos/Entities/parroquia-sacramento.entity';
+import { PresbiteroSacramento } from './Modules/RegistroSacramentos/Entities/presbitero-sacramento.entity';
+import { SacramentoRegistro } from './Modules/RegistroSacramentos/Entities/sacramento-registro.entity';
+import { BautismoRegistro } from './Modules/RegistroSacramentos/Entities/bautismo-registro.entity';
+import { BautismoAbuelo } from './Modules/RegistroSacramentos/Entities/bautismo-abuelo.entity';
+import { ComunionRegistro } from './Modules/RegistroSacramentos/Entities/comunion-registro.entity';
+import { ConfirmacionRegistro } from './Modules/RegistroSacramentos/Entities/confirmacion-registro.entity';
+import { MatrimonioRegistro } from './Modules/RegistroSacramentos/Entities/matrimonio-registro.entity';
 import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registro-sacramentos.module';
 import { InscripcionCatequesis } from './Modules/Catequesis/Entities/inscripcion-catequesis.entity';
 import { Catequizando } from './Modules/Catequesis/Entities/catequizando.entity';
@@ -59,6 +68,15 @@ import { DashboardModule } from './dashboard/dashboard.module';
           Confirmacion,
           Matrimonio,
           Sacramento,
+          PersonaSacramento,
+          ParroquiaSacramento,
+          PresbiteroSacramento,
+          SacramentoRegistro,
+          BautismoRegistro,
+          BautismoAbuelo,
+          ComunionRegistro,
+          ConfirmacionRegistro,
+          MatrimonioRegistro,
           InscripcionCatequesis,
           Catequizando,
           BautismoCatequizando,

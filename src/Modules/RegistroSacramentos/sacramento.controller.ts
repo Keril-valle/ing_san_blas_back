@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { SacramentoService } from './sacramento.service';
 import { SearchSacramentoDto } from './DTO/search-sacramento.dto';
-import { Public } from 'src/Auth/Decorators/public.decorator';
+import { Public } from '../../Auth/Decorators/public.decorator';
 
 // http://localhost:3000/sacramento/
 @Controller('sacramento')
