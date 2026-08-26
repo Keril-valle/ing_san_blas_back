@@ -18,6 +18,7 @@ import {
 } from './DTO/create-sacramento-normalizado.dto';
 import { BusquedaNormalizadaService } from './busqueda-normalizada.service';
 
+//http://localhost:3000/Sacramentos-nuevos/buscar?tipoSacramento=1
 @Controller('Sacramentos-nuevos')
 @Roles(Role.ADMIN)
 export class BusquedaNormalizadaController {
@@ -27,6 +28,24 @@ export class BusquedaNormalizadaController {
   @Get('buscar')
   buscar(@Query() filtros: BuscarSacramentosNormalizadosDto) {
     return this.busquedaService.buscar(filtros);
+  }
+
+  // Catálogo de parroquias para el formulario de registro.
+  @Get('parroquias')
+  listarParroquias() {
+    return this.busquedaService.listarParroquias();
+  }
+
+  // Catálogo de presbíteros para el formulario de registro.
+  @Get('presbiteros')
+  listarPresbiteros() {
+    return this.busquedaService.listarPresbiteros();
+  }
+
+  // Todos los sacramentos de una persona, buscada por cédula exacta.
+  @Get('persona/cedula/:cedula')
+  obtenerSacramentosPersona(@Param('cedula') cedula: string) {
+    return this.busquedaService.obtenerSacramentosPorCedula(cedula);
   }
 
   // Registra un sacramento y su detalle específico de forma atómica.
