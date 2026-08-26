@@ -19,6 +19,9 @@ describe('BusquedaNormalizadaController', () => {
       obtener: jest.fn().mockResolvedValue({ id: 1 }),
       actualizar: jest.fn().mockResolvedValue({ id: 1 }),
       eliminar: jest.fn().mockResolvedValue(undefined),
+      listarParroquias: jest.fn().mockResolvedValue([{ id: 1 }]),
+      listarPresbiteros: jest.fn().mockResolvedValue([{ id: 2 }]),
+      obtenerSacramentosPorCedula: jest.fn().mockResolvedValue({ persona: {} }),
     } as unknown as BusquedaNormalizadaService;
     const controller = new BusquedaNormalizadaController(service);
     const createDto = { tipo: 'bautismo' };
@@ -28,9 +31,15 @@ describe('BusquedaNormalizadaController', () => {
     await expect(controller.obtener(1)).resolves.toEqual({ id: 1 });
     await expect(controller.actualizar(1, updateDto as never)).resolves.toEqual({ id: 1 });
     await expect(controller.eliminar(1)).resolves.toBeUndefined();
+    await expect(controller.listarParroquias()).resolves.toEqual([{ id: 1 }]);
+    await expect(controller.listarPresbiteros()).resolves.toEqual([{ id: 2 }]);
+    await expect(controller.obtenerSacramentosPersona('1-2345-6789')).resolves.toEqual({
+      persona: {},
+    });
     expect(service.crear).toHaveBeenCalledWith(createDto);
     expect(service.obtener).toHaveBeenCalledWith(1);
     expect(service.actualizar).toHaveBeenCalledWith(1, updateDto);
     expect(service.eliminar).toHaveBeenCalledWith(1);
+    expect(service.obtenerSacramentosPorCedula).toHaveBeenCalledWith('1-2345-6789');
   });
 });

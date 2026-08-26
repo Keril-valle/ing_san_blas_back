@@ -1,8 +1,10 @@
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
@@ -13,36 +15,83 @@ import {
 } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { TipoSacramentoRegistro } from '../../../Common/Enums/TipoSacramentoRegistro';
+import { ParentescoAbueloRegistro } from '../../../Common/Enums/ParentescoAbueloRegistro';
 
-class BautismoDatosDto {
-  @IsInt()
-  @Min(1)
-  idBautizado: number;
+// Datos de una persona tal como los envía el formulario (sin IDs).
+// El backend busca por cédula o crea la persona si no existe.
+export class PersonaInputDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  cedula?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nombre: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  idPadre?: number;
+  @IsString()
+  @MaxLength(100)
+  primerApellido?: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  idMadre?: number;
+  @IsString()
+  @MaxLength(100)
+  segundoApellido?: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  idPadrino?: number;
+  @IsString()
+  @MaxLength(100)
+  nacionalidad?: string;
+}
+
+export class AbueloInputDto extends PersonaInputDto {
+  @IsEnum(ParentescoAbueloRegistro)
+  parentesco: ParentescoAbueloRegistro;
+}
+
+export class BautismoDatosDto {
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  bautizado: PersonaInputDto;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  idMadrina?: number;
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  padre?: PersonaInputDto;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  idDeclarante?: number;
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  madre?: PersonaInputDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  padrino?: PersonaInputDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  madrina?: PersonaInputDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  declarante?: PersonaInputDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AbueloInputDto)
+  abuelos?: AbueloInputDto[];
 
   @IsOptional()
   @IsDateString()
@@ -88,20 +137,23 @@ class BautismoDatosDto {
   firmaParroco?: string;
 }
 
-class PersonaSacramentoDatosDto {
-  @IsInt()
-  @Min(1)
-  idPersona: number;
+export class PersonaDetalleSacramentoDto {
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  persona: PersonaInputDto;
 }
 
-class MatrimonioDatosDto {
-  @IsInt()
-  @Min(1)
-  idContrayente1: number;
+export class MatrimonioDatosDto {
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  contrayente1: PersonaInputDto;
 
-  @IsInt()
-  @Min(1)
-  idContrayente2: number;
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PersonaInputDto)
+  contrayente2: PersonaInputDto;
 
   @IsOptional()
   @IsString()
@@ -159,14 +211,14 @@ export class CreateSacramentoNormalizadoDto {
   @IsOptional()
   @IsObject()
   @ValidateNested()
-  @Type(() => PersonaSacramentoDatosDto)
-  comunion?: PersonaSacramentoDatosDto;
+  @Type(() => PersonaDetalleSacramentoDto)
+  comunion?: PersonaDetalleSacramentoDto;
 
   @IsOptional()
   @IsObject()
   @ValidateNested()
-  @Type(() => PersonaSacramentoDatosDto)
-  confirmacion?: PersonaSacramentoDatosDto;
+  @Type(() => PersonaDetalleSacramentoDto)
+  confirmacion?: PersonaDetalleSacramentoDto;
 
   @IsOptional()
   @IsObject()
