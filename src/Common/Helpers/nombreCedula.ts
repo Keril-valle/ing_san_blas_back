@@ -7,14 +7,20 @@ async function getNombreCedula(cedula: string): Promise<DatosCedula | null> {
     const data = await resp.json();
 
     if (data && data.nombre) {
-      const [apellido1, apellido2, ...resto] = data.nombre.trim().split(' ');
-      return {
-        apellido1,
-        apellido2,
-        nombre: resto.join(' '),
-      };
-    }
+      const parts = data.nombre.trim().split(' ');
 
+      if (parts.length >= 2) {
+        const firstName = parts[0];
+        const middleName = parts.length >= 3 ? parts[1] : "";
+        const surnames = parts.slice(parts.length >= 3 ? 2 : 1).join(" ");
+
+        return {
+          nombre: `${firstName} ${middleName}`.trim(),
+          apellido1: surnames.split(' ')[0] ?? "",
+          apellido2: surnames.split(' ').slice(1).join(" ") ?? "",
+        };
+      }
+    }
     return null;
   } catch (e) {
     return null;
