@@ -82,7 +82,11 @@ export class BusquedaNormalizadaService {
     const cedula = filtros.cedula?.trim();
     const nombreParam = nombre ? addParameter(`%${nombre}%`) : null;
     const apellidoParam = apellido ? addParameter(`%${apellido}%`) : null;
-    const cedulaParam = cedula ? addParameter(cedula) : null;
+    // La cédula se normaliza quitando guiones/espacios para que coincida tanto con
+    // formatos "5-0463-0675" como "504630675", y se busca por coincidencia parcial.
+    const cedulaParam = cedula
+      ? addParameter(`%${cedula.replace(/[-\s]/g, '')}%`)
+      : null;
     const desdeParam = filtros.fechaDesde
       ? addParameter(filtros.fechaDesde)
       : null;
@@ -98,7 +102,7 @@ export class BusquedaNormalizadaService {
 
       if (nombreParam) {
         where.push(
-          `(${personAliases.map((alias) => `lower(${alias}.nombre) LIKE lower(${nombreParam})`).join(' OR ')})`,
+          `(${personAliases.map((alias) => `lower(concat_ws(' ', ${alias}.nombre, ${alias}.primer_apellido, ${alias}.segundo_apellido)) LIKE lower(${nombreParam})`).join(' OR ')})`,
         );
       }
       if (apellidoParam) {
@@ -108,7 +112,7 @@ export class BusquedaNormalizadaService {
       }
       if (cedulaParam) {
         where.push(
-          `(${personAliases.map((alias) => `lower(trim(${alias}.cedula)) = lower(trim(${cedulaParam}))`).join(' OR ')})`,
+          `(${personAliases.map((alias) => `replace(lower(trim(${alias}.cedula)), '-', '') LIKE lower(${cedulaParam})`).join(' OR ')})`,
         );
       }
       if (desdeParam) where.push(`s.fecha_sacramento >= ${desdeParam}`);
