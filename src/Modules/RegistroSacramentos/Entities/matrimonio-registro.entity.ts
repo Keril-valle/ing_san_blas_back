@@ -23,6 +23,11 @@ export class MatrimonioRegistro {
   @Column({ name: 'asiento', type: 'varchar', length: 100, nullable: true })
   asiento: string | null;
 
-  @Column({ name: 'firma_parroco', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'firma_parroco',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   firmaParroco: string | null;
 }

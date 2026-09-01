@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsString,
   IsEmail,
-  IsEnum,
   IsOptional,
   Length,
   Matches,
@@ -12,7 +11,6 @@ import {
   Max,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { TipoSacramento } from '../../../Common/Enums/TipoSacramento';
 
 const normalizarTexto = ({ value }: { value: unknown }) =>
   typeof value === 'string'
@@ -28,9 +26,18 @@ export class CreateSolicSacramentoDto {
   @IsNotEmpty()
   @Length(1, 50)
   @Matches(nombreValido, {
-    message: 'Nombre solo puede contener letras, espacios o guiones',
+    message: 'PrimerNombre solo puede contener letras, espacios o guiones',
   })
-  Nombre: string;
+  PrimerNombre: string;
+
+  @IsOptional()
+  @Transform(normalizarTexto)
+  @IsString()
+  @Length(1, 50)
+  @Matches(nombreValido, {
+    message: 'SegundoNombre solo puede contener letras, espacios o guiones',
+  })
+  SegundoNombre?: string;
 
   @Transform(normalizarTexto)
   @IsString()
@@ -67,14 +74,6 @@ export class CreateSolicSacramentoDto {
   @Max(99999999)
   Telefono: number;
 
-  @IsEnum(TipoSacramento)
-  TipoSacramento: TipoSacramento;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(30)
-  FormaEntrega?: string;
-
   @Transform(normalizarTexto)
   @IsString()
   @IsNotEmpty()
@@ -83,4 +82,10 @@ export class CreateSolicSacramentoDto {
     message: 'Motivo contiene caracteres no permitidos',
   })
   Motivo: string;
+}
+
+export class CreateSolicSacramentoWithFileDto {
+  @IsString()
+  @IsNotEmpty()
+  Payload: string;
 }

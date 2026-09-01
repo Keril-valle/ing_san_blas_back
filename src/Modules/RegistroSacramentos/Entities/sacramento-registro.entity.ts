@@ -29,6 +29,10 @@ export class SacramentoRegistro {
   @Column({ name: 'creado_en', type: 'timestamptz', default: () => 'now()' })
   creadoEn: Date;
 
-  @Column({ name: 'actualizado_en', type: 'timestamptz', default: () => 'now()' })
+  @Column({
+    name: 'actualizado_en',
+    type: 'timestamptz',
+    default: () => 'now()',
+  })
   actualizadoEn: Date;
 }

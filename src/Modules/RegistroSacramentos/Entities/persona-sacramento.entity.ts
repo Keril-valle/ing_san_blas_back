@@ -15,9 +15,19 @@ export class PersonaSacramento {
   @Column({ name: 'primer_apellido', length: 100 })
   primerApellido: string;
 
-  @Column({ name: 'segundo_apellido', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'segundo_apellido',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   segundoApellido: string | null;
 
-  @Column({ name: 'nacionalidad', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'nacionalidad',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   nacionalidad: string | null;
 }

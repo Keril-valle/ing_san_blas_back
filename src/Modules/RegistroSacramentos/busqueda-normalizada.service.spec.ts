@@ -9,7 +9,10 @@ import { ComunionRegistro } from './Entities/comunion-registro.entity';
 import { PersonaSacramento } from './Entities/persona-sacramento.entity';
 import { SacramentoRegistro } from './Entities/sacramento-registro.entity';
 
-const personaRepo = (existente: Partial<PersonaSacramento> | null, savedId = 1) => {
+const personaRepo = (
+  existente: Partial<PersonaSacramento> | null,
+  savedId = 1,
+) => {
   const queryBuilder = {
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
@@ -17,9 +20,11 @@ const personaRepo = (existente: Partial<PersonaSacramento> | null, savedId = 1) 
   };
   return {
     createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-    save: jest.fn().mockImplementation((input) =>
-      Promise.resolve({ id: savedId, ...input }),
-    ),
+    save: jest
+      .fn()
+      .mockImplementation((input) =>
+        Promise.resolve({ id: savedId, ...input }),
+      ),
   };
 };
 
@@ -38,7 +43,9 @@ describe('BusquedaNormalizadaService', () => {
           parroquia: 'San Blas',
         },
       ]);
-    const service = new BusquedaNormalizadaService({ query } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      query,
+    } as unknown as DataSource);
     const filters: BuscarSacramentosNormalizadosDto = {
       nombre: 'ana',
       tipo: TipoSacramentoRegistro.Bautismo,
@@ -79,11 +86,21 @@ describe('BusquedaNormalizadaService', () => {
   });
 
   it('returns an empty paginated result without records', async () => {
-    const query = jest.fn().mockResolvedValueOnce([{ total: 0 }]).mockResolvedValueOnce([]);
-    const service = new BusquedaNormalizadaService({ query } as unknown as DataSource);
+    const query = jest
+      .fn()
+      .mockResolvedValueOnce([{ total: 0 }])
+      .mockResolvedValueOnce([]);
+    const service = new BusquedaNormalizadaService({
+      query,
+    } as unknown as DataSource);
 
     await expect(
-      service.buscar({ page: 1, pageSize: 20, sortBy: 'fecha', sortDirection: 'desc' }),
+      service.buscar({
+        page: 1,
+        pageSize: 20,
+        sortBy: 'fecha',
+        sortDirection: 'desc',
+      }),
     ).resolves.toMatchObject({ items: [], total: 0, totalPages: 1 });
   });
 
@@ -103,7 +120,9 @@ describe('BusquedaNormalizadaService', () => {
     };
     const detailRepository = {
       insert: jest.fn().mockResolvedValue(undefined),
-      findOneBy: jest.fn().mockResolvedValue({ idSacramento: 7, idBautizado: 3 }),
+      findOneBy: jest
+        .fn()
+        .mockResolvedValue({ idSacramento: 7, idBautizado: 3 }),
     };
     const manager = {
       getRepository: jest.fn((entity) => {
@@ -123,7 +142,9 @@ describe('BusquedaNormalizadaService', () => {
       ]),
     };
     const transaction = jest.fn((callback) => callback(manager));
-    const service = new BusquedaNormalizadaService({ transaction } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
 
     await service.crear({
       tipo: TipoSacramentoRegistro.Bautismo,
@@ -152,7 +173,14 @@ describe('BusquedaNormalizadaService', () => {
 
   it('reuses an existing person by cedula without creating a duplicate', async () => {
     const personas = personaRepo({ id: 5, cedula: '1-2345-6789' });
-    const parent = { id: 9, tipo: TipoSacramentoRegistro.Comunion, idParroquia: 2, idPresbitero: null, fechaSacramento: '2025-01-01', observaciones: null };
+    const parent = {
+      id: 9,
+      tipo: TipoSacramentoRegistro.Comunion,
+      idParroquia: 2,
+      idPresbitero: null,
+      fechaSacramento: '2025-01-01',
+      observaciones: null,
+    };
     const parentRepository = {
       save: jest.fn().mockResolvedValue(parent),
       findOneBy: jest.fn().mockResolvedValue(parent),
@@ -162,7 +190,9 @@ describe('BusquedaNormalizadaService', () => {
       findOneBy: jest.fn().mockResolvedValue({ idSacramento: 9, idPersona: 5 }),
     };
     const bautismoRepository = {
-      findOneBy: jest.fn().mockResolvedValue({ idSacramento: 1, idBautizado: 5 }),
+      findOneBy: jest
+        .fn()
+        .mockResolvedValue({ idSacramento: 1, idBautizado: 5 }),
     };
     const manager = {
       getRepository: jest.fn((entity) => {
@@ -183,7 +213,9 @@ describe('BusquedaNormalizadaService', () => {
       ]),
     };
     const transaction = jest.fn((callback) => callback(manager));
-    const service = new BusquedaNormalizadaService({ transaction } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
 
     await service.crear({
       tipo: TipoSacramentoRegistro.Comunion,
@@ -215,7 +247,9 @@ describe('BusquedaNormalizadaService', () => {
       ),
     };
     const transaction = jest.fn((callback) => callback(manager));
-    const service = new BusquedaNormalizadaService({ transaction } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
 
     await expect(
       service.crear({
@@ -244,7 +278,9 @@ describe('BusquedaNormalizadaService', () => {
       }),
     };
     const transaction = jest.fn((callback) => callback(manager));
-    const service = new BusquedaNormalizadaService({ transaction } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
 
     await expect(
       service.crear({
@@ -284,7 +320,9 @@ describe('BusquedaNormalizadaService', () => {
       ),
     };
     const transaction = jest.fn((callback) => callback(manager));
-    const service = new BusquedaNormalizadaService({ transaction } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
 
     await expect(
       service.crear({
@@ -316,17 +354,32 @@ describe('BusquedaNormalizadaService', () => {
       query: jest
         .fn()
         .mockResolvedValueOnce([
-          { id: 15, cedula: '1-2345-6789', nombre: 'Juan', primerApellido: 'Pérez', segundoApellido: null, nacionalidad: null },
+          {
+            id: 15,
+            cedula: '1-2345-6789',
+            nombre: 'Juan',
+            primerApellido: 'Pérez',
+            segundoApellido: null,
+            nacionalidad: null,
+          },
         ])
         .mockResolvedValueOnce([
-          { id: 10, tipo: 'bautismo', fechaSacramento: '2024-05-10', parroquia: { id: 1, nombre: 'San Blas' }, detalle: { bautizado: { id: 15 }, abuelos: [] } },
+          {
+            id: 10,
+            tipo: 'bautismo',
+            fechaSacramento: '2024-05-10',
+            parroquia: { id: 1, nombre: 'San Blas' },
+            detalle: { bautizado: { id: 15 }, abuelos: [] },
+          },
         ])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]),
     };
     const transaction = jest.fn((callback) => callback(manager));
-    const service = new BusquedaNormalizadaService({ transaction } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
 
     const result = await service.obtenerSacramentosPorCedula('1-2345-6789');
 
@@ -340,7 +393,9 @@ describe('BusquedaNormalizadaService', () => {
   it('throws 404 when the cedula does not match any person', async () => {
     const manager = { query: jest.fn().mockResolvedValueOnce([]) };
     const transaction = jest.fn((callback) => callback(manager));
-    const service = new BusquedaNormalizadaService({ transaction } as unknown as DataSource);
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
 
     await expect(
       service.obtenerSacramentosPorCedula('9-9999-9999'),
@@ -351,8 +406,12 @@ describe('BusquedaNormalizadaService', () => {
     const query = jest
       .fn()
       .mockResolvedValueOnce([{ id: 1, nombre: 'San Blas', canton: 'Nicoya' }])
-      .mockResolvedValueOnce([{ id: 2, nombre: 'Miguel', primerApellido: 'Sánchez' }]);
-    const service = new BusquedaNormalizadaService({ query } as unknown as DataSource);
+      .mockResolvedValueOnce([
+        { id: 2, nombre: 'Miguel', primerApellido: 'Sánchez' },
+      ]);
+    const service = new BusquedaNormalizadaService({
+      query,
+    } as unknown as DataSource);
 
     await expect(service.listarParroquias()).resolves.toEqual([
       { id: 1, nombre: 'San Blas', canton: 'Nicoya' },

@@ -55,10 +55,15 @@ interface BautismoResuelto {
 type PersonasResueltas =
   | { tipo: TipoSacramentoRegistro.Bautismo; bautismo: BautismoResuelto }
   | {
-      tipo: TipoSacramentoRegistro.Comunion | TipoSacramentoRegistro.Confirmacion;
+      tipo:
+        TipoSacramentoRegistro.Comunion | TipoSacramentoRegistro.Confirmacion;
       idPersona: number;
     }
-  | { tipo: TipoSacramentoRegistro.Matrimonio; idContrayente1: number; idContrayente2: number };
+  | {
+      tipo: TipoSacramentoRegistro.Matrimonio;
+      idContrayente1: number;
+      idContrayente2: number;
+    };
 
 @Injectable()
 export class BusquedaNormalizadaService {
@@ -218,56 +223,69 @@ export class BusquedaNormalizadaService {
   // Crea el registro padre y su detalle dentro de una única transacción.
   // Las personas se buscan por cédula o se crean automáticamente.
   async crear(dto: CreateSacramentoNormalizadoDto) {
-    return this.dataSource.transaction(async (manager) => {
-      this.validarDetalle(dto);
-      const personas = await this.resolverPersonas(manager, dto);
-      await this.validarPrerequisitos(manager, personas);
-      const parent = await manager.getRepository(SacramentoRegistro).save({
-        tipo: dto.tipo,
-        idParroquia: dto.idParroquia,
-        idPresbitero: dto.idPresbitero ?? null,
-        fechaSacramento: dto.fechaSacramento,
-        observaciones: dto.observaciones ?? null,
-      });
+    return this.dataSource
+      .transaction(async (manager) => {
+        this.validarDetalle(dto);
+        const personas = await this.resolverPersonas(manager, dto);
+        await this.validarPrerequisitos(manager, personas);
+        const parent = await manager.getRepository(SacramentoRegistro).save({
+          tipo: dto.tipo,
+          idParroquia: dto.idParroquia,
+          idPresbitero: dto.idPresbitero ?? null,
+          fechaSacramento: dto.fechaSacramento,
+          observaciones: dto.observaciones ?? null,
+        });
 
-      await this.insertarDetalle(manager, parent.id, dto, personas);
-      return this.obtenerDetalle(manager, parent.id);
-    }).catch((error: unknown) => this.convertirError(error));
+        await this.insertarDetalle(manager, parent.id, dto, personas);
+        return this.obtenerDetalle(manager, parent.id);
+      })
+      .catch((error: unknown) => this.convertirError(error));
   }
 
   // Devuelve un sacramento completo únicamente cuando se solicita su detalle.
   async obtener(id: number) {
-    return this.dataSource.transaction((manager) => this.obtenerDetalle(manager, id));
+    return this.dataSource.transaction((manager) =>
+      this.obtenerDetalle(manager, id),
+    );
   }
 
   // Devuelve todos los sacramentos de una persona (por cédula exacta) agrupados.
   async obtenerSacramentosPorCedula(cedula: string) {
-    return this.dataSource.transaction(async (manager) => {
-      const personas = await manager.query(
-        `SELECT id_persona AS id, cedula, nombre,
+    return this.dataSource
+      .transaction(async (manager) => {
+        const personas = await manager.query(
+          `SELECT id_persona AS id, cedula, nombre,
                 primer_apellido AS "primerApellido",
                 segundo_apellido AS "segundoApellido",
                 nacionalidad
          FROM persona
          WHERE lower(trim(cedula)) = lower(trim($1))`,
-        [cedula],
-      );
-      const persona = personas[0];
-      if (!persona) throw new NotFoundException('Persona no encontrada');
+          [cedula],
+        );
+        const persona = personas[0];
+        if (!persona) throw new NotFoundException('Persona no encontrada');
 
-      const [bautismo, comunion, confirmacion, matrimonio] = await Promise.all([
-        this.queryDetalleBautismo(manager, 'b.id_bautizado = $1', [persona.id]),
-        this.queryDetalleComunion(manager, 'c.id_persona = $1', [persona.id]),
-        this.queryDetalleConfirmacion(manager, 'cf.id_persona = $1', [persona.id]),
-        this.queryDetalleMatrimonio(
-          manager,
-          '(m.id_contrayente1 = $1 OR m.id_contrayente2 = $1)',
-          [persona.id],
-        ),
-      ]);
+        const [bautismo, comunion, confirmacion, matrimonio] =
+          await Promise.all([
+            this.queryDetalleBautismo(manager, 'b.id_bautizado = $1', [
+              persona.id,
+            ]),
+            this.queryDetalleComunion(manager, 'c.id_persona = $1', [
+              persona.id,
+            ]),
+            this.queryDetalleConfirmacion(manager, 'cf.id_persona = $1', [
+              persona.id,
+            ]),
+            this.queryDetalleMatrimonio(
+              manager,
+              '(m.id_contrayente1 = $1 OR m.id_contrayente2 = $1)',
+              [persona.id],
+            ),
+          ]);
 
-      return { persona, bautismo, comunion, confirmacion, matrimonio };
-    }).catch((error: unknown) => this.convertirError(error));
+        return { persona, bautismo, comunion, confirmacion, matrimonio };
+      })
+      .catch((error: unknown) => this.convertirError(error));
   }
 
   // Catálogo de parroquias para el selector del formulario.
@@ -290,34 +308,47 @@ export class BusquedaNormalizadaService {
 
   // Actualiza el padre y el detalle conservando el tipo original del sacramento.
   async actualizar(id: number, dto: UpdateSacramentoNormalizadoDto) {
-    return this.dataSource.transaction(async (manager) => {
-      const repository = manager.getRepository(SacramentoRegistro);
-      const current = await repository.findOneBy({ id });
-      if (!current) throw new NotFoundException('Sacramento no encontrado');
-      if (dto.tipo && dto.tipo !== current.tipo) {
-        throw new BadRequestException('El tipo de sacramento no se puede cambiar');
-      }
+    return this.dataSource
+      .transaction(async (manager) => {
+        const repository = manager.getRepository(SacramentoRegistro);
+        const current = await repository.findOneBy({ id });
+        if (!current) throw new NotFoundException('Sacramento no encontrado');
+        if (dto.tipo && dto.tipo !== current.tipo) {
+          throw new BadRequestException(
+            'El tipo de sacramento no se puede cambiar',
+          );
+        }
 
-      const changes: Partial<SacramentoRegistro> = {};
-      if (dto.idParroquia !== undefined) changes.idParroquia = dto.idParroquia;
-      if (dto.idPresbitero !== undefined) changes.idPresbitero = dto.idPresbitero;
-      if (dto.fechaSacramento !== undefined) {
-        changes.fechaSacramento = dto.fechaSacramento;
-      }
-      if (dto.observaciones !== undefined) changes.observaciones = dto.observaciones;
-      if (Object.keys(changes).length > 0) await repository.update(id, changes);
+        const changes: Partial<SacramentoRegistro> = {};
+        if (dto.idParroquia !== undefined)
+          changes.idParroquia = dto.idParroquia;
+        if (dto.idPresbitero !== undefined)
+          changes.idPresbitero = dto.idPresbitero;
+        if (dto.fechaSacramento !== undefined) {
+          changes.fechaSacramento = dto.fechaSacramento;
+        }
+        if (dto.observaciones !== undefined)
+          changes.observaciones = dto.observaciones;
+        if (Object.keys(changes).length > 0)
+          await repository.update(id, changes);
 
-      await this.actualizarDetalle(manager, id, current.tipo, dto);
-      return this.obtenerDetalle(manager, id);
-    }).catch((error: unknown) => this.convertirError(error));
+        await this.actualizarDetalle(manager, id, current.tipo, dto);
+        return this.obtenerDetalle(manager, id);
+      })
+      .catch((error: unknown) => this.convertirError(error));
   }
 
   // Elimina el padre y deja que las claves en cascada eliminen su detalle.
   async eliminar(id: number): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      const result = await manager.getRepository(SacramentoRegistro).delete(id);
-      if (!result.affected) throw new NotFoundException('Sacramento no encontrado');
-    }).catch((error: unknown) => this.convertirError(error));
+    await this.dataSource
+      .transaction(async (manager) => {
+        const result = await manager
+          .getRepository(SacramentoRegistro)
+          .delete(id);
+        if (!result.affected)
+          throw new NotFoundException('Sacramento no encontrado');
+      })
+      .catch((error: unknown) => this.convertirError(error));
   }
 
   private validarDetalle(dto: CreateSacramentoNormalizadoDto): void {
@@ -348,7 +379,10 @@ export class BusquedaNormalizadaService {
       case TipoSacramentoRegistro.Confirmacion:
         return {
           tipo: dto.tipo,
-          idPersona: await this.resolverPersonaDetalle(manager, dto.confirmacion!),
+          idPersona: await this.resolverPersonaDetalle(
+            manager,
+            dto.confirmacion!,
+          ),
         };
       case TipoSacramentoRegistro.Matrimonio:
         return {
@@ -407,7 +441,10 @@ export class BusquedaNormalizadaService {
     manager: EntityManager,
     bautismo: BautismoDatosDto,
   ): Promise<BautismoResuelto> {
-    const bautizado = await this.resolverOcrearPersona(manager, bautismo.bautizado);
+    const bautizado = await this.resolverOcrearPersona(
+      manager,
+      bautismo.bautizado,
+    );
     const padre = bautismo.padre
       ? await this.resolverOcrearPersona(manager, bautismo.padre)
       : null;
@@ -619,7 +656,9 @@ export class BusquedaNormalizadaService {
           },
         );
         if (bautismo.abuelos) {
-          await manager.getRepository(BautismoAbuelo).delete({ idBautismo: id });
+          await manager
+            .getRepository(BautismoAbuelo)
+            .delete({ idBautismo: id });
           if (resuelto.abuelos.length > 0) {
             await manager.getRepository(BautismoAbuelo).insert(
               resuelto.abuelos.map((abuelo) => ({
@@ -638,10 +677,9 @@ export class BusquedaNormalizadaService {
           seccion as PersonaDetalleSacramentoDto,
         );
         await this.validarPersonasBautizadas(manager, [idPersona]);
-        await manager.getRepository(ComunionRegistro).update(
-          { idSacramento: id },
-          { idPersona },
-        );
+        await manager
+          .getRepository(ComunionRegistro)
+          .update({ idSacramento: id }, { idPersona });
         break;
       }
       case TipoSacramentoRegistro.Confirmacion: {
@@ -650,10 +688,9 @@ export class BusquedaNormalizadaService {
           seccion as PersonaDetalleSacramentoDto,
         );
         await this.validarPersonasBautizadas(manager, [idPersona]);
-        await manager.getRepository(ConfirmacionRegistro).update(
-          { idSacramento: id },
-          { idPersona },
-        );
+        await manager
+          .getRepository(ConfirmacionRegistro)
+          .update({ idSacramento: id }, { idPersona });
         break;
       }
       case TipoSacramentoRegistro.Matrimonio: {
@@ -671,9 +708,7 @@ export class BusquedaNormalizadaService {
             ...(matrimonio.libro !== undefined
               ? { libro: matrimonio.libro }
               : {}),
-            ...(matrimonio.tomo !== undefined
-              ? { tomo: matrimonio.tomo }
-              : {}),
+            ...(matrimonio.tomo !== undefined ? { tomo: matrimonio.tomo } : {}),
             ...(matrimonio.folio !== undefined
               ? { folio: matrimonio.folio }
               : {}),
@@ -691,7 +726,9 @@ export class BusquedaNormalizadaService {
   }
 
   private async obtenerDetalle(manager: EntityManager, id: number) {
-    const sacramento = await manager.getRepository(SacramentoRegistro).findOneBy({ id });
+    const sacramento = await manager
+      .getRepository(SacramentoRegistro)
+      .findOneBy({ id });
     if (!sacramento) throw new NotFoundException('Sacramento no encontrado');
 
     if (sacramento.tipo === TipoSacramentoRegistro.Bautismo) {
@@ -701,7 +738,9 @@ export class BusquedaNormalizadaService {
       return this.queryDetalleComunion(manager, 's.id_sacramento = $1', [id]);
     }
     if (sacramento.tipo === TipoSacramentoRegistro.Confirmacion) {
-      return this.queryDetalleConfirmacion(manager, 's.id_sacramento = $1', [id]);
+      return this.queryDetalleConfirmacion(manager, 's.id_sacramento = $1', [
+        id,
+      ]);
     }
     return this.queryDetalleMatrimonio(manager, 's.id_sacramento = $1', [id]);
   }
@@ -868,9 +907,12 @@ export class BusquedaNormalizadaService {
   }
 
   private convertirError(error: unknown): never {
-    if (error instanceof BadRequestException ||
+    if (
+      error instanceof BadRequestException ||
       error instanceof NotFoundException ||
-      error instanceof ConflictException) throw error;
+      error instanceof ConflictException
+    )
+      throw error;
     if ((error as { code?: string })?.code === '23505') {
       throw new ConflictException('El registro ya existe');
     }

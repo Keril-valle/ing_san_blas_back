@@ -11,13 +11,13 @@ async function getNombreCedula(cedula: string): Promise<DatosCedula | null> {
 
       if (parts.length >= 2) {
         const firstName = parts[0];
-        const middleName = parts.length >= 3 ? parts[1] : "";
-        const surnames = parts.slice(parts.length >= 3 ? 2 : 1).join(" ");
+        const middleName = parts.length >= 3 ? parts[1] : '';
+        const surnames = parts.slice(parts.length >= 3 ? 2 : 1).join(' ');
 
         return {
           nombre: `${firstName} ${middleName}`.trim(),
-          apellido1: surnames.split(' ')[0] ?? "",
-          apellido2: surnames.split(' ').slice(1).join(" ") ?? "",
+          apellido1: surnames.split(' ')[0] ?? '',
+          apellido2: surnames.split(' ').slice(1).join(' ') ?? '',
         };
       }
     }

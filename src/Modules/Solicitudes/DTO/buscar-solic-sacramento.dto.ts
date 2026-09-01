@@ -7,7 +7,6 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
-import { TipoSacramento } from '../../../Common/Enums/TipoSacramento';
 
 const normalizarConsulta = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value;
@@ -29,12 +28,6 @@ export class BuscarSolicSacramentoDto {
       'El valor ingresado para cédula no es válido, debe contener solo números',
   })
   cedula?: string;
-
-  @IsOptional()
-  @IsIn(Object.values(TipoSacramento), {
-    message: 'El tipo de sacramento ingresado no es válido',
-  })
-  tipo?: TipoSacramento;
 
   @IsOptional()
   @IsIn(['Pendiente', 'Aprobada', 'Rechazada'], {

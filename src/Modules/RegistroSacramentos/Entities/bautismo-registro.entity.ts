@@ -29,10 +29,20 @@ export class BautismoRegistro {
   @Column({ name: 'hora_nacimiento', type: 'time', nullable: true })
   horaNacimiento: string | null;
 
-  @Column({ name: 'lugar_nacimiento', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'lugar_nacimiento',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   lugarNacimiento: string | null;
 
-  @Column({ name: 'reconocimiento_legal', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'reconocimiento_legal',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   reconocimientoLegal: string | null;
 
   @Column({ name: 'libro', type: 'varchar', length: 100, nullable: true })
@@ -47,6 +57,11 @@ export class BautismoRegistro {
   @Column({ name: 'asiento', type: 'varchar', length: 100, nullable: true })
   asiento: string | null;
 
-  @Column({ name: 'firma_parroco', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'firma_parroco',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   firmaParroco: string | null;
 }
