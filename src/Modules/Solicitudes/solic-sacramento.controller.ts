@@ -10,8 +10,12 @@ import {
   HttpStatus,
   Query,
   Req,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { CambiarEstadoSolicitudDto } from './DTO/cambiar-estado-solicitud.dto';
@@ -20,9 +24,9 @@ import { SearchSolicSacramentoDto } from './DTO/search-solic-sacramento.dto';
 import { BuscarSolicSacramentoDto } from './DTO/buscar-solic-sacramento.dto';
 import { SolicSacramentoService } from './solic-sacramento.service';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
-import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
+import type { Request } from 'express';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
 
 @Controller('solic-sacramento')
@@ -34,6 +38,36 @@ export class SolicSacramentoController {
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createSolicSacramentoDto: CreateSolicSacramentoDto) {
     return this.solicSacraService.create(createSolicSacramentoDto);
+  }
+
+  @Public()
+  @Post('con-imagen')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('archivo'))
+  async createWithImage(
+    @Req() req: Request,
+    @UploadedFile() archivo?: Express.Multer.File,
+  ) {
+    const payload = (req.body as { Payload?: string } | undefined)?.Payload;
+    if (!payload?.trim()) {
+      throw new BadRequestException({
+        mensaje: 'Los datos de la solicitud son obligatorios.',
+      });
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(payload);
+    } catch {
+      throw new BadRequestException({
+        mensaje: 'El formato de los datos de la solicitud no es válido.',
+      });
+    }
+
+    return this.solicSacraService.createWithImage(
+      parsed as CreateSolicSacramentoDto,
+      archivo,
+    );
   }
 
   @SkipThrottle()
@@ -66,13 +100,6 @@ export class SolicSacramentoController {
   @Get('buscar/estado/:estado')
   async BuscarPorEstado(@Param('estado') estado: EstadoSolicitud) {
     return this.solicSacraService.BuscarPorEstado(estado);
-  }
-
-  @Get('buscar/tipo/:tipoSacramento')
-  async BuscarPorTipoSacramento(
-    @Param('tipoSacramento') tipoSacramento: TipoSacramento,
-  ) {
-    return this.solicSacraService.BuscarPorTipoSacramento(tipoSacramento);
   }
 
   @Get('estado/:id')

@@ -1,20 +1,21 @@
 import { EstadoSolicitud } from '../../../Common/Enums/EstadoSolicitud';
-import { TipoSacramento } from '../../../Common/Enums/TipoSacramento';
 import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
-@Index('IDX_solic_sacramento_nombre', ['Nombre'])
+@Index('IDX_solic_sacramento_nombre', ['PrimerNombre'])
 @Index('IDX_solic_sacramento_primer_apellido', ['PrimerApellido'])
 @Index('IDX_solic_sacramento_segundo_apellido', ['SegundoApellido'])
 @Index('IDX_solic_sacramento_cedula', ['Cedula'])
 @Index('IDX_solic_sacramento_estado', ['Estado'])
-@Index('IDX_solic_sacramento_tipo', ['TipoSacramento'])
 export class SolicSacramento {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  Nombre: string;
+  PrimerNombre: string;
+
+  @Column({ nullable: true })
+  SegundoNombre?: string;
 
   @Column()
   PrimerApellido: string;
@@ -30,12 +31,6 @@ export class SolicSacramento {
 
   @Column()
   Telefono: number;
-
-  @Column({ type: 'varchar' })
-  TipoSacramento: TipoSacramento;
-
-  @Column({ type: 'varchar', default: 'Digital' })
-  FormaEntrega: string;
 
   @Column()
   Motivo: string;
@@ -54,4 +49,13 @@ export class SolicSacramento {
 
   @Column({ nullable: true, type: 'timestamp' })
   FechaRechazo?: Date;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  FechaSolicitud?: Date;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  FechaAprobacion?: Date;
+
+  @Column({ nullable: true, name: 'comprobante_url' })
+  comprobanteUrl?: string;
 }

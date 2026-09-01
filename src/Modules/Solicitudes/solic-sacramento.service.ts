@@ -6,7 +6,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryRunner } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
 import { SearchSolicSacramentoDto } from './DTO/search-solic-sacramento.dto';
 import { BuscarSolicSacramentoDto } from './DTO/buscar-solic-sacramento.dto';
@@ -14,8 +14,8 @@ import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { SolicSacramento } from './Entities/solic-sacramento.entity';
 import { HistorialRechazos } from './Entities/historial-rechazos.entity';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
-import { TipoSacramento } from '../../Common/Enums/TipoSacramento';
 import { isEstadoPendiente } from '../../Common/Utils/estado-solicitud';
+import { SolicSacramentoFileStorageService } from './solic-sacramento-file-storage.service';
 
 @Injectable()
 export class SolicSacramentoService {
@@ -26,13 +26,34 @@ export class SolicSacramentoService {
     private readonly solicSacraRepository: Repository<SolicSacramento>,
     @InjectRepository(HistorialRechazos)
     private readonly historialRechazosRepository: Repository<HistorialRechazos>,
+    private readonly fileStorageService: SolicSacramentoFileStorageService,
   ) {}
 
   create(createSolicSacramentoDto: CreateSolicSacramentoDto) {
     const solicitud = this.solicSacraRepository.create({
       ...createSolicSacramentoDto,
-      FormaEntrega: createSolicSacramentoDto.FormaEntrega ?? 'Digital',
       Estado: EstadoSolicitud.PENDIENTE,
+      FechaSolicitud: new Date(),
+    });
+    return this.solicSacraRepository.save(solicitud);
+  }
+
+  async createWithImage(
+    createSolicSacramentoDto: CreateSolicSacramentoDto,
+    archivo?: Express.Multer.File,
+  ) {
+    let comprobanteUrl: string | undefined;
+
+    if (archivo) {
+      comprobanteUrl =
+        await this.fileStorageService.saveSolicSacramentoImage(archivo);
+    }
+
+    const solicitud = this.solicSacraRepository.create({
+      ...createSolicSacramentoDto,
+      Estado: EstadoSolicitud.PENDIENTE,
+      FechaSolicitud: new Date(),
+      comprobanteUrl,
     });
     return this.solicSacraRepository.save(solicitud);
   }
@@ -49,20 +70,21 @@ export class SolicSacramentoService {
 
       query.select([
         'solic.id',
-        'solic.Nombre',
+        'solic.PrimerNombre',
+        'solic.SegundoNombre',
         'solic.PrimerApellido',
         'solic.SegundoApellido',
         'solic.Cedula',
         'solic.Correo',
         'solic.Telefono',
-        'solic.TipoSacramento',
         'solic.Motivo',
         'solic.Estado',
+        'solic.comprobanteUrl',
       ]);
 
       if (nombre) {
         query.andWhere(
-          `(solic."Nombre" || ' ' || solic."PrimerApellido" || ' ' || COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
+          `(solic."PrimerNombre" || ' ' || solic."PrimerApellido" || ' ' || COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
           { nombre: `%${nombre}%` },
         );
       }
@@ -99,20 +121,21 @@ export class SolicSacramentoService {
 
       query.select([
         'solic.id',
-        'solic.Nombre',
+        'solic.PrimerNombre',
+        'solic.SegundoNombre',
         'solic.PrimerApellido',
         'solic.SegundoApellido',
         'solic.Cedula',
         'solic.Correo',
         'solic.Telefono',
-        'solic.TipoSacramento',
         'solic.Motivo',
         'solic.Estado',
+        'solic.comprobanteUrl',
       ]);
 
       if (filters.nombre) {
         query.andWhere(
-          `(solic."Nombre" || ' ' || solic."PrimerApellido" || ' ' || COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
+          `(solic."PrimerNombre" || ' ' || solic."PrimerApellido" || ' ' || COALESCE(solic."SegundoApellido", '')) ILIKE :nombre`,
           { nombre: `%${filters.nombre}%` },
         );
       }
@@ -120,12 +143,6 @@ export class SolicSacramentoService {
       if (filters.cedula) {
         query.andWhere('solic."Cedula" = :cedula', {
           cedula: Number(filters.cedula),
-        });
-      }
-
-      if (filters.tipo) {
-        query.andWhere('solic."TipoSacramento" = :tipo', {
-          tipo: filters.tipo,
         });
       }
 
@@ -158,7 +175,12 @@ export class SolicSacramentoService {
   async BuscarSolicPorNombre(nombre: string) {
     const solicitudes = await this.solicSacraRepository
       .createQueryBuilder('solic')
-      .where('solic."Nombre" ILIKE :nombre', { nombre: `%${nombre.trim()}%` })
+      .where('solic."PrimerNombre" ILIKE :nombre', {
+        nombre: `%${nombre.trim()}%`,
+      })
+      .orWhere('solic."SegundoNombre" ILIKE :nombre', {
+        nombre: `%${nombre.trim()}%`,
+      })
       .getMany();
     if (solicitudes.length === 0) {
       throw new NotFoundException(
@@ -203,18 +225,6 @@ export class SolicSacramentoService {
     if (solicitudes.length === 0) {
       throw new NotFoundException(
         `No se encontraron solicitudes con el estado ${estado}`,
-      );
-    }
-    return solicitudes;
-  }
-
-  async BuscarPorTipoSacramento(tipoSacramento: TipoSacramento) {
-    const solicitudes = await this.solicSacraRepository.find({
-      where: { TipoSacramento: tipoSacramento },
-    });
-    if (solicitudes.length === 0) {
-      throw new NotFoundException(
-        `No se encontraron solicitudes con el tipo de sacramento ${tipoSacramento}`,
       );
     }
     return solicitudes;
@@ -271,7 +281,7 @@ export class SolicSacramentoService {
       detalle: registro.detalle,
       creado_en: registro.creadoEn,
       nombre_solicitante: registro.solicitud
-        ? `${registro.solicitud.Nombre} ${registro.solicitud.PrimerApellido ?? ''} ${registro.solicitud.SegundoApellido ?? ''}`.trim()
+        ? `${registro.solicitud.PrimerNombre} ${registro.solicitud.SegundoNombre ?? ''} ${registro.solicitud.PrimerApellido ?? ''} ${registro.solicitud.SegundoApellido ?? ''}`.trim()
         : null,
       nombre_usuario_rechazo: registro.usuario?.nombre ?? null,
     }));

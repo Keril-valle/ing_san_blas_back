@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateRegistroSacramentosNormalizado1788000000005
-  implements MigrationInterface
-{
+export class CreateRegistroSacramentosNormalizado1788000000005 implements MigrationInterface {
   name = 'CreateRegistroSacramentosNormalizado1788000000005';
 
   // Crea el esquema normalizado vacío sin tocar las tablas antiguas ni sus datos.
@@ -187,8 +185,12 @@ export class CreateRegistroSacramentosNormalizado1788000000005
 
   // Elimina únicamente el esquema nuevo, respetando el orden de sus dependencias.
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TRIGGER "TRG_sacramento_actualizado" ON "sacramento"`);
-    await queryRunner.query(`DROP FUNCTION "actualizar_sacramento_modificado"()`);
+    await queryRunner.query(
+      `DROP TRIGGER "TRG_sacramento_actualizado" ON "sacramento"`,
+    );
+    await queryRunner.query(
+      `DROP FUNCTION "actualizar_sacramento_modificado"()`,
+    );
     await queryRunner.query(`DROP INDEX "IDX_bautismo_abuelo_persona"`);
     await queryRunner.query(`DROP INDEX "IDX_persona_segundo_apellido_trgm"`);
     await queryRunner.query(`DROP INDEX "IDX_persona_primer_apellido_trgm"`);
