@@ -30,7 +30,7 @@ export class BusquedaNormalizadaController {
     return this.busquedaService.buscar(filtros);
   }
 
-  // Catálogo de parroquias para el formulario de registro.
+  // Catálogo de filiales (lugar de celebración) para el formulario de registro.
   @Get('parroquias')
   listarParroquias() {
     return this.busquedaService.listarParroquias();

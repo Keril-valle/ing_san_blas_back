@@ -579,7 +579,10 @@ describe('BusquedaNormalizadaService', () => {
   it('lists parroquias and presbiteros catalogs', async () => {
     const query = jest
       .fn()
-      .mockResolvedValueOnce([{ id: 1, nombre: 'San Blas', canton: 'Nicoya' }])
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce([
+        { id: 1, nombre: 'Centro San Blas', canton: 'Nicoya' },
+      ])
       .mockResolvedValueOnce([
         { id: 2, nombre: 'Miguel', primerApellido: 'Sánchez' },
       ]);
@@ -588,7 +591,7 @@ describe('BusquedaNormalizadaService', () => {
     } as unknown as DataSource);
 
     await expect(service.listarParroquias()).resolves.toEqual([
-      { id: 1, nombre: 'San Blas', canton: 'Nicoya' },
+      { id: 1, nombre: 'Centro San Blas', canton: 'Nicoya' },
     ]);
     await expect(service.listarPresbiteros()).resolves.toEqual([
       { id: 2, nombre: 'Miguel', primerApellido: 'Sánchez' },

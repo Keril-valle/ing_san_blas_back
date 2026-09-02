@@ -23,7 +23,7 @@ import { ComunionRegistro } from './Entities/comunion-registro.entity';
 import { ConfirmacionRegistro } from './Entities/confirmacion-registro.entity';
 import { MatrimonioRegistro } from './Entities/matrimonio-registro.entity';
 import { PersonaSacramento } from './Entities/persona-sacramento.entity';
-import { SacramentoRegistro } from './Entities/sacramento-registro.entity';
+import { FILIALES_CELEBRACION_SACRAMENTAL } from './constants/filiales-celebracion';
 
 interface SacramentoNormalizadoItem {
   id: number;
@@ -297,11 +297,29 @@ export class BusquedaNormalizadaService {
       .catch((error: unknown) => this.convertirError(error));
   }
 
-  // Catálogo de parroquias para el selector del formulario.
+  // Catálogo de filiales para el lugar de celebración sacramental.
   async listarParroquias() {
+    await this.dataSource.query(
+      `
+      INSERT INTO parroquia (nombre)
+      SELECT f.nombre
+      FROM unnest($1::text[]) AS f(nombre)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM parroquia p WHERE p.nombre = f.nombre
+      )
+      `,
+      [FILIALES_CELEBRACION_SACRAMENTAL],
+    );
+
     return this.dataSource.query(
-      `SELECT id_parroquia AS id, nombre, canton, provincia
-       FROM parroquia ORDER BY nombre ASC`,
+      `
+      SELECT p.id_parroquia AS id, p.nombre, p.canton, p.provincia
+      FROM parroquia p
+      JOIN unnest($1::text[]) WITH ORDINALITY AS f(nombre, orden)
+        ON f.nombre = p.nombre
+      ORDER BY f.orden
+      `,
+      [FILIALES_CELEBRACION_SACRAMENTAL],
     );
   }
 
