@@ -125,9 +125,13 @@ export class BusquedaNormalizadaService {
       return where;
     };
 
+    // Por defecto el listado trae solo bautismos: así una persona con varios
+    // sacramentos (bautismo + comunión + ...) aparece una sola vez en la tabla.
+    // El resto se consulta desde el detalle o la edición. Con filtro de tipo
+    // sí se puede consultar un sacramento específico.
     const requestedTypes = filtros.tipo
       ? [filtros.tipo]
-      : Object.values(TipoSacramentoRegistro);
+      : [TipoSacramentoRegistro.Bautismo];
     const unions: string[] = [];
 
     if (requestedTypes.includes(TipoSacramentoRegistro.Bautismo)) {
@@ -194,19 +198,23 @@ export class BusquedaNormalizadaService {
       parameters,
     );
     const total = Number(countResult[0]?.total ?? 0);
+    // Orden por defecto: el último sacramento registrado aparece primero (id DESC).
+    // Así el acta que se acaba de ingresar se ve arriba aunque su fecha de celebración sea antigua.
     const sortColumn =
-      filtros.sortBy === 'nombre'
-        ? 'nombre'
-        : filtros.sortBy === 'tipo'
-          ? 'tipo'
-          : 'fecha';
+      !filtros.sortBy
+        ? 'id'
+        : filtros.sortBy === 'nombre'
+          ? 'nombre'
+          : filtros.sortBy === 'tipo'
+            ? 'tipo'
+            : 'fecha';
     const sortDirection = filtros.sortDirection === 'asc' ? 'ASC' : 'DESC';
     const offsetParam = addParameter((page - 1) * pageSize);
     const limitParam = addParameter(pageSize);
     const items = await this.dataSource.query(
       `SELECT id, tipo, nombre, cedula, fecha, "fechaRegistro", parroquia
        FROM (${unionQuery}) AS resultados
-       ORDER BY ${sortColumn} ${sortDirection}, id ASC
+       ORDER BY ${sortColumn} ${sortDirection}, id DESC
        OFFSET ${offsetParam} LIMIT ${limitParam}`,
       parameters,
     );
@@ -228,6 +236,7 @@ export class BusquedaNormalizadaService {
         this.validarDetalle(dto);
         const personas = await this.resolverPersonas(manager, dto);
         await this.validarPrerequisitos(manager, personas);
+        await this.validarSinDuplicado(manager, personas);
         const parent = await manager.getRepository(SacramentoRegistro).save({
           tipo: dto.tipo,
           idParroquia: dto.idParroquia,
@@ -425,7 +434,25 @@ export class BusquedaNormalizadaService {
         .getOne();
     }
 
-    if (existente) return existente.id;
+    if (existente) {
+      // Si la persona ya existe (por cédula), actualiza sus datos con lo que envió
+      // el formulario para que cambios de nombre/apellidos queden reflejados en el front.
+      const nacionalidad = input.nacionalidad?.trim() || null;
+      const hayCambios =
+        existente.nombre !== nombre ||
+        existente.primerApellido !== primerApellido ||
+        existente.segundoApellido !== segundoApellido ||
+        existente.nacionalidad !== nacionalidad;
+      if (hayCambios) {
+        await repo.update(existente.id, {
+          nombre,
+          primerApellido,
+          segundoApellido,
+          nacionalidad,
+        });
+      }
+      return existente.id;
+    }
 
     const nuevo = await repo.save({
       cedula,
@@ -544,6 +571,46 @@ export class BusquedaNormalizadaService {
       throw new BadRequestException(
         'La persona debe tener un bautismo registrado antes de agregar este sacramento',
       );
+    }
+  }
+
+  // Evita registrar dos veces el mismo sacramento para la misma persona:
+  // la cédula de una persona bautizada no se puede repetir en otro bautismo.
+  private async validarSinDuplicado(
+    manager: EntityManager,
+    personas: PersonasResueltas,
+  ): Promise<void> {
+    if (personas.tipo === TipoSacramentoRegistro.Bautismo) {
+      const yaExiste = await manager
+        .getRepository(BautismoRegistro)
+        .findOneBy({ idBautizado: personas.bautismo.idBautizado });
+      if (yaExiste) {
+        throw new ConflictException(
+          'Esta persona ya tiene un bautismo registrado',
+        );
+      }
+      return;
+    }
+    if (personas.tipo === TipoSacramentoRegistro.Comunion) {
+      const yaExiste = await manager
+        .getRepository(ComunionRegistro)
+        .findOneBy({ idPersona: personas.idPersona });
+      if (yaExiste) {
+        throw new ConflictException(
+          'Esta persona ya tiene registrada la comunión',
+        );
+      }
+      return;
+    }
+    if (personas.tipo === TipoSacramentoRegistro.Confirmacion) {
+      const yaExiste = await manager
+        .getRepository(ConfirmacionRegistro)
+        .findOneBy({ idPersona: personas.idPersona });
+      if (yaExiste) {
+        throw new ConflictException(
+          'Esta persona ya tiene registrada la confirmación',
+        );
+      }
     }
   }
 
@@ -676,7 +743,8 @@ export class BusquedaNormalizadaService {
           manager,
           seccion as PersonaDetalleSacramentoDto,
         );
-        await this.validarPersonasBautizadas(manager, [idPersona]);
+        // No se revalida el bautismo al actualizar: el registro ya existe y fue validado al crearse,
+        // así el PUT funciona con actas ya existentes aunque el bautismo venga de datos previos.
         await manager
           .getRepository(ComunionRegistro)
           .update({ idSacramento: id }, { idPersona });
@@ -687,7 +755,6 @@ export class BusquedaNormalizadaService {
           manager,
           seccion as PersonaDetalleSacramentoDto,
         );
-        await this.validarPersonasBautizadas(manager, [idPersona]);
         await manager
           .getRepository(ConfirmacionRegistro)
           .update({ idSacramento: id }, { idPersona });
@@ -696,10 +763,6 @@ export class BusquedaNormalizadaService {
       case TipoSacramentoRegistro.Matrimonio: {
         const matrimonio = seccion as MatrimonioDatosDto;
         const resuelto = await this.resolverMatrimonio(manager, matrimonio);
-        await this.validarPersonasBautizadas(manager, [
-          resuelto.idContrayente1,
-          resuelto.idContrayente2,
-        ]);
         await manager.getRepository(MatrimonioRegistro).update(
           { idSacramento: id },
           {

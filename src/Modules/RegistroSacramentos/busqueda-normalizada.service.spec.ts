@@ -4,6 +4,7 @@ import { TipoSacramentoRegistro } from '../../Common/Enums/TipoSacramentoRegistr
 import { ParentescoAbueloRegistro } from '../../Common/Enums/ParentescoAbueloRegistro';
 import { BuscarSacramentosNormalizadosDto } from './DTO/buscar-sacramentos-normalizados.dto';
 import { BusquedaNormalizadaService } from './busqueda-normalizada.service';
+import { BautismoAbuelo } from './Entities/bautismo-abuelo.entity';
 import { BautismoRegistro } from './Entities/bautismo-registro.entity';
 import { ComunionRegistro } from './Entities/comunion-registro.entity';
 import { PersonaSacramento } from './Entities/persona-sacramento.entity';
@@ -20,6 +21,7 @@ const personaRepo = (
   };
   return {
     createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+    update: jest.fn().mockResolvedValue(undefined),
     save: jest
       .fn()
       .mockImplementation((input) =>
@@ -120,9 +122,8 @@ describe('BusquedaNormalizadaService', () => {
     };
     const detailRepository = {
       insert: jest.fn().mockResolvedValue(undefined),
-      findOneBy: jest
-        .fn()
-        .mockResolvedValue({ idSacramento: 7, idBautizado: 3 }),
+      // Retorna null para que la validación de duplicados deje pasar el primer bautismo.
+      findOneBy: jest.fn().mockResolvedValue(null),
     };
     const manager = {
       getRepository: jest.fn((entity) => {
@@ -187,7 +188,8 @@ describe('BusquedaNormalizadaService', () => {
     };
     const comunionRepository = {
       insert: jest.fn().mockResolvedValue(undefined),
-      findOneBy: jest.fn().mockResolvedValue({ idSacramento: 9, idPersona: 5 }),
+      // null para que la validación de duplicados permita crear la primera comunión.
+      findOneBy: jest.fn().mockResolvedValue(null),
     };
     const bautismoRepository = {
       findOneBy: jest
@@ -237,10 +239,182 @@ describe('BusquedaNormalizadaService', () => {
     });
   });
 
+  it('rejects a second baptism for the same person (the cedula cannot repeat)', async () => {
+    const personas = personaRepo({ id: 3, cedula: '1-2345-6789' });
+    const parentRepository = { save: jest.fn() };
+    const bautismoRepository = {
+      findOneBy: jest
+        .fn()
+        .mockResolvedValue({ idSacramento: 1, idBautizado: 3 }),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === PersonaSacramento) return personas;
+        if (entity === BautismoRegistro) return bautismoRepository;
+        return parentRepository;
+      }),
+    };
+    const transaction = jest.fn((callback) => callback(manager));
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
+
+    await expect(
+      service.crear({
+        tipo: TipoSacramentoRegistro.Bautismo,
+        idParroquia: 2,
+        fechaSacramento: '2024-05-10',
+        bautismo: {
+          bautizado: {
+            nombre: 'Juan',
+            primerApellido: 'Pérez',
+            cedula: '1-2345-6789',
+          },
+        },
+      }),
+    ).rejects.toThrow('ya tiene un bautismo registrado');
+    expect(parentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('updates an existing baptism via PUT preserving its detail', async () => {
+    const current = {
+      id: 7,
+      tipo: TipoSacramentoRegistro.Bautismo,
+      idParroquia: 2,
+      idPresbitero: 1,
+      fechaSacramento: '2024-05-10',
+      observaciones: 'nota',
+    };
+    const personas = personaRepo({ id: 3, cedula: '1-2345-6789' });
+    const parentRepository = {
+      findOneBy: jest.fn().mockResolvedValue(current),
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+    const bautismoRepository = {
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+    const abueloRepository = {
+      delete: jest.fn().mockResolvedValue(undefined),
+      insert: jest.fn().mockResolvedValue(undefined),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === PersonaSacramento) return personas;
+        if (entity === SacramentoRegistro) return parentRepository;
+        if (entity === BautismoAbuelo) return abueloRepository;
+        return bautismoRepository;
+      }),
+      query: jest.fn().mockResolvedValue([
+        {
+          id: 7,
+          tipo: 'bautismo',
+          fechaSacramento: '2024-05-10',
+          parroquia: {},
+          presbitero: null,
+          detalle: { bautizado: { id: 3 }, abuelos: [] },
+        },
+      ]),
+    };
+    const transaction = jest.fn((callback) => callback(manager));
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
+
+    const result = await service.actualizar(7, {
+      fechaSacramento: '2024-06-01',
+      bautismo: {
+        bautizado: {
+          nombre: 'Juan',
+          primerApellido: 'Pérez',
+          cedula: '1-2345-6789',
+        },
+        libro: '1',
+        folio: '2',
+        asiento: '3',
+      },
+    });
+
+    expect(parentRepository.update).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ fechaSacramento: '2024-06-01' }),
+    );
+    expect(bautismoRepository.update).toHaveBeenCalledWith(
+      { idSacramento: 7 },
+      expect.objectContaining({ idBautizado: 3 }),
+    );
+    // Al editar con cédula, la persona existente se actualiza con el nombre/apellidos nuevos.
+    expect(personas.update).toHaveBeenCalledWith(
+      3,
+      expect.objectContaining({ nombre: 'Juan', primerApellido: 'Pérez' }),
+    );
+    expect(result.id).toBe(7);
+  });
+
+  it('updates an existing communion via PUT even without a normalized baptism', async () => {
+    const current = {
+      id: 9,
+      tipo: TipoSacramentoRegistro.Comunion,
+      idParroquia: 2,
+      idPresbitero: null,
+      fechaSacramento: '2025-01-01',
+      observaciones: null,
+    };
+    const personas = personaRepo({ id: 5, cedula: '1-2345-6789' });
+    const parentRepository = {
+      findOneBy: jest.fn().mockResolvedValue(current),
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+    const comunionRepository = {
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === PersonaSacramento) return personas;
+        if (entity === SacramentoRegistro) return parentRepository;
+        return comunionRepository;
+      }),
+      query: jest.fn().mockResolvedValue([
+        {
+          id: 9,
+          tipo: 'comunion',
+          fechaSacramento: '2025-01-01',
+          parroquia: {},
+          presbitero: null,
+          detalle: { persona: { id: 5 } },
+        },
+      ]),
+    };
+    const transaction = jest.fn((callback) => callback(manager));
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
+
+    const result = await service.actualizar(9, {
+      fechaSacramento: '2025-02-01',
+      comunion: {
+        persona: {
+          nombre: 'Juan',
+          primerApellido: 'Pérez',
+          cedula: '1-2345-6789',
+        },
+      },
+    });
+
+    expect(comunionRepository.update).toHaveBeenCalledWith(
+      { idSacramento: 9 },
+      { idPersona: 5 },
+    );
+    expect(result.id).toBe(9);
+  });
+
   it('propagates the error so the transaction can roll back', async () => {
     const failure = new Error('detail failed');
     const personas = personaRepo({ id: 3 });
-    const parentRepository = { save: jest.fn().mockRejectedValue(failure) };
+    const parentRepository = {
+      // findOneBy lo usa la validación de duplicados antes de llegar al save.
+      findOneBy: jest.fn().mockResolvedValue(null),
+      save: jest.fn().mockRejectedValue(failure),
+    };
     const manager = {
       getRepository: jest.fn((entity) =>
         entity === PersonaSacramento ? personas : parentRepository,

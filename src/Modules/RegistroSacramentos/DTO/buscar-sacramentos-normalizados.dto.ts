@@ -55,7 +55,7 @@ export class BuscarSacramentosNormalizadosDto {
 
   @IsOptional()
   @IsIn(['fecha', 'nombre', 'tipo'])
-  sortBy: 'fecha' | 'nombre' | 'tipo' = 'fecha';
+  sortBy?: 'fecha' | 'nombre' | 'tipo';
 
   @IsOptional()
   @IsIn(['asc', 'desc'])
