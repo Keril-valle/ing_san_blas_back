@@ -23,6 +23,7 @@ import { ComunionRegistro } from './Entities/comunion-registro.entity';
 import { ConfirmacionRegistro } from './Entities/confirmacion-registro.entity';
 import { MatrimonioRegistro } from './Entities/matrimonio-registro.entity';
 import { PersonaSacramento } from './Entities/persona-sacramento.entity';
+import { SacramentoRegistro } from './Entities/sacramento-registro.entity';
 import { FILIALES_CELEBRACION_SACRAMENTAL } from './constants/filiales-celebracion';
 
 interface SacramentoNormalizadoItem {
