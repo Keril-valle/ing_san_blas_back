@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -29,4 +30,12 @@ export class SearchSolicSacramentoDto {
   @IsInt()
   @Min(1)
   page?: number;
+
+  // Se restringe a los tamaños que ofrece la interfaz para evitar consultas
+  // que traigan la tabla completa
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([10, 25, 50])
+  pageSize?: number;
 }

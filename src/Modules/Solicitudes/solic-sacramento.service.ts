@@ -66,7 +66,7 @@ export class SolicSacramentoService {
       const cedula = filters.cedula?.trim();
       const estado = filters.estado;
       const page = filters.page ?? 1;
-      const pageSize = 10;
+      const pageSize = filters.pageSize ?? 10;
       const skip = (page - 1) * pageSize;
 
       query.select([
