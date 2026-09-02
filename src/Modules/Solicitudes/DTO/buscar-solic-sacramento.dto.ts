@@ -30,7 +30,7 @@ export class BuscarSolicSacramentoDto {
   cedula?: string;
 
   @IsOptional()
-  @IsIn(['Pendiente', 'Aprobada', 'Rechazada'], {
+  @IsIn(['Pendiente', 'Aprobada', 'Rechazada', 'Archivada'], {
     message: 'El estado ingresado no es válido',
   })
   estado?: string;

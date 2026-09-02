@@ -15,6 +15,7 @@ import { SolicSacramento } from './Entities/solic-sacramento.entity';
 import { HistorialRechazos } from './Entities/historial-rechazos.entity';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
 import { isEstadoPendiente } from '../../Common/Utils/estado-solicitud';
+import { isEstadoArchivado } from '../../Common/Utils/estado-solicitud';
 import { SolicSacramentoFileStorageService } from './solic-sacramento-file-storage.service';
 
 @Injectable()
@@ -80,6 +81,8 @@ export class SolicSacramentoService {
         'solic.Motivo',
         'solic.Estado',
         'solic.comprobanteUrl',
+        'solic.FechaSolicitud',
+        'solic.FechaArchivo',
       ]);
 
       if (nombre) {
@@ -131,6 +134,8 @@ export class SolicSacramentoService {
         'solic.Motivo',
         'solic.Estado',
         'solic.comprobanteUrl',
+        'solic.FechaSolicitud',
+        'solic.FechaArchivo',
       ]);
 
       if (filters.nombre) {
@@ -152,7 +157,9 @@ export class SolicSacramentoService {
             ? EstadoSolicitud.APROBADA
             : filters.estado === 'Rechazada'
               ? EstadoSolicitud.RECHAZADA
-              : EstadoSolicitud.PENDIENTE;
+              : filters.estado === 'Archivada'
+                ? EstadoSolicitud.ARCHIVADA
+                : EstadoSolicitud.PENDIENTE;
         query.andWhere('solic."Estado" = :estado', { estado });
       }
 
@@ -236,13 +243,24 @@ export class SolicSacramentoService {
       throw new NotFoundException(`Solicitud con ID ${id} no encontrada`);
     }
 
-    if (!isEstadoPendiente(solicitud.Estado)) {
+    if (isEstadoArchivado(solicitud.Estado)) {
+      throw new BadRequestException(
+        'La solicitud está archivada y no puede modificarse',
+      );
+    }
+
+    if (
+      nuevoEstado !== EstadoSolicitud.ARCHIVADA &&
+      !isEstadoPendiente(solicitud.Estado)
+    ) {
       throw new BadRequestException(
         'Esta solicitud ya fue procesada y no puede modificarse',
       );
     }
 
     solicitud.Estado = nuevoEstado;
+    solicitud.FechaArchivo =
+      nuevoEstado === EstadoSolicitud.ARCHIVADA ? new Date() : null;
     try {
       return await this.solicSacraRepository.save(solicitud);
     } catch (error) {
@@ -291,6 +309,11 @@ export class SolicSacramentoService {
     const solicitud = await this.solicSacraRepository.findOneBy({ id });
     if (!solicitud) {
       throw new NotFoundException(`Solicitud con ID ${id} no encontrada`);
+    }
+    if (isEstadoArchivado(solicitud.Estado)) {
+      throw new BadRequestException(
+        'La solicitud está archivada y no puede modificarse',
+      );
     }
     Object.assign(solicitud, updateSolicSacramentoDto);
     return this.solicSacraRepository.save(solicitud);

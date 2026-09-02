@@ -51,6 +51,9 @@ export class SolicSacramento {
   FechaRechazo?: Date;
 
   @Column({ nullable: true, type: 'timestamp' })
+  FechaArchivo?: Date | null;
+
+  @Column({ nullable: true, type: 'timestamp' })
   FechaSolicitud?: Date;
 
   @Column({ nullable: true, type: 'timestamp' })
