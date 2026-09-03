@@ -49,9 +49,10 @@ export function normalizarNivelInscripcion(
   if (valor === 'sétimo' || valor === 'setimo' || valor === 'septimo')
     return 'Sétimo';
 
-  return NIVELES_INSCRIPCION_VALIDOS.find(
-    (item) => item.toLowerCase() === valor,
-  ) ?? null;
+  return (
+    NIVELES_INSCRIPCION_VALIDOS.find((item) => item.toLowerCase() === valor) ??
+    null
+  );
 }
 
 export function validarFechaNoFutura(fecha?: string | null): boolean {

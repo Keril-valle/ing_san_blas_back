@@ -1,9 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  OneToOne,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne } from 'typeorm';
 import { Catequizando } from './catequizando.entity';
 import { BautismoCatequizando } from './bautismo-catequizando.entity';
 import { AdecuacionCatequizando } from './adecuacion-catequizando.entity';
@@ -32,7 +27,11 @@ export class InscripcionCatequesis {
   @Column({ name: 'ObservacionAdministrativa', type: 'text', nullable: true })
   observacionAdministrativa: string | null;
 
-  @Column({ name: 'FechaActualizacionEstado', type: 'timestamptz', nullable: true })
+  @Column({
+    name: 'FechaActualizacionEstado',
+    type: 'timestamptz',
+    nullable: true,
+  })
   fechaActualizacionEstado: Date | null;
 
   @Column({ name: 'FeBautismoArchivo' })
@@ -48,9 +47,13 @@ export class InscripcionCatequesis {
   })
   bautismo: BautismoCatequizando;
 
-  @OneToOne(() => AdecuacionCatequizando, (adecuacion) => adecuacion.inscripcion, {
-    cascade: true,
-  })
+  @OneToOne(
+    () => AdecuacionCatequizando,
+    (adecuacion) => adecuacion.inscripcion,
+    {
+      cascade: true,
+    },
+  )
   adecuacion: AdecuacionCatequizando;
 
   @OneToOne(

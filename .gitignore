@@ -54,3 +54,11 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# local reseed scripts (no subir a repo)
+reseed*.js
+reseed-sacramentos*.js
+check_*.js
+fix-*.js
+fix_*.js
+*reseed*.js

@@ -39,7 +39,7 @@ export class EventoController {
     return this.eventoService.findOne(+id);
   }
   //la ruta para el post es http://localhost:3000/api/Eventos
-@Public()
+  @Public()
   @Post()
   //@Roles(Role.ADMIN)
   create(@Body() createEventoDto: CreateEventoDto) {

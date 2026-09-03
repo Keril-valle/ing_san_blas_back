@@ -30,7 +30,9 @@ export class CatequesisService {
   ): Promise<CrearInscripcionResponseDto> {
     this.validarReglasNegocio(dto);
 
-    const nivel = normalizarNivelInscripcion(dto.datosInscripcion.nivelAInscribirse);
+    const nivel = normalizarNivelInscripcion(
+      dto.datosInscripcion.nivelAInscribirse,
+    );
     if (!nivel) {
       throw new BadRequestException({ mensaje: MENSAJE_NIVEL_INVALIDO });
     }
@@ -162,7 +164,9 @@ export class CatequesisService {
     estado: string,
     observacion?: string | null,
   ): Promise<ActualizarEstadoResponseDto | null> {
-    const inscripcion = await this.inscripcionRepository.findOne({ where: { id } });
+    const inscripcion = await this.inscripcionRepository.findOne({
+      where: { id },
+    });
     if (!inscripcion) {
       return null;
     }
@@ -191,7 +195,9 @@ export class CatequesisService {
 
   private validarReglasNegocio(dto: CrearInscripcionCatequesisDto): void {
     if (!validarFechaNoFutura(dto.datosCatequizando.fechaNacimiento)) {
-      throw new BadRequestException({ mensaje: MENSAJE_FECHA_NACIMIENTO_FUTURA });
+      throw new BadRequestException({
+        mensaje: MENSAJE_FECHA_NACIMIENTO_FUTURA,
+      });
     }
 
     if (!validarFechaNoFutura(dto.datosBautismo.fecha)) {
@@ -199,7 +205,9 @@ export class CatequesisService {
     }
   }
 
-  private toResumenDto(inscripcion: InscripcionCatequesis): InscripcionResumenDto {
+  private toResumenDto(
+    inscripcion: InscripcionCatequesis,
+  ): InscripcionResumenDto {
     const nombre = inscripcion.catequizando?.nombre ?? '';
     const apellidos = inscripcion.catequizando?.apellidos ?? '';
 
@@ -214,7 +222,9 @@ export class CatequesisService {
     };
   }
 
-  private toDetalleDto(inscripcion: InscripcionCatequesis): InscripcionDetalleDto {
+  private toDetalleDto(
+    inscripcion: InscripcionCatequesis,
+  ): InscripcionDetalleDto {
     return {
       id: inscripcion.id,
       centroCatequesis: inscripcion.centroCatequesis,
@@ -239,7 +249,8 @@ export class CatequesisService {
       adecuacion: {
         requiereAdecuacionCentroEducativo:
           inscripcion.adecuacion?.requiereAdecuacionCentroEducativo ?? null,
-        descripcionAdecuacion: inscripcion.adecuacion?.descripcionAdecuacion ?? '',
+        descripcionAdecuacion:
+          inscripcion.adecuacion?.descripcionAdecuacion ?? '',
       },
       condicionSalud: {
         portadorEnfermedadCronica:

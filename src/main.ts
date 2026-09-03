@@ -2,6 +2,7 @@ import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './Common/Filters/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,9 +14,11 @@ async function bootstrap() {
   const defaultCorsOrigins = [
     'http://localhost:4200',
     'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:3000',
     'http://127.0.0.1:4200',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
     'http://127.0.0.1:3000',
   ];
 
@@ -40,6 +43,8 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   await app.listen(process.env.PORT ?? 3000);
 }

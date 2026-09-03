@@ -15,15 +15,23 @@ export class AdecuacionCatequizando {
   @Column({ name: 'InscripcionCatequesisId' })
   inscripcionCatequesisId: number;
 
-  @Column({ name: 'RequiereAdecuacionCentroEducativo', type: 'boolean', nullable: true })
+  @Column({
+    name: 'RequiereAdecuacionCentroEducativo',
+    type: 'boolean',
+    nullable: true,
+  })
   requiereAdecuacionCentroEducativo: boolean | null;
 
   @Column({ name: 'DescripcionAdecuacion', type: 'text', nullable: true })
   descripcionAdecuacion: string | null;
 
-  @OneToOne(() => InscripcionCatequesis, (inscripcion) => inscripcion.adecuacion, {
-    onDelete: 'CASCADE',
-  })
+  @OneToOne(
+    () => InscripcionCatequesis,
+    (inscripcion) => inscripcion.adecuacion,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'InscripcionCatequesisId' })
   inscripcion: InscripcionCatequesis;
 }

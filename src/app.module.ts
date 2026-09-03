@@ -7,8 +7,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './Auth/auth.module';
 import { UsuarioModule } from './Users/usuario.module';
+import { LandingModule } from './landing/landing.module';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';
+import { HistorialRechazos } from './Modules/Solicitudes/Entities/historial-rechazos.entity';
 import { SolicSacramentoModule } from './Modules/Solicitudes/solic-sacramento.module';
 import { Evento } from './Modules/Eventos/Entities/evento.entity';
 import { EventosModule } from './Modules/Eventos/evento.module';
@@ -18,6 +20,16 @@ import { Bautismo } from './Modules/RegistroSacramentos/Entities/bautismo.entity
 import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity';
 import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
 import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
+import { Sacramento } from './Modules/RegistroSacramentos/Entities/sacramento.entity';
+import { PersonaSacramento } from './Modules/RegistroSacramentos/Entities/persona-sacramento.entity';
+import { ParroquiaSacramento } from './Modules/RegistroSacramentos/Entities/parroquia-sacramento.entity';
+import { PresbiteroSacramento } from './Modules/RegistroSacramentos/Entities/presbitero-sacramento.entity';
+import { SacramentoRegistro } from './Modules/RegistroSacramentos/Entities/sacramento-registro.entity';
+import { BautismoRegistro } from './Modules/RegistroSacramentos/Entities/bautismo-registro.entity';
+import { BautismoAbuelo } from './Modules/RegistroSacramentos/Entities/bautismo-abuelo.entity';
+import { ComunionRegistro } from './Modules/RegistroSacramentos/Entities/comunion-registro.entity';
+import { ConfirmacionRegistro } from './Modules/RegistroSacramentos/Entities/confirmacion-registro.entity';
+import { MatrimonioRegistro } from './Modules/RegistroSacramentos/Entities/matrimonio-registro.entity';
 import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registro-sacramentos.module';
 import { InscripcionCatequesis } from './Modules/Catequesis/Entities/inscripcion-catequesis.entity';
 import { Catequizando } from './Modules/Catequesis/Entities/catequizando.entity';
@@ -28,6 +40,7 @@ import { MadreCatequizando } from './Modules/Catequesis/Entities/madre-catequiza
 import { PagoInscripcionCatequesis } from './Modules/Catequesis/Entities/pago-inscripcion-catequesis.entity';
 import { PersonaInscribeCatequesis } from './Modules/Catequesis/Entities/persona-inscribe-catequesis.entity';
 import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -44,7 +57,35 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [Usuario, SolicSacramento, Evento, Donacion, Bautismo, Comunion, Confirmacion, Matrimonio, InscripcionCatequesis, Catequizando, BautismoCatequizando, AdecuacionCatequizando, CondicionSaludCatequizando, MadreCatequizando, PagoInscripcionCatequesis, PersonaInscribeCatequesis],
+        entities: [
+          Usuario,
+          SolicSacramento,
+          HistorialRechazos,
+          Evento,
+          Donacion,
+          Bautismo,
+          Comunion,
+          Confirmacion,
+          Matrimonio,
+          Sacramento,
+          PersonaSacramento,
+          ParroquiaSacramento,
+          PresbiteroSacramento,
+          SacramentoRegistro,
+          BautismoRegistro,
+          BautismoAbuelo,
+          ComunionRegistro,
+          ConfirmacionRegistro,
+          MatrimonioRegistro,
+          InscripcionCatequesis,
+          Catequizando,
+          BautismoCatequizando,
+          AdecuacionCatequizando,
+          CondicionSaludCatequizando,
+          MadreCatequizando,
+          PagoInscripcionCatequesis,
+          PersonaInscribeCatequesis,
+        ],
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL
@@ -55,8 +96,8 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
     // Configuración del módulo de limitación de solicitudes (throttling)
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, //el limite de peticiones por minuto es de 10, si se supera este limite se bloquea la IP por 1 minuto
-        limit: 10,
+        ttl: 60000,
+        limit: 100,
       },
     ]),
     UsuarioModule,
@@ -66,6 +107,8 @@ import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
     DonacionesModule,
     RegistroSacramentosModule,
     CatequesisModule,
+    LandingModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

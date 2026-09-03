@@ -30,9 +30,13 @@ export class BautismoCatequizando {
   @Column({ name: 'Asiento', type: 'varchar', nullable: true })
   asiento: string | null;
 
-  @OneToOne(() => InscripcionCatequesis, (inscripcion) => inscripcion.bautismo, {
-    onDelete: 'CASCADE',
-  })
+  @OneToOne(
+    () => InscripcionCatequesis,
+    (inscripcion) => inscripcion.bautismo,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'InscripcionCatequesisId' })
   inscripcion: InscripcionCatequesis;
 }

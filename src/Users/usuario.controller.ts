@@ -29,12 +29,10 @@ export class UsuarioController {
   @Public()
   @Get('cedula/:cedula')
   async obtenerNombrePorCedula(@Param('cedula') cedula: string) {
-    const datosCedula = await this.usuarioService.obtenerNombrePorCedula(cedula);
-    return {
-      "mi nombre es": datosCedula?.nombre,
-      "mi primer apellido es": datosCedula?.apellido1,
-      "mi segundo apellido es": datosCedula?.apellido2,
-    };
+    const resp = await fetch(`https://apis.gometa.org/cedulas/${cedula}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.nombre ?? null;
   }
 
   @Get(':id')
