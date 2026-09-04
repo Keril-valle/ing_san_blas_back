@@ -4,7 +4,9 @@ import {
   Post,
   Body,
   Put,
+  Patch,
   Param,
+  ParseIntPipe,
   Delete,
   HttpCode,
   HttpStatus,
@@ -50,6 +52,24 @@ export class EventoController {
   @Roles(Role.ADMIN)
   update(@Param('id') id: string, @Body() updateEventoDto: UpdateEventoDto) {
     return this.eventoService.update(+id, updateEventoDto);
+  }
+
+  @Patch(':id/publicar')
+  @Roles(Role.ADMIN)
+  publicar(@Param('id', ParseIntPipe) id: number) {
+    return this.eventoService.publicar(id);
+  }
+
+  @Patch(':id/activar')
+  @Roles(Role.ADMIN)
+  activar(@Param('id', ParseIntPipe) id: number) {
+    return this.eventoService.activar(id);
+  }
+
+  @Patch(':id/desactivar')
+  @Roles(Role.ADMIN)
+  desactivar(@Param('id', ParseIntPipe) id: number) {
+    return this.eventoService.desactivar(id);
   }
 
   @Delete(':id')

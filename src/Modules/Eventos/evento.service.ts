@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Evento } from './Entities/evento.entity';
@@ -13,7 +17,12 @@ export class EventoService {
   ) {}
 
   create(createEventoDto: CreateEventoDto) {
-    const evento = this.eventoRepository.create(createEventoDto);
+    this.validarFechas(createEventoDto.fechaInicio, createEventoDto.fechaFin);
+    const evento = this.eventoRepository.create({
+      ...createEventoDto,
+      publicado: false,
+      activo: true,
+    });
     return this.eventoRepository.save(evento);
   }
 
@@ -22,7 +31,9 @@ export class EventoService {
   }
 
   findPublicos() {
-    return this.eventoRepository.find({ where: { publicado: true } });
+    return this.eventoRepository.find({
+      where: { publicado: true, activo: true },
+    });
   }
 
   async findOne(id: number) {
@@ -35,12 +46,95 @@ export class EventoService {
 
   async update(id: number, updateEventoDto: UpdateEventoDto) {
     const evento = await this.findOne(id);
-    Object.assign(evento, updateEventoDto);
+    const {
+      publicado: _publicado,
+      activo: _activo,
+      ...datos
+    } = updateEventoDto;
+    this.validarFechas(
+      datos.fechaInicio ?? evento.fechaInicio,
+      datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin,
+    );
+    Object.assign(evento, datos);
+    return this.eventoRepository.save(evento);
+  }
+
+  async publicar(id: number) {
+    const evento = await this.findOne(id);
+
+    if (evento.publicado) {
+      throw new BadRequestException('Este evento ya fue publicado.');
+    }
+
+    this.validarFechas(evento.fechaInicio, evento.fechaFin);
+
+    evento.publicado = true;
+    evento.activo = true;
+    return this.eventoRepository.save(evento);
+  }
+
+  async activar(id: number) {
+    const evento = await this.findOne(id);
+
+    if (!evento.publicado) {
+      throw new BadRequestException(
+        'Solo se pueden activar eventos publicados.',
+      );
+    }
+
+    if (evento.activo) {
+      throw new BadRequestException('Este evento ya está activo.');
+    }
+
+    evento.activo = true;
+    return this.eventoRepository.save(evento);
+  }
+
+  async desactivar(id: number) {
+    const evento = await this.findOne(id);
+
+    if (!evento.publicado) {
+      throw new BadRequestException(
+        'Solo se pueden desactivar eventos publicados.',
+      );
+    }
+
+    if (!evento.activo) {
+      throw new BadRequestException('Este evento ya está inactivo.');
+    }
+
+    evento.activo = false;
     return this.eventoRepository.save(evento);
   }
 
   async remove(id: number) {
     const evento = await this.findOne(id);
     return this.eventoRepository.remove(evento);
+  }
+
+  private validarFechas(fechaInicio?: string, fechaFin?: string | null) {
+    const hoy = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'America/Costa_Rica',
+    });
+    const inicio = fechaInicio?.slice(0, 10);
+    const fin = fechaFin?.slice(0, 10);
+
+    if (inicio && inicio < hoy) {
+      throw new BadRequestException(
+        'La fecha de inicio no puede ser anterior a la fecha actual.',
+      );
+    }
+
+    if (fin && fin < hoy) {
+      throw new BadRequestException(
+        'La fecha de fin no puede ser anterior a la fecha actual.',
+      );
+    }
+
+    if (inicio && fin && fin < inicio) {
+      throw new BadRequestException(
+        'La fecha de fin no puede ser anterior a la fecha de inicio.',
+      );
+    }
   }
 }

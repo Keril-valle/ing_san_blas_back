@@ -4,7 +4,9 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -13,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { DonacionesService } from './donaciones.service';
 import { CreateDonacionDto } from './DTO/create-donacion.dto';
+import { UpdateEstadoDonacionDto } from './DTO/update-estado-donacion.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import { Role } from '../../Common/Enums/Roles';
@@ -52,21 +55,20 @@ export class DonacionesController {
 
   @Patch(':id/estado')
   @Roles(Role.ADMIN)
-  updateEstado(
+  async updateEstado(
     @Param('id', ParseIntPipe) id: number,
-    @Body() nuevoEstado: unknown,
+    @Body() dto: UpdateEstadoDonacionDto,
   ) {
-    const estado = this.parseEstadoBody(nuevoEstado);
-    return this.donacionesService.updateEstado(id, estado);
-  }
+    try {
+      return await this.donacionesService.updateEstado(id, dto.estado);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
 
-  private parseEstadoBody(body: unknown): string {
-    if (typeof body === 'string' && body.trim().length > 0) {
-      return body.trim();
+      throw new InternalServerErrorException({
+        message: 'Ocurrió un error al actualizar el estado del donativo.',
+      });
     }
-
-    throw new BadRequestException({
-      message: 'El estado enviado no es válido.',
-    });
   }
 }

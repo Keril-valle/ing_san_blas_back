@@ -22,4 +22,7 @@ export class Evento {
 
   @Column({ default: false })
   publicado: boolean;
+
+  @Column({ default: true })
+  activo: boolean;
 }

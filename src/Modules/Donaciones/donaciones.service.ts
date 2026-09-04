@@ -1,10 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Donacion } from './Entities/donacion.entity';
 import { CreateDonacionDto } from './DTO/create-donacion.dto';
 import { DonacionResponseDto } from './DTO/donacion-response.dto';
-import { normalizeDonacionEstado } from '../../Common/Utils/donacion-estado';
+import {
+  isEstadoFinalDonacion,
+  normalizeDonacionEstado,
+} from '../../Common/Utils/donacion-estado';
 
 @Injectable()
 export class DonacionesService {
@@ -59,12 +67,34 @@ export class DonacionesService {
   ): Promise<DonacionResponseDto> {
     const donacion = await this.donacionesRepository.findOne({ where: { id } });
     if (!donacion) {
-      throw new NotFoundException();
+      throw new NotFoundException('No se encontró el donativo solicitado.');
     }
 
-    donacion.estado = normalizeDonacionEstado(nuevoEstado);
-    const saved = await this.donacionesRepository.save(donacion);
+    if (isEstadoFinalDonacion(donacion.estado)) {
+      const estadoActual = normalizeDonacionEstado(donacion.estado);
+      const etiqueta = estadoActual === 'Aprobado' ? 'aprobado' : 'rechazado';
+      throw new BadRequestException({
+        message: `Este donativo ya fue ${etiqueta} y no puede procesarse nuevamente.`,
+      });
+    }
 
-    return this.toResponseDto(saved);
+    const estadoDestino = normalizeDonacionEstado(nuevoEstado);
+    if (estadoDestino === 'Pendiente') {
+      throw new BadRequestException({
+        message:
+          'El estado del donativo solo puede cambiarse a Aprobado o Rechazado.',
+      });
+    }
+
+    donacion.estado = estadoDestino;
+
+    try {
+      const saved = await this.donacionesRepository.save(donacion);
+      return this.toResponseDto(saved);
+    } catch {
+      throw new InternalServerErrorException(
+        'No se pudo actualizar el estado del donativo. Intente de nuevo.',
+      );
+    }
   }
 }
