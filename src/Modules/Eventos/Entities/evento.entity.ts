@@ -20,6 +20,12 @@ export class Evento {
   @Column({ type: 'varchar' })
   lugar: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  hora: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  imagenUrl: string | null;
+
   @Column({ default: false })
   publicado: boolean;
 

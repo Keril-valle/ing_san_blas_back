@@ -33,6 +33,16 @@ export class CreateEventoDto {
   lugar: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(8, { message: 'La hora no es válida.' })
+  hora?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500, { message: 'La URL de la imagen es demasiado larga.' })
+  imagenUrl?: string | null;
+
+  @IsOptional()
   @IsBoolean()
   publicado?: boolean;
 
