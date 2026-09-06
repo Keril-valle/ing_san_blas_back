@@ -25,3 +25,10 @@ export function normalizeDonacionEstado(
 
   return 'Pendiente';
 }
+
+export function isEstadoFinalDonacion(
+  estado: string | undefined | null,
+): boolean {
+  const normalized = normalizeDonacionEstado(estado);
+  return normalized === 'Aprobado' || normalized === 'Rechazado';
+}
