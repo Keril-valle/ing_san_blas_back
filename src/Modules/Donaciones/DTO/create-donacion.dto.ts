@@ -29,4 +29,8 @@ export class CreateDonacionDto {
     message: 'El detalle no puede superar los 300 caracteres.',
   })
   detalle: string;
+
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }
