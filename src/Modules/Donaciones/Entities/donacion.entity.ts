@@ -25,4 +25,19 @@ export class Donacion {
 
   @Column({ name: 'Estado', default: 'Pendiente' })
   estado: string;
+
+  @Column({ name: 'MotivoRechazo', nullable: true })
+  motivoRechazo?: string;
+
+  @Column({ name: 'DetalleRechazo', nullable: true })
+  detalleRechazo?: string;
+
+  @Column({ name: 'RechazadoPor', nullable: true })
+  rechazadoPor?: number;
+
+  @Column({ name: 'FechaRechazo', nullable: true, type: 'timestamp' })
+  fechaRechazo?: Date;
+
+  @Column({ name: 'DetalleAprobacion', nullable: true })
+  detalleAprobacion?: string;
 }
