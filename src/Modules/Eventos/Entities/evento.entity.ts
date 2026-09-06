@@ -1,4 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class Evento {
@@ -31,4 +36,10 @@ export class Evento {
 
   @Column({ default: true })
   activo: boolean;
+
+  @CreateDateColumn({
+    type: 'timestamptz',
+    name: 'created_at',
+  })
+  createdAt: Date;
 }
