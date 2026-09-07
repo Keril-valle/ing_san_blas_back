@@ -7,7 +7,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { Donacion } from './Entities/donacion.entity';
 import { CreateDonacionDto } from './DTO/create-donacion.dto';
 import { DonacionResponseDto } from './DTO/donacion-response.dto';
@@ -69,6 +69,13 @@ export class DonacionesService {
         'No se pudieron cargar las solicitudes de donación. Intente de nuevo.',
       );
     }
+  }
+
+  // Cuenta las solicitudes nuevas desde una fecha dada (para la notificación del módulo)
+  async countNuevasDesde(desde: Date): Promise<number> {
+    return this.donacionesRepository.count({
+      where: { fecha: MoreThan(desde) },
+    });
   }
 
   async findById(id: number): Promise<DonacionResponseDto | null> {
