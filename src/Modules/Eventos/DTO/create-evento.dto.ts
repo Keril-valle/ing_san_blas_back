@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsBoolean,
-  IsNotEmpty,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, MaxLength } from 'class-validator';
 
 export class CreateEventoDto {
   @IsString()
@@ -41,12 +35,4 @@ export class CreateEventoDto {
   @IsString()
   @MaxLength(500, { message: 'La URL de la imagen es demasiado larga.' })
   imagenUrl?: string | null;
-
-  @IsOptional()
-  @IsBoolean()
-  publicado?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  activo?: boolean;
 }

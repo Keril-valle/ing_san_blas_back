@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
 } from 'typeorm';
+import { EstadoEvento } from '../../../Common/Enums/EstadoEvento';
 
 @Entity()
 export class Evento {
@@ -31,11 +32,13 @@ export class Evento {
   @Column({ type: 'varchar', nullable: true })
   imagenUrl: string | null;
 
-  @Column({ default: false })
-  publicado: boolean;
-
-  @Column({ default: true })
-  activo: boolean;
+  @Column({
+    type: 'enum',
+    enum: EstadoEvento,
+    enumName: 'evento_estado_enum',
+    default: EstadoEvento.BORRADOR,
+  })
+  estado: EstadoEvento;
 
   @CreateDateColumn({
     type: 'timestamptz',

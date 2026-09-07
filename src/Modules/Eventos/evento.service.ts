@@ -9,6 +9,7 @@ import { Evento } from './Entities/evento.entity';
 import { CreateEventoDto } from './DTO/create-evento.dto';
 import { UpdateEventoDto } from './DTO/update-evento.dto';
 import { EventoFileStorageService } from './evento-file-storage.service';
+import { EstadoEvento } from '../../Common/Enums/EstadoEvento';
 
 @Injectable()
 export class EventoService {
@@ -52,8 +53,7 @@ export class EventoService {
       fechaFin: this.soloFecha(createEventoDto.fechaFin),
       hora: this.soloHora(createEventoDto.hora),
       imagenUrl: this.soloTexto(createEventoDto.imagenUrl),
-      publicado: false,
-      activo: true,
+      estado: EstadoEvento.BORRADOR,
     });
     return this.eventoRepository.save(evento);
   }
@@ -64,7 +64,7 @@ export class EventoService {
 
   findPublicos() {
     return this.eventoRepository.find({
-      where: { publicado: true, activo: true },
+      where: { estado: EstadoEvento.PUBLICADO },
     });
   }
 
@@ -78,12 +78,7 @@ export class EventoService {
 
   async update(id: number, updateEventoDto: UpdateEventoDto) {
     const evento = await this.findOne(id);
-    const {
-      publicado: _publicado,
-      activo: _activo,
-      eliminarImagen,
-      ...datos
-    } = updateEventoDto;
+    const { eliminarImagen, ...datos } = updateEventoDto;
     this.validarFechas(
       datos.fechaInicio ?? evento.fechaInicio,
       datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin,
@@ -97,8 +92,7 @@ export class EventoService {
         datos.fechaFin === undefined
           ? evento.fechaFin
           : this.soloFecha(datos.fechaFin),
-      hora:
-        datos.hora === undefined ? evento.hora : this.soloHora(datos.hora),
+      hora: datos.hora === undefined ? evento.hora : this.soloHora(datos.hora),
       imagenUrl: eliminarImagen
         ? null
         : datos.imagenUrl === undefined
@@ -111,48 +105,47 @@ export class EventoService {
   async publicar(id: number) {
     const evento = await this.findOne(id);
 
-    if (evento.publicado) {
+    if (evento.estado !== EstadoEvento.BORRADOR) {
       throw new BadRequestException('Este evento ya fue publicado.');
     }
 
     this.validarFechas(evento.fechaInicio, evento.fechaFin);
 
-    evento.publicado = true;
-    evento.activo = true;
+    evento.estado = EstadoEvento.PUBLICADO;
     return this.eventoRepository.save(evento);
   }
 
   async activar(id: number) {
     const evento = await this.findOne(id);
 
-    if (!evento.publicado) {
+    if (evento.estado === EstadoEvento.BORRADOR) {
       throw new BadRequestException(
         'Solo se pueden activar eventos publicados.',
       );
     }
 
-    if (evento.activo) {
+    if (evento.estado === EstadoEvento.PUBLICADO) {
       throw new BadRequestException('Este evento ya está activo.');
     }
 
-    evento.activo = true;
+    evento.estado = EstadoEvento.PUBLICADO;
     return this.eventoRepository.save(evento);
   }
 
   async desactivar(id: number) {
     const evento = await this.findOne(id);
 
-    if (!evento.publicado) {
+    if (evento.estado === EstadoEvento.BORRADOR) {
       throw new BadRequestException(
         'Solo se pueden desactivar eventos publicados.',
       );
     }
 
-    if (!evento.activo) {
+    if (evento.estado === EstadoEvento.DESACTIVADO) {
       throw new BadRequestException('Este evento ya está inactivo.');
     }
 
-    evento.activo = false;
+    evento.estado = EstadoEvento.DESACTIVADO;
     return this.eventoRepository.save(evento);
   }
 
@@ -169,7 +162,9 @@ export class EventoService {
 
   private soloHora(hora?: string | null) {
     if (!hora) return null;
-    const match = String(hora).trim().match(/^(\d{1,2}):(\d{2})/);
+    const match = String(hora)
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})/);
     if (!match) return null;
     return `${match[1].padStart(2, '0')}:${match[2]}`;
   }
