@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,12 +16,16 @@ import {
   isEstadoFinalDonacion,
   normalizeDonacionEstado,
 } from '../../Common/Utils/donacion-estado';
+import { DonacionMailService } from '../../Notifications/Services/donacion-mail.service';
 
 @Injectable()
 export class DonacionesService {
+  private readonly logger = new Logger(DonacionesService.name);
+
   constructor(
     @InjectRepository(Donacion)
     private readonly donacionesRepository: Repository<Donacion>,
+    @Optional() private readonly donacionMail?: DonacionMailService, // opcional para no romper los tests viejos que lo instancian solo con el repo
   ) {}
 
   private toResponseDto(donacion: Donacion): DonacionResponseDto {
@@ -126,6 +132,9 @@ export class DonacionesService {
 
     try {
       const saved = await this.donacionesRepository.save(donacion);
+      await this.avisarPorCorreo(() =>
+        this.donacionMail?.notificarEstado(saved),
+      ); // el correo va después de guardar y nunca puede tumbar la respuesta
       return this.toResponseDto(saved);
     } catch {
       throw new InternalServerErrorException(
@@ -174,10 +183,26 @@ export class DonacionesService {
 
     try {
       const saved = await this.donacionesRepository.save(donacion);
+      await this.avisarPorCorreo(() =>
+        this.donacionMail?.notificarRechazo(saved, motivo, detalle),
+      ); // igual que al aprobar: primero se guarda, el correo no puede fallar la operación
       return this.toResponseDto(saved);
     } catch {
       throw new InternalServerErrorException(
         'No se pudo rechazar el donativo. Intente de nuevo.',
+      );
+    }
+  }
+
+  // Dispara el aviso por correo sin dejar que un fallo de Brevo rompa el cambio de estado (que ya quedó guardado)
+  private async avisarPorCorreo(
+    avisar: () => Promise<void> | undefined,
+  ): Promise<void> {
+    try {
+      await avisar();
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo avisar por correo el cambio de la donación: ${error instanceof Error ? error.message : error}`,
       );
     }
   }

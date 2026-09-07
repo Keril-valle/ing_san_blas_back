@@ -41,6 +41,7 @@ import { PagoInscripcionCatequesis } from './Modules/Catequesis/Entities/pago-in
 import { PersonaInscribeCatequesis } from './Modules/Catequesis/Entities/persona-inscribe-catequesis.entity';
 import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { NotificationsModule } from './Notifications/notifications.module';
 
 @Module({
   imports: [
@@ -109,6 +110,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     CatequesisModule,
     LandingModule,
     DashboardModule,
+    NotificationsModule, // correos (Brevo), global así que queda disponible para todos los módulos
   ],
   controllers: [AppController],
   providers: [
