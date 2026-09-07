@@ -1,10 +1,15 @@
 import {
-  Entity,
+  AfterInsert,
+  AfterLoad,
+  AfterUpdate,
   Column,
-  PrimaryGeneratedColumn,
   CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { EstadoEvento } from '../../../Common/Enums/EstadoEvento';
+
+export type EstadoEventoDb = 'borrador' | 'publicado' | 'desactivado';
 
 @Entity()
 export class Evento {
@@ -34,15 +39,34 @@ export class Evento {
 
   @Column({
     type: 'enum',
+<<<<<<< HEAD
     enum: EstadoEvento,
     enumName: 'evento_estado_enum',
     default: EstadoEvento.BORRADOR,
   })
   estado: EstadoEvento;
+=======
+    enum: ['borrador', 'publicado', 'desactivado'],
+    enumName: 'evento_estado_enum',
+    default: 'borrador',
+  })
+  estado: EstadoEventoDb;
+>>>>>>> 80f1ce2 (e)
 
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
   })
   createdAt: Date;
+
+  publicado: boolean;
+  activo: boolean;
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  hidratarFlags() {
+    this.publicado = this.estado !== 'borrador';
+    this.activo = this.estado !== 'desactivado';
+  }
 }
