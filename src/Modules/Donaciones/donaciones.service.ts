@@ -12,6 +12,7 @@ import { Donacion } from './Entities/donacion.entity';
 import { CreateDonacionDto } from './DTO/create-donacion.dto';
 import { DonacionResponseDto } from './DTO/donacion-response.dto';
 import { SolicitudDonacionResponseDto } from './DTO/solicitud-donacion-response.dto';
+import { HistorialDonacionResponseDto } from './DTO/historial-donacion-response.dto';
 import {
   isEstadoFinalDonacion,
   normalizeDonacionEstado,
@@ -76,6 +77,55 @@ export class DonacionesService {
     return this.donacionesRepository.count({
       where: { fecha: MoreThan(desde) },
     });
+  }
+
+  // Historial: donaciones ya archivadas (aprobadas o rechazadas), filtrable por estado y rango de fechas
+  async historial(opciones: {
+    estado?: string;
+    desde?: string;
+    hasta?: string;
+  }): Promise<{ total: number; historial: HistorialDonacionResponseDto[] }> {
+    const qb = this.donacionesRepository.createQueryBuilder('d');
+    qb.where('d.estado IN (:...estadosFinales)', {
+      estadosFinales: ['Aprobado', 'Rechazado'],
+    });
+
+    if (opciones.estado) {
+      const estadoNorm =
+        opciones.estado.toLowerCase() === 'aprobado' ? 'Aprobado' : 'Rechazado';
+      qb.andWhere('d.estado = :estado', { estado: estadoNorm });
+    }
+
+    if (opciones.desde) {
+      qb.andWhere('d.fecha >= :desde', { desde: new Date(opciones.desde) });
+    }
+
+    if (opciones.hasta) {
+      const hasta = new Date(opciones.hasta);
+      hasta.setDate(hasta.getDate() + 1);
+      qb.andWhere('d.fecha < :hasta', { hasta });
+    }
+
+    qb.orderBy('d.fecha', 'DESC');
+
+    const [items, total] = await qb.getManyAndCount();
+    return {
+      total,
+      historial: items.map((donacion) => ({
+        id: donacion.id,
+        anonimo: donacion.anonimo,
+        nombre: donacion.anonimo ? 'Anónimo' : donacion.nombre,
+        correo: donacion.correo,
+        telefono: donacion.telefono,
+        detalle: donacion.detalle,
+        estado: donacion.estado,
+        fechaIngreso: donacion.fecha,
+        motivoRechazo: donacion.motivoRechazo,
+        detalleRechazo: donacion.detalleRechazo,
+        fechaRechazo: donacion.fechaRechazo,
+        detalleAprobacion: donacion.detalleAprobacion,
+      })),
+    };
   }
 
   async findById(id: number): Promise<DonacionResponseDto | null> {
