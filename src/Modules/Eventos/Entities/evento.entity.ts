@@ -1,9 +1,14 @@
 import {
-  Entity,
+  AfterInsert,
+  AfterLoad,
+  AfterUpdate,
   Column,
-  PrimaryGeneratedColumn,
   CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
+
+export type EstadoEventoDb = 'borrador' | 'publicado' | 'desactivado';
 
 @Entity()
 export class Evento {
@@ -31,15 +36,28 @@ export class Evento {
   @Column({ type: 'varchar', nullable: true })
   imagenUrl: string | null;
 
-  @Column({ default: false })
-  publicado: boolean;
-
-  @Column({ default: true })
-  activo: boolean;
+  @Column({
+    type: 'enum',
+    enum: ['borrador', 'publicado', 'desactivado'],
+    enumName: 'evento_estado_enum',
+    default: 'borrador',
+  })
+  estado: EstadoEventoDb;
 
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
   })
   createdAt: Date;
+
+  publicado: boolean;
+  activo: boolean;
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  hidratarFlags() {
+    this.publicado = this.estado !== 'borrador';
+    this.activo = this.estado !== 'desactivado';
+  }
 }

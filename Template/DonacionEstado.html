@@ -3,35 +3,45 @@
 <head>
     <meta charset="UTF-8">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Playfair Display', Georgia, serif; background-color: #f4f6f9;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px;">
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #e9ecef;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 24px 12px;">
         <tr>
             <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 18px 35px rgba(0,0,0,0.1);">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 6px; overflow: hidden; border: 1px solid #d0d0d0;">
                     <tr>
-                        <td style="background-color: #003366; padding: 40px 30px; text-align: center;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800;">Parroquia <span style="color: #d4af37; font-style: italic;">San Blas</span></h1>
-                            <div style="width: 54px; height: 2px; background-color: #d4af37; margin: 15px auto;"></div>
-                            <p style="color: #d4af37; margin: 0; font-size: 13px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase;">Gestión de Donaciones</p>
+                        <td style="background-color: #1f3350; padding: 28px 30px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Parroquia San Blas</h1>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 40px 30px; font-family: Arial, sans-serif; color: #333333;">
-                            <p style="font-size: 16px;">Estimado/a <strong>{{Nombre}}</strong>,</p>
-                            <p style="font-size: 16px; line-height: 1.7;">Le informamos que el estado de su solicitud de donación ha sido actualizado a:</p>
+                        <td style="padding: 32px 30px; font-family: Arial, Helvetica, sans-serif; color: #333333;">
+                            <p style="font-size: 15px;">Estimado/a <strong>{{Nombre}}</strong>:</p>
+                            <p style="font-size: 15px; line-height: 1.7;">Le informamos que el estado de su solicitud de donación ha sido actualizado a:</p>
 
-                            <div style="text-align: center; margin: 30px 0;">
-                                <span style="background-color: {{ColorFondo}}; color: {{ColorTexto}}; padding: 16px 32px; font-weight: 900; border-radius: 8px; font-size: 14px; letter-spacing: 1.8px; text-transform: uppercase; border: 1px solid {{ColorTexto}};">
+                            <div style="text-align: center; margin: 24px 0;">
+                                <span style="display: inline-block; background-color: {{ColorFondo}}; color: {{ColorTexto}}; padding: 10px 28px; font-weight: 700; border-radius: 4px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid {{ColorTexto}};">
                                     {{Estado}}
                                 </span>
                             </div>
 
-                            <div style="background-color: rgba(0, 51, 102, 0.05); padding: 20px; border-left: 4px solid rgba(212, 175, 55, 0.65); margin-bottom: 30px;">
-                                <strong style="color: #003366; font-size: 14px; text-transform: uppercase;">Detalle de los insumos:</strong><br>
-                                <p style="margin: 10px 0 0 0; font-size: 15px; font-style: italic;">"{{Detalle}}"</p>
+                            <div style="background-color: #f8f9fa; padding: 20px 22px; border: 1px solid #dee2e6; border-left: 3px solid #1f3350; margin-bottom: 24px;">
+                                <strong style="color: #1f3350; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de la solicitud:</strong>
+                                <p style="margin: 10px 0 0 0; font-size: 15px;">"{{Detalle}}"</p>
                             </div>
 
-                            <p style="font-size: 16px; line-height: 1.7;">Agradecemos profundamente su inmensa generosidad.</p>
+                            <div style="background-color: #f8f9fa; padding: 20px 22px; border: 1px solid #dee2e6; border-left: 3px solid #1f3350; margin-bottom: 24px;">
+                                <strong style="color: #1f3350; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Comentario de la parroquia:</strong>
+                                <p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Lugar de entrega:</strong> Oficina parroquial, frente a la juguetería El Jade</p>
+                                <p style="margin: 6px 0 0 0; font-size: 15px;"><strong>Teléfono:</strong> 2685-3540</p>
+                            </div>
+
+                            <p style="font-size: 15px; line-height: 1.7;">Agradecemos sinceramente su generosidad y apoyo a nuestra comunidad.</p>
+                            <p style="font-size: 15px; line-height: 1.7; margin-bottom: 0;">Atentamente,<br><strong>Parroquia San Blas</strong></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 16px 30px; border-top: 1px solid #dee2e6; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #6c757d;">Este es un mensaje automático. Por favor, no responda a este correo.</p>
                         </td>
                     </tr>
                 </table>

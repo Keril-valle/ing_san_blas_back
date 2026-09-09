@@ -2,24 +2,31 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { Donacion } from './Entities/donacion.entity';
 import { CreateDonacionDto } from './DTO/create-donacion.dto';
 import { DonacionResponseDto } from './DTO/donacion-response.dto';
 import { SolicitudDonacionResponseDto } from './DTO/solicitud-donacion-response.dto';
+import { HistorialDonacionResponseDto } from './DTO/historial-donacion-response.dto';
 import {
   isEstadoFinalDonacion,
   normalizeDonacionEstado,
 } from '../../Common/Utils/donacion-estado';
+import { DonacionMailService } from '../../Notifications/Services/donacion-mail.service';
 
 @Injectable()
 export class DonacionesService {
+  private readonly logger = new Logger(DonacionesService.name);
+
   constructor(
     @InjectRepository(Donacion)
     private readonly donacionesRepository: Repository<Donacion>,
+    @Optional() private readonly donacionMail?: DonacionMailService, // opcional para no romper los tests viejos que lo instancian solo con el repo
   ) {}
 
   private toResponseDto(donacion: Donacion): DonacionResponseDto {
@@ -63,6 +70,62 @@ export class DonacionesService {
         'No se pudieron cargar las solicitudes de donación. Intente de nuevo.',
       );
     }
+  }
+
+  // Cuenta las solicitudes nuevas desde una fecha dada (para la notificación del módulo)
+  async countNuevasDesde(desde: Date): Promise<number> {
+    return this.donacionesRepository.count({
+      where: { fecha: MoreThan(desde) },
+    });
+  }
+
+  // Historial: donaciones ya archivadas (aprobadas o rechazadas), filtrable por estado y rango de fechas
+  async historial(opciones: {
+    estado?: string;
+    desde?: string;
+    hasta?: string;
+  }): Promise<{ total: number; historial: HistorialDonacionResponseDto[] }> {
+    const qb = this.donacionesRepository.createQueryBuilder('d');
+    qb.where('d.estado IN (:...estadosFinales)', {
+      estadosFinales: ['Aprobado', 'Rechazado'],
+    });
+
+    if (opciones.estado) {
+      const estadoNorm =
+        opciones.estado.toLowerCase() === 'aprobado' ? 'Aprobado' : 'Rechazado';
+      qb.andWhere('d.estado = :estado', { estado: estadoNorm });
+    }
+
+    if (opciones.desde) {
+      qb.andWhere('d.fecha >= :desde', { desde: new Date(opciones.desde) });
+    }
+
+    if (opciones.hasta) {
+      const hasta = new Date(opciones.hasta);
+      hasta.setDate(hasta.getDate() + 1);
+      qb.andWhere('d.fecha < :hasta', { hasta });
+    }
+
+    qb.orderBy('d.fecha', 'DESC');
+
+    const [items, total] = await qb.getManyAndCount();
+    return {
+      total,
+      historial: items.map((donacion) => ({
+        id: donacion.id,
+        anonimo: donacion.anonimo,
+        nombre: donacion.anonimo ? 'Anónimo' : donacion.nombre,
+        correo: donacion.correo,
+        telefono: donacion.telefono,
+        detalle: donacion.detalle,
+        estado: donacion.estado,
+        fechaIngreso: donacion.fecha,
+        motivoRechazo: donacion.motivoRechazo,
+        detalleRechazo: donacion.detalleRechazo,
+        fechaRechazo: donacion.fechaRechazo,
+        detalleAprobacion: donacion.detalleAprobacion,
+      })),
+    };
   }
 
   async findById(id: number): Promise<DonacionResponseDto | null> {
@@ -126,6 +189,9 @@ export class DonacionesService {
 
     try {
       const saved = await this.donacionesRepository.save(donacion);
+      await this.avisarPorCorreo(() =>
+        this.donacionMail?.notificarEstado(saved),
+      ); // el correo va después de guardar y nunca puede tumbar la respuesta
       return this.toResponseDto(saved);
     } catch {
       throw new InternalServerErrorException(
@@ -174,10 +240,26 @@ export class DonacionesService {
 
     try {
       const saved = await this.donacionesRepository.save(donacion);
+      await this.avisarPorCorreo(() =>
+        this.donacionMail?.notificarRechazo(saved, motivo, detalle),
+      ); // igual que al aprobar: primero se guarda, el correo no puede fallar la operación
       return this.toResponseDto(saved);
     } catch {
       throw new InternalServerErrorException(
         'No se pudo rechazar el donativo. Intente de nuevo.',
+      );
+    }
+  }
+
+  // Dispara el aviso por correo sin dejar que un fallo de Brevo rompa el cambio de estado (que ya quedó guardado)
+  private async avisarPorCorreo(
+    avisar: () => Promise<void> | undefined,
+  ): Promise<void> {
+    try {
+      await avisar();
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo avisar por correo el cambio de la donación: ${error instanceof Error ? error.message : error}`,
       );
     }
   }

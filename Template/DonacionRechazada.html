@@ -3,24 +3,31 @@
 <head>
     <meta charset="UTF-8">
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f6f9;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px;">
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #e9ecef;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 24px 12px;">
         <tr>
             <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden;">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 6px; overflow: hidden; border: 1px solid #d0d0d0;">
                     <tr>
-                        <td style="background-color: #003366; padding: 32px 24px; text-align: center;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Parroquia San Blas</h1>
-                            <p style="color: #d4af37; margin: 8px 0 0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">Donaciones</p>
+                        <td style="background-color: #1f3350; padding: 28px 30px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Parroquia San Blas</h1>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 32px 24px; color: #333333;">
-                            <p>Estimado/a <strong>{{Nombre}}</strong>,</p>
-                            <p>Le informamos que, tras la revisión de su solicitud de donación, esta ha sido <strong style="color: #721c24;">rechazada</strong>.</p>
-                            <p style="background-color: #f8d7da; color: #721c24; padding: 16px; border-left: 4px solid #721c24; font-style: italic;">"{{Detalle}}"</p>
-                            <p>Si tiene alguna consulta, puede comunicarse con la oficina parroquial.</p>
-                            <p>Gracias por su interés en apoyar a nuestra comunidad.</p>
+                        <td style="padding: 32px 30px; color: #333333;">
+                            <p style="font-size: 15px;">Estimado/a <strong>{{Nombre}}</strong>:</p>
+                            <p style="font-size: 15px; line-height: 1.7;">Le informamos que, tras la revisión correspondiente, su solicitud de donación ha sido <strong style="color: #7a1f1f;">rechazada</strong>.</p>
+                            <div style="background-color: #f8f9fa; color: #333333; padding: 20px 22px; border: 1px solid #dee2e6; border-left: 3px solid #7a1f1f;">
+                                <p style="margin: 0; font-size: 15px;"><strong>Motivo:</strong> {{Detalle}}</p>
+                            </div>
+                            <p style="font-size: 15px; line-height: 1.7;">Si tiene alguna consulta, puede comunicarse con la oficina parroquial al teléfono <strong>2685-3540</strong>.</p>
+                            <p style="font-size: 15px; line-height: 1.7;">Agradecemos su interés en apoyar a nuestra comunidad.</p>
+                            <p style="font-size: 15px; line-height: 1.7; margin-bottom: 0;">Atentamente,<br><strong>Parroquia San Blas</strong></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 16px 30px; border-top: 1px solid #dee2e6; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #6c757d;">Este es un mensaje automático. Por favor, no responda a este correo.</p>
                         </td>
                     </tr>
                 </table>

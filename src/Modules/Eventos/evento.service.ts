@@ -44,16 +44,20 @@ export class EventoService {
 
   create(createEventoDto: CreateEventoDto) {
     this.validarFechas(createEventoDto.fechaInicio, createEventoDto.fechaFin);
+    const {
+      publicado: _publicado,
+      activo: _activo,
+      ...datos
+    } = createEventoDto;
     const evento = this.eventoRepository.create({
-      ...createEventoDto,
+      ...datos,
       fechaInicio:
         this.soloFecha(createEventoDto.fechaInicio) ??
         createEventoDto.fechaInicio,
       fechaFin: this.soloFecha(createEventoDto.fechaFin),
       hora: this.soloHora(createEventoDto.hora),
       imagenUrl: this.soloTexto(createEventoDto.imagenUrl),
-      publicado: false,
-      activo: true,
+      estado: 'borrador',
     });
     return this.eventoRepository.save(evento);
   }
@@ -64,7 +68,7 @@ export class EventoService {
 
   findPublicos() {
     return this.eventoRepository.find({
-      where: { publicado: true, activo: true },
+      where: { estado: 'publicado' },
     });
   }
 
@@ -84,10 +88,13 @@ export class EventoService {
       eliminarImagen,
       ...datos
     } = updateEventoDto;
-    this.validarFechas(
-      datos.fechaInicio ?? evento.fechaInicio,
-      datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin,
-    );
+    const fechaInicio = datos.fechaInicio ?? evento.fechaInicio;
+    const fechaFin =
+      datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin;
+    this.validarFechas(fechaInicio, fechaFin, {
+      inicioOriginal: evento.fechaInicio,
+      finOriginal: evento.fechaFin,
+    });
     Object.assign(evento, datos, {
       fechaInicio:
         datos.fechaInicio === undefined
@@ -111,48 +118,47 @@ export class EventoService {
   async publicar(id: number) {
     const evento = await this.findOne(id);
 
-    if (evento.publicado) {
+    if (evento.estado !== 'borrador') {
       throw new BadRequestException('Este evento ya fue publicado.');
     }
 
     this.validarFechas(evento.fechaInicio, evento.fechaFin);
 
-    evento.publicado = true;
-    evento.activo = true;
+    evento.estado = 'publicado';
     return this.eventoRepository.save(evento);
   }
 
   async activar(id: number) {
     const evento = await this.findOne(id);
 
-    if (!evento.publicado) {
+    if (evento.estado === 'borrador') {
       throw new BadRequestException(
         'Solo se pueden activar eventos publicados.',
       );
     }
 
-    if (evento.activo) {
+    if (evento.estado === 'publicado') {
       throw new BadRequestException('Este evento ya está activo.');
     }
 
-    evento.activo = true;
+    evento.estado = 'publicado';
     return this.eventoRepository.save(evento);
   }
 
   async desactivar(id: number) {
     const evento = await this.findOne(id);
 
-    if (!evento.publicado) {
+    if (evento.estado === 'borrador') {
       throw new BadRequestException(
         'Solo se pueden desactivar eventos publicados.',
       );
     }
 
-    if (!evento.activo) {
+    if (evento.estado === 'desactivado') {
       throw new BadRequestException('Este evento ya está inactivo.');
     }
 
-    evento.activo = false;
+    evento.estado = 'desactivado';
     return this.eventoRepository.save(evento);
   }
 
@@ -179,20 +185,26 @@ export class EventoService {
     return texto ? texto : null;
   }
 
-  private validarFechas(fechaInicio?: string, fechaFin?: string | null) {
+  private validarFechas(
+    fechaInicio?: string,
+    fechaFin?: string | null,
+    originales?: { inicioOriginal?: string | null; finOriginal?: string | null },
+  ) {
     const hoy = new Date().toLocaleDateString('en-CA', {
       timeZone: 'America/Costa_Rica',
     });
     const inicio = this.soloFecha(fechaInicio);
     const fin = this.soloFecha(fechaFin);
+    const inicioOriginal = this.soloFecha(originales?.inicioOriginal);
+    const finOriginal = this.soloFecha(originales?.finOriginal);
 
-    if (inicio && inicio < hoy) {
+    if (inicio && inicio < hoy && inicio !== inicioOriginal) {
       throw new BadRequestException(
         'La fecha de inicio no puede ser anterior a la fecha actual.',
       );
     }
 
-    if (fin && fin < hoy) {
+    if (fin && fin < hoy && fin !== finOriginal) {
       throw new BadRequestException(
         'La fecha de fin no puede ser anterior a la fecha actual.',
       );
