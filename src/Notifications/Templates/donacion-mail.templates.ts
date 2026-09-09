@@ -1,3 +1,11 @@
+const TELEFONO_PARROQUIA = '2685-3540';
+const LUGAR_PARROQUIA = 'Oficina parroquial, frente a la juguetería El Jade';
+
+export const DATOS_CONTACTO_PARROQUIA = {
+  telefono: TELEFONO_PARROQUIA,
+  lugar: LUGAR_PARROQUIA,
+};
+
 // Plantillas de correo de donaciones (mismo diseño que los HTML sueltos de /Template, pero en TS para que viajen en el build de Railway sin pelear con assets)
 function escapeHtml(value: string): string {
   return value // escapamos lo que escribe el usuario para que nadie meta HTML raro en el correo
@@ -62,6 +70,15 @@ export function renderDonacionEstadoHtml(input: {
                             </div>
 
                             ${comentario}
+                            ${
+                              esAprobado
+                                ? `<div style="background-color: rgba(0, 51, 102, 0.05); padding: 20px; border-left: 4px solid #003366; margin-bottom: 30px;">
+                                <strong style="color: #003366; font-size: 14px; text-transform: uppercase;">Lugar de entrega:</strong>
+                                <p style="margin: 10px 0 0 0; font-size: 15px;">${escapeHtml(LUGAR_PARROQUIA)}</p>
+                                <p style="margin: 8px 0 0 0; font-size: 15px;"><strong>Teléfono:</strong> ${TELEFONO_PARROQUIA}</p>
+                            </div>`
+                                : `<p style="font-size: 16px; line-height: 1.7;">Si tiene alguna consulta, puede comunicarse con la oficina parroquial al <strong>${TELEFONO_PARROQUIA}</strong>.</p>`
+                            }
                             <p style="font-size: 16px; line-height: 1.7;">Agradecemos profundamente su inmensa generosidad.</p>
                         </td>
                     </tr>
@@ -108,7 +125,7 @@ export function renderDonacionRechazadaHtml(input: {
                             <div style="background-color: #f8d7da; color: #721c24; padding: 16px; border-left: 4px solid #721c24;">
                                 <p style="margin: 0; font-weight: bold;">Motivo: ${motivo}</p>${detalle}
                             </div>
-                            <p>Si tiene alguna consulta, puede comunicarse con la oficina parroquial.</p>
+                            <p>Si tiene alguna consulta, puede comunicarse con la oficina parroquial al <strong>${TELEFONO_PARROQUIA}</strong>.</p>
                             <p>Gracias por su interés en apoyar a nuestra comunidad.</p>
                         </td>
                     </tr>

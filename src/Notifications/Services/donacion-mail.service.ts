@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailService } from './mail.service';
 import {
+  DATOS_CONTACTO_PARROQUIA,
   renderDonacionEstadoHtml,
   renderDonacionRechazadaHtml,
 } from '../Templates/donacion-mail.templates';
@@ -33,7 +34,7 @@ export class DonacionMailService {
           detalle: donacion.detalle,
           comentarioAprobacion: comentario,
         }),
-        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue ${donacion.estado}. Detalle: ${donacion.detalle}${comentario ? ` Comentario de la parroquia: ${comentario}` : ''}`,
+        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue ${donacion.estado}. Detalle: ${donacion.detalle}${comentario ? ` Comentario de la parroquia: ${comentario}` : ''}${donacion.estado === 'Aprobado' ? ` Lugar de entrega: ${DATOS_CONTACTO_PARROQUIA.lugar}. Teléfono: ${DATOS_CONTACTO_PARROQUIA.telefono}` : ` Consultas: oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}`}`,
         tags: ['donaciones', 'estado'],
       });
     } catch (error) {
@@ -66,7 +67,7 @@ export class DonacionMailService {
           motivo,
           detalle,
         }),
-        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue rechazada. Motivo: ${motivo}${detalle ? ` Detalle: ${detalle}` : ''}`,
+        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue rechazada. Motivo: ${motivo}${detalle ? ` Detalle: ${detalle}` : ''}. Si tiene alguna consulta, puede comunicarse con la oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}.`,
         tags: ['donaciones', 'rechazo'],
       });
     } catch (error) {

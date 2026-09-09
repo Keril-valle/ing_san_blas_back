@@ -39,7 +39,16 @@ describe('DonacionMailService.notificarEstado', () => {
 
     expect(ultimoEnvio?.htmlContent).toContain('Comentario de la parroquia');
     expect(ultimoEnvio?.htmlContent).toContain('Entregar en portería el lunes');
+    expect(ultimoEnvio?.htmlContent).toContain('Lugar de entrega');
+    expect(ultimoEnvio?.htmlContent).toContain(
+      'Oficina parroquial, frente a la juguetería El Jade',
+    );
+    expect(ultimoEnvio?.htmlContent).toContain('2685-3540');
     expect(ultimoEnvio?.textContent).toContain('Entregar en portería el lunes');
+    expect(ultimoEnvio?.textContent).toContain('2685-3540');
+    expect(ultimoEnvio?.textContent).toContain(
+      'Oficina parroquial, frente a la juguetería El Jade',
+    );
   });
 
   it('omite el bloque de comentario si no hubo detalle al aprobar', async () => {
@@ -51,6 +60,8 @@ describe('DonacionMailService.notificarEstado', () => {
     expect(ultimoEnvio?.htmlContent).not.toContain(
       'Comentario de la parroquia',
     );
+    expect(ultimoEnvio?.htmlContent).toContain('Lugar de entrega');
+    expect(ultimoEnvio?.htmlContent).toContain('2685-3540');
   });
 
   it('no lanza si el envío falla', async () => {
@@ -59,5 +70,48 @@ describe('DonacionMailService.notificarEstado', () => {
     await expect(
       service.notificarEstado(donacionAprobada),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('DonacionMailService.notificarRechazo', () => {
+  const mailService = {
+    sendMail: jest.fn<(options: SendMailOptions) => Promise<void>>(),
+  };
+  const service = new DonacionMailService(
+    mailService as unknown as MailService,
+  );
+
+  const donacionPendiente: Donacion = {
+    id: 8,
+    fecha: new Date('2026-09-01T00:00:00.000Z'),
+    anonimo: false,
+    nombre: 'Luis Mora',
+    correo: 'luis@example.com',
+    telefono: '8888-8888',
+    detalle: 'Ropa usada',
+    estado: 'Rechazado',
+  };
+
+  let ultimoEnvio: SendMailOptions | undefined;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    ultimoEnvio = undefined;
+    mailService.sendMail.mockImplementation((options: SendMailOptions) => {
+      ultimoEnvio = options;
+      return Promise.resolve();
+    });
+  });
+
+  it('incluye el teléfono de la parroquia en el correo de rechazo', async () => {
+    await service.notificarRechazo(
+      donacionPendiente,
+      'Datos ambiguos',
+      'Falta el detalle de talla',
+    );
+
+    expect(ultimoEnvio?.htmlContent).toContain('2685-3540');
+    expect(ultimoEnvio?.htmlContent).not.toContain('Lugar de entrega');
+    expect(ultimoEnvio?.textContent).toContain('2685-3540');
   });
 });
