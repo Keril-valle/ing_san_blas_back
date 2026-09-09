@@ -47,7 +47,10 @@ import { NotificationsModule } from './Notifications/notifications.module';
   imports: [
     // Carga el .env una sola vez y lo deja disponible en toda la app (isGlobal: true)
     // sin esto, ConfigService no tendría de dónde leer DATABASE_URL más abajo.
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
 
     // Configuración de TypeORM con Postgres (Supabase).
     // forRootAsync en vez de forRoot porque necesitamos inyectar ConfigService
