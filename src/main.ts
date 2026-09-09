@@ -1,8 +1,21 @@
 import helmet from 'helmet';
+import { config as loadEnv } from 'dotenv';
+import * as tls from 'node:tls';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './Common/Filters/global-exception.filter';
+
+loadEnv();
+
+try {
+  tls.setDefaultCACertificates([
+    ...tls.getCACertificates(),
+    ...tls.getCACertificates('system'),
+  ]);
+} catch {
+  // Si Node no puede leer el almacén de Windows, se siguen usando los certificados embebidos
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
