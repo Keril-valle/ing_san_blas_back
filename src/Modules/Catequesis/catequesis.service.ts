@@ -9,6 +9,7 @@ import {
   InscripcionDetalleDto,
   InscripcionResumenDto,
 } from './DTO/inscripcion-response.dto';
+import { HistorialInscripcionCatequesisDto } from './DTO/historial-inscripcion-response.dto';
 import {
   MENSAJE_FECHA_BAUTISMO_FUTURA,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
@@ -112,6 +113,68 @@ export class CatequesisService {
 
     const inscripciones = await query.getMany();
     return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));
+  }
+
+  async historial(opciones: {
+    estado?: string;
+    desde?: string;
+    hasta?: string;
+  }): Promise<{
+    total: number;
+    historial: HistorialInscripcionCatequesisDto[];
+  }> {
+    const qb = this.inscripcionRepository
+      .createQueryBuilder('inscripcion')
+      .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
+      .leftJoinAndSelect('inscripcion.madre', 'madre')
+      .where('inscripcion.estado IN (:...estadosFinales)', {
+        estadosFinales: ['Aprobada', 'Rechazada'],
+      });
+
+    if (opciones.estado) {
+      const estadoNorm =
+        opciones.estado.toLowerCase() === 'aprobado' ||
+        opciones.estado.toLowerCase() === 'aprobada'
+          ? 'Aprobada'
+          : 'Rechazada';
+      qb.andWhere('inscripcion.estado = :estado', { estado: estadoNorm });
+    }
+
+    if (opciones.desde) {
+      qb.andWhere('inscripcion.fechaSolicitud >= :desde', {
+        desde: new Date(`${opciones.desde}T00:00:00`),
+      });
+    }
+
+    if (opciones.hasta) {
+      const hasta = new Date(`${opciones.hasta}T00:00:00`);
+      hasta.setDate(hasta.getDate() + 1);
+      qb.andWhere('inscripcion.fechaSolicitud < :hasta', { hasta });
+    }
+
+    qb.orderBy('inscripcion.fechaSolicitud', 'DESC');
+
+    const [items, total] = await qb.getManyAndCount();
+
+    return {
+      total,
+      historial: items.map((inscripcion) => {
+        const nombre = inscripcion.catequizando?.nombre ?? '';
+        const apellidos = inscripcion.catequizando?.apellidos ?? '';
+
+        return {
+          id: inscripcion.id,
+          nombreCatequizando: `${nombre} ${apellidos}`.trim(),
+          centroCatequesis: inscripcion.centroCatequesis,
+          nivelAInscribirse: inscripcion.nivelAInscribirse,
+          estado: inscripcion.estado,
+          fechaSolicitud: inscripcion.fechaSolicitud,
+          telefonoEncargada: inscripcion.madre?.telefono ?? '',
+          observacionAdministrativa: inscripcion.observacionAdministrativa,
+          fechaActualizacionEstado: inscripcion.fechaActualizacionEstado,
+        };
+      }),
+    };
   }
 
   async findById(id: number): Promise<InscripcionDetalleDto | null> {

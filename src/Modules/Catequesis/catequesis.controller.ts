@@ -61,6 +61,59 @@ export class CatequesisController {
     return this.catequesisService.findAll(estadoNormalizado);
   }
 
+  @Get('historial')
+  @Roles(Role.ADMIN)
+  async historial(
+    @Query('estado') estado?: string,
+    @Query('desde') desde?: string,
+    @Query('hasta') hasta?: string,
+  ) {
+    const regexFecha = /^\d{4}-\d{2}-\d{2}$/;
+
+    if (
+      desde !== undefined &&
+      (!regexFecha.test(desde) || Number.isNaN(new Date(desde).getTime()))
+    ) {
+      throw new BadRequestException({
+        mensaje: 'El formato de fecha no es válido, usá YYYY-MM-DD',
+      });
+    }
+    if (
+      hasta !== undefined &&
+      (!regexFecha.test(hasta) || Number.isNaN(new Date(hasta).getTime()))
+    ) {
+      throw new BadRequestException({
+        mensaje: 'El formato de fecha no es válido, usá YYYY-MM-DD',
+      });
+    }
+    if (desde && hasta) {
+      const fechaDesde = new Date(desde).getTime();
+      const fechaHasta = new Date(hasta).getTime();
+      if (fechaDesde > fechaHasta) {
+        throw new BadRequestException({
+          mensaje: 'La fecha de inicio no puede ser mayor que la fecha de fin',
+        });
+      }
+    }
+    if (
+      estado !== undefined &&
+      estado.trim() !== '' &&
+      !['aprobado', 'aprobada', 'rechazado', 'rechazada'].includes(
+        estado.trim().toLowerCase(),
+      )
+    ) {
+      throw new BadRequestException({
+        mensaje: 'El estado ingresado no es válido. Usá aprobado o rechazado',
+      });
+    }
+
+    return this.catequesisService.historial({
+      estado: estado?.trim() || undefined,
+      desde,
+      hasta,
+    });
+  }
+
   @Get('exportar')
   @Roles(Role.ADMIN)
   async exportar(@Query('estado') estado: string, @Res() response: Response) {
