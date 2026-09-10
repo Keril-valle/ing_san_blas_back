@@ -51,15 +51,13 @@ describe('DonacionMailService.notificarEstado', () => {
     );
   });
 
-  it('omite el bloque de comentario si no hubo detalle al aprobar', async () => {
+  it('mantiene el lugar de entrega dentro del comentario aunque no haya detalle al aprobar', async () => {
     await service.notificarEstado({
       ...donacionAprobada,
       detalleAprobacion: undefined,
     });
 
-    expect(ultimoEnvio?.htmlContent).not.toContain(
-      'Comentario de la parroquia',
-    );
+    expect(ultimoEnvio?.htmlContent).toContain('Comentario de la parroquia'); // el bloque siempre sale en aprobados porque lleva el lugar de entrega adentro
     expect(ultimoEnvio?.htmlContent).toContain('Lugar de entrega');
     expect(ultimoEnvio?.htmlContent).toContain('2685-3540');
   });
