@@ -78,12 +78,18 @@ export class DonacionesController {
   ) {
     const regexFecha = /^\d{4}-\d{2}-\d{2}$/;
 
-    if (desde !== undefined && (!regexFecha.test(desde) || Number.isNaN(new Date(desde).getTime()))) {
+    if (
+      desde !== undefined &&
+      (!regexFecha.test(desde) || Number.isNaN(new Date(desde).getTime()))
+    ) {
       throw new BadRequestException({
         message: 'El formato de fecha no es válido, usá YYYY-MM-DD',
       });
     }
-    if (hasta !== undefined && (!regexFecha.test(hasta) || Number.isNaN(new Date(hasta).getTime()))) {
+    if (
+      hasta !== undefined &&
+      (!regexFecha.test(hasta) || Number.isNaN(new Date(hasta).getTime()))
+    ) {
       throw new BadRequestException({
         message: 'El formato de fecha no es válido, usá YYYY-MM-DD',
       });

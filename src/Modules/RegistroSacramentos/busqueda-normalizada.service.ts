@@ -201,14 +201,13 @@ export class BusquedaNormalizadaService {
     const total = Number(countResult[0]?.total ?? 0);
     // Orden por defecto: el último sacramento registrado aparece primero (id DESC).
     // Así el acta que se acaba de ingresar se ve arriba aunque su fecha de celebración sea antigua.
-    const sortColumn =
-      !filtros.sortBy
-        ? 'id'
-        : filtros.sortBy === 'nombre'
-          ? 'nombre'
-          : filtros.sortBy === 'tipo'
-            ? 'tipo'
-            : 'fecha';
+    const sortColumn = !filtros.sortBy
+      ? 'id'
+      : filtros.sortBy === 'nombre'
+        ? 'nombre'
+        : filtros.sortBy === 'tipo'
+          ? 'tipo'
+          : 'fecha';
     const sortDirection = filtros.sortDirection === 'asc' ? 'ASC' : 'DESC';
     const offsetParam = addParameter((page - 1) * pageSize);
     const limitParam = addParameter(pageSize);

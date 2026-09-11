@@ -1,22 +1,34 @@
 import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, Matches, ValidateIf } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  ValidateIf,
+} from 'class-validator';
 import { RegisterDto } from '../../Auth/DTO/register.dto';
+import { Role } from '../../Common/Enums/Roles';
 import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 
 export class UpdateUsuarioDto extends PartialType(
   OmitType(RegisterDto, ['email'] as const),
 ) {
   @ValidateIf((object) => object.password !== undefined)
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty({ message: 'La confirmación de contraseña es obligatoria' })
   confirmPassword: string;
 
+  // si el usuario conservaba un rol custom y no se toca, el frontend no envía role;
+  // @IsOptional evita validar cuando viene undefined y por eso no rompe esos casos
   @IsOptional()
   @IsString({ message: 'El rol debe ser texto.' })
+  @IsIn(Object.values(Role), {
+    message: 'El rol indicado no es un rol válido.',
+  })
   role?: string;
 
   @IsOptional()

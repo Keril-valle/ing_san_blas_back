@@ -48,8 +48,7 @@ export class CatequesisService {
       catequizando: {
         nombre: dto.datosCatequizando.nombre.trim(),
         primerApellido: dto.datosCatequizando.primerApellido.trim(),
-        segundoApellido:
-          dto.datosCatequizando.segundoApellido?.trim() || null,
+        segundoApellido: dto.datosCatequizando.segundoApellido?.trim() || null,
         fechaNacimiento: dto.datosCatequizando.fechaNacimiento.trim(),
         direccionExacta: dto.datosCatequizando.direccionExacta.trim(),
       },
@@ -225,10 +224,10 @@ export class CatequesisService {
           nivelAInscribirse: inscripcion.nivelAInscribirse,
           estado: inscripcion.estado,
           fechaSolicitud: inscripcion.fechaSolicitud,
-      telefonoEncargada:
-        inscripcion.personaInscribe?.telefono ??
-        inscripcion.madre?.telefono ??
-        '',
+          telefonoEncargada:
+            inscripcion.personaInscribe?.telefono ??
+            inscripcion.madre?.telefono ??
+            '',
           observacionAdministrativa: inscripcion.observacionAdministrativa,
           fechaActualizacionEstado: inscripcion.fechaActualizacionEstado,
         };
@@ -355,6 +354,13 @@ export class CatequesisService {
         '',
       nombreEncargado,
       correoEncargado: inscripcion.personaInscribe?.correo ?? '',
+      // motivo/observaciones únicamente para rechazadas; derivados de la observación persistida
+      ...(inscripcion.estado === 'Rechazada'
+        ? {
+            motivoRechazo: inscripcion.observacionAdministrativa,
+            observaciones: inscripcion.observacionAdministrativa,
+          }
+        : {}),
     };
   }
 
@@ -369,6 +375,13 @@ export class CatequesisService {
       fechaSolicitud: inscripcion.fechaSolicitud,
       feBautismoArchivo: inscripcion.feBautismoArchivo,
       observacionAdministrativa: inscripcion.observacionAdministrativa,
+      // motivo/observaciones únicamente para rechazadas; derivados de la observación persistida
+      ...(inscripcion.estado === 'Rechazada'
+        ? {
+            motivoRechazo: inscripcion.observacionAdministrativa,
+            observaciones: inscripcion.observacionAdministrativa,
+          }
+        : {}),
       catequizando: {
         nombre: inscripcion.catequizando?.nombre ?? '',
         primerApellido: inscripcion.catequizando?.primerApellido ?? '',

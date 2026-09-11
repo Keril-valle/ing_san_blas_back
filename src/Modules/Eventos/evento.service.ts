@@ -238,7 +238,10 @@ export class EventoService {
   private validarFechas(
     fechaInicio?: string,
     fechaFin?: string | null,
-    originales?: { inicioOriginal?: string | null; finOriginal?: string | null },
+    originales?: {
+      inicioOriginal?: string | null;
+      finOriginal?: string | null;
+    },
   ) {
     const hoy = new Date().toLocaleDateString('en-CA', {
       timeZone: 'America/Costa_Rica',

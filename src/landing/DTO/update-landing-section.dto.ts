@@ -103,7 +103,9 @@ export class SobreNosotrosCardDto {
   @IsOptional()
   @Transform(transformarTexto)
   @IsString()
-  @MaxLength(8, { message: 'El icono de la tarjeta no puede superar 8 caracteres.' })
+  @MaxLength(8, {
+    message: 'El icono de la tarjeta no puede superar 8 caracteres.',
+  })
   icono?: string;
 
   @Transform(transformarTexto)
@@ -117,8 +119,8 @@ export class SobreNosotrosCardDto {
   @Transform(transformarTexto)
   @IsString({ message: 'El texto de la tarjeta debe ser texto.' })
   @IsNotEmpty({ message: 'El texto de la tarjeta es obligatorio.' })
-  @MaxLength(280, {
-    message: 'El texto de la tarjeta no puede superar 280 caracteres.',
+  @MaxLength(220, {
+    message: 'El texto de la tarjeta no puede superar 220 caracteres.',
   })
   texto: string;
 }
@@ -139,8 +141,8 @@ export class UpdateSobreNosotrosDto {
   @Transform(transformarTexto)
   @IsString({ message: 'La descripción debe ser texto.' })
   @IsNotEmpty({ message: 'La descripción es obligatoria.' })
-  @MaxLength(400, {
-    message: 'La descripción no puede superar 400 caracteres.',
+  @MaxLength(300, {
+    message: 'La descripción no puede superar 300 caracteres.',
   })
   lead: string;
 

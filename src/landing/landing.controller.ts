@@ -14,7 +14,10 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { ValidationError } from 'class-validator';
 import { memoryStorage } from 'multer';
 import type { Request } from 'express';
@@ -175,7 +178,7 @@ export class LandingController {
         return parsed.data;
       }
       if (parsed && typeof parsed === 'object') {
-        return parsed as Record<string, unknown>;
+        return parsed;
       }
       throw new Error('invalid');
     } catch {

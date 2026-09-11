@@ -8,6 +8,9 @@ export class InscripcionResumenDto {
   telefonoEncargada: string;
   nombreEncargado: string;
   correoEncargado: string;
+  // motivo/observaciones solo se incluyen cuando la inscripción fue rechazada
+  motivoRechazo?: string | null;
+  observaciones?: string | null;
 }
 
 export class CatequizandoDetalleDto {
@@ -72,6 +75,9 @@ export class InscripcionDetalleDto {
   fechaSolicitud: Date;
   feBautismoArchivo: string;
   observacionAdministrativa: string | null;
+  // motivo/observaciones solo se incluyen cuando la inscripción fue rechazada
+  motivoRechazo?: string | null;
+  observaciones?: string | null;
   catequizando: CatequizandoDetalleDto;
   bautismo: BautismoDetalleDto;
   adecuacion: AdecuacionDetalleDto;
