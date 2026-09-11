@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -40,8 +37,7 @@ const HERO_DEFAULT: UpdateHeroDto = {
 const SOBRE_NOSOTROS_DEFAULT: UpdateSobreNosotrosDto = {
   eyebrow: 'Sobre Nosotros',
   title: 'Una parroquia que guarda la fe, la historia y la cercanía de Nicoya',
-  lead:
-    'La Parroquia San Blas de Nicoya es un referente espiritual y cultural de Costa Rica. Su historia, su misión pastoral y su vocación de servicio siguen acompañando a una comunidad viva, hospitalaria y profundamente creyente.',
+  lead: 'La Parroquia San Blas de Nicoya es un referente espiritual y cultural de Costa Rica. Su historia, su misión pastoral y su vocación de servicio siguen acompañando a una comunidad viva, hospitalaria y profundamente creyente.',
   cards: [
     {
       icono: '01',
@@ -259,7 +255,9 @@ export class LandingService {
     return dto;
   }
 
-  private assertSectionKey(sectionKey: string): asserts sectionKey is LandingSectionKey {
+  private assertSectionKey(
+    sectionKey: string,
+  ): asserts sectionKey is LandingSectionKey {
     if (!LANDING_SECTION_KEYS.includes(sectionKey as LandingSectionKey)) {
       throw new BadRequestException({
         mensaje: 'La sección indicada no es válida.',

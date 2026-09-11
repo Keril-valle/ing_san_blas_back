@@ -6,9 +6,7 @@ const TABLAS = [
   'PersonasInscribeCatequesis',
 ] as const;
 
-export class SplitApellidosCatequesis1788000000018
-  implements MigrationInterface
-{
+export class SplitApellidosCatequesis1788000000018 implements MigrationInterface {
   name = 'SplitApellidosCatequesis1788000000018';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -27,9 +25,7 @@ export class SplitApellidosCatequesis1788000000018
       await queryRunner.query(
         `ALTER TABLE "${tabla}" ALTER COLUMN "PrimerApellido" SET NOT NULL`,
       );
-      await queryRunner.query(
-        `ALTER TABLE "${tabla}" DROP COLUMN "Apellidos"`,
-      );
+      await queryRunner.query(`ALTER TABLE "${tabla}" DROP COLUMN "Apellidos"`);
     }
   }
 

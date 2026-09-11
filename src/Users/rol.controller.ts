@@ -1,4 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
 import { Roles } from '../Auth/Decorators/roles.decorator';
 import { Role } from '../Common/Enums/Roles';
 import { CreateRolDto } from './DTO/create-rol.dto';

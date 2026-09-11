@@ -11,9 +11,7 @@ const PERMISOS_ADMIN = JSON.stringify([
   'sacramentos',
 ]);
 
-export class CreateRolAndRelaxUsuarioRole1788000000025
-  implements MigrationInterface
-{
+export class CreateRolAndRelaxUsuarioRole1788000000025 implements MigrationInterface {
   name = 'CreateRolAndRelaxUsuarioRole1788000000025';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
