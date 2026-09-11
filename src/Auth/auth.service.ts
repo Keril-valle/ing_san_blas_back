@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { LoginDto } from './DTO/login.dto';
 import { RegisterDto } from './DTO/register.dto';
 import { UsuarioService } from '../Users/usuario.service';
+import { RolService } from '../Users/rol.service';
 import { createHash } from 'crypto';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class AuthService {
 
   constructor(
     private readonly usuarioService: UsuarioService,
+    private readonly rolService: RolService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
@@ -27,7 +29,9 @@ export class AuthService {
   }
 
   private async getTokens(userId: number, email: string, role: string) {
-    const payload = { jti: randomUUID(), sub: userId, email, role };
+    const rol = await this.rolService.findByClave(role);
+    const accesoPanel = this.rolService.tieneAccesoPanel(rol);
+    const payload = { jti: randomUUID(), sub: userId, email, role, accesoPanel };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload),
@@ -95,6 +99,13 @@ export class AuthService {
   async logout(userId: number) {
     await this.usuarioService.setRefreshTokenHash(userId, null);
     return { message: 'Sesión cerrada' };
+  }
+
+  async solicitarRecuperacion(_email: string) {
+    return {
+      message:
+        'Si el correo está registrado, enviamos un enlace para restablecer la contraseña.',
+    };
   }
 
   prueba(user: any) {

@@ -17,6 +17,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import type { Response } from 'express';
@@ -38,6 +39,11 @@ import {
   normalizarEstadoInscripcion,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
 
+const LIMITE_ARCHIVOS_CATEQUESIS = {
+  storage: memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+};
+
 @Controller('inscripciones-catequesis')
 export class CatequesisController {
   constructor(
@@ -48,7 +54,12 @@ export class CatequesisController {
 
   @Get()
   @Roles(Role.ADMIN)
-  async findAll(@Query('estado') estado?: string) {
+  async findAll(
+    @Query('estado') estado?: string,
+    @Query('nombre') nombre?: string,
+    @Query('encargado') encargado?: string,
+    @Query('q') q?: string,
+  ) {
     let estadoNormalizado: string | null = null;
 
     if (estado?.trim()) {
@@ -58,7 +69,12 @@ export class CatequesisController {
       }
     }
 
-    return this.catequesisService.findAll(estadoNormalizado);
+    return this.catequesisService.findAll({
+      estado: estadoNormalizado,
+      nombre: nombre?.trim() || undefined,
+      encargado: encargado?.trim() || undefined,
+      q: q?.trim() || undefined,
+    });
   }
 
   @Get('historial')
@@ -173,10 +189,13 @@ export class CatequesisController {
   @Post('con-archivos')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'FeBautismoArchivo', maxCount: 1 },
-      { name: 'ComprobanteArchivo', maxCount: 1 },
-    ]),
+    FileFieldsInterceptor(
+      [
+        { name: 'FeBautismoArchivo', maxCount: 1 },
+        { name: 'ComprobanteArchivo', maxCount: 1 },
+      ],
+      LIMITE_ARCHIVOS_CATEQUESIS,
+    ),
   )
   async createWithFiles(
     @Body('Payload') payload: string,

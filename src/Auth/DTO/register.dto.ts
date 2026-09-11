@@ -6,19 +6,23 @@ import {
   Matches,
   MinLength,
 } from 'class-validator';
+import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 
 export class RegisterDto {
-  @Transform(({ value }) => value.trim())
+  @Transform(transformarTexto)
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
   nombre: string;
 
+  @Transform(transformarTexto)
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
@@ -31,6 +35,9 @@ export class RegisterDto {
   )
   password: string;
 
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   confirmPassword: string;

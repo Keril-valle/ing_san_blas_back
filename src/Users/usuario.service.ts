@@ -5,8 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterDto } from '../Auth/DTO/register.dto';
+import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
+import { Role } from '../Common/Enums/Roles';
 import { Usuario } from './Entities/usuario.entity';
+import { RolService } from './rol.service';
 import { Repository, ILike } from 'typeorm';
 import getNombreCedula from '../Common/Helpers/nombreCedula';
 import * as bcrypt from 'bcryptjs';
@@ -16,9 +19,10 @@ export class UsuarioService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    private readonly rolService: RolService,
   ) {}
 
-  async createUser(registerDto: RegisterDto) {
+  async createUser(registerDto: RegisterDto | CreateUsuarioDto) {
     if (registerDto.password !== registerDto.confirmPassword) {
       throw new BadRequestException('Las contraseñas no coinciden');
     }
@@ -29,10 +33,21 @@ export class UsuarioService {
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+    const roleSolicitado =
+      'role' in registerDto && typeof registerDto.role === 'string'
+        ? registerDto.role.trim()
+        : Role.USER;
+    const rol = await this.rolService.assertExiste(roleSolicitado);
+    const telefono =
+      'telefono' in registerDto && typeof registerDto.telefono === 'string'
+        ? registerDto.telefono
+        : null;
     const user = this.usuarioRepository.create({
       nombre: registerDto.nombre,
       email: registerDto.email,
       password: hashedPassword,
+      role: rol.clave,
+      telefono,
     });
 
     return this.usuarioRepository.save(user);
@@ -78,11 +93,25 @@ export class UsuarioService {
     );
   }
 
-  async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
+  async update(id: number, updateUsuarioDto: UpdateUsuarioDto, actorId?: number) {
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
+    }
+
+    const esMismoUsuario = actorId != null && id === actorId;
+
+    if (esMismoUsuario) {
+      if (
+        updateUsuarioDto.role !== undefined &&
+        updateUsuarioDto.role !== user.role
+      ) {
+        throw new BadRequestException('No puede cambiar su propio rol.');
+      }
+      if (updateUsuarioDto.isActive === false) {
+        throw new BadRequestException('No puede inactivar su propia cuenta.');
+      }
     }
 
     if (updateUsuarioDto.password !== undefined) {
@@ -96,10 +125,27 @@ export class UsuarioService {
       user.nombre = updateUsuarioDto.nombre;
     }
 
+    if (updateUsuarioDto.telefono !== undefined) {
+      user.telefono = updateUsuarioDto.telefono;
+    }
+
+    if (!esMismoUsuario) {
+      if (updateUsuarioDto.role !== undefined) {
+        const rol = await this.rolService.assertExiste(updateUsuarioDto.role);
+        user.role = rol.clave;
+      }
+      if (updateUsuarioDto.isActive !== undefined) {
+        user.isActive = updateUsuarioDto.isActive;
+      }
+    }
+
     return await this.usuarioRepository.save(user);
   }
 
-  async remove(id: number) {
+  async remove(id: number, actorId?: number) {
+    if (actorId != null && id === actorId) {
+      throw new BadRequestException('No puede inactivar su propia cuenta.');
+    }
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
 
     if (!user) {

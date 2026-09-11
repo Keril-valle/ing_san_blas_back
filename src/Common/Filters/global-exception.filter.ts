@@ -12,6 +12,7 @@ import { QueryFailedError } from 'typeorm';
 interface FriendlyError {
   status: number;
   mensaje: string;
+  errores?: Record<string, string[]>;
 }
 
 @Catch()
@@ -22,7 +23,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const { status, mensaje } = this.resolveException(exception);
+    const { status, mensaje, errores } = this.resolveException(exception);
 
     this.logger.error(
       `[${request.method}] ${request.url} -> ${status}`,
@@ -33,14 +34,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       statusCode: status,
       mensaje,
       timestamp: new Date().toISOString(),
+      ...(errores ? { errores } : {}),
     });
   }
 
   private resolveException(exception: unknown): FriendlyError {
     if (exception instanceof HttpException) {
+      const response = exception.getResponse();
+      const errores =
+        typeof response === 'object' &&
+        response !== null &&
+        'errores' in response &&
+        response.errores &&
+        typeof response.errores === 'object'
+          ? (response.errores as Record<string, string[]>)
+          : undefined;
+
       return {
         status: exception.getStatus(),
         mensaje: this.resolveHttpExceptionMessage(exception),
+        errores,
       };
     }
 

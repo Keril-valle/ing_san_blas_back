@@ -18,8 +18,11 @@ export class Catequizando {
   @Column({ name: 'Nombre' })
   nombre: string;
 
-  @Column({ name: 'Apellidos' })
-  apellidos: string;
+  @Column({ name: 'PrimerApellido' })
+  primerApellido: string;
+
+  @Column({ name: 'SegundoApellido', type: 'varchar', nullable: true })
+  segundoApellido: string | null;
 
   @Column({ name: 'FechaNacimiento', type: 'date' })
   fechaNacimiento: string;

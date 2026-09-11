@@ -6,19 +6,21 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
 } from '@nestjs/common';
 import { UsuarioService } from './usuario.service';
-import { RegisterDto } from '../Auth/DTO/register.dto';
+import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Public } from '../Auth/Decorators/public.decorator';
+import type { RequestWithUser } from '../Common/Interfaces/requestWithUser.interface';
 
 @Controller('usuario')
 export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) {}
 
   @Post()
-  create(@Body() registerDto: RegisterDto) {
-    return this.usuarioService.createUser(registerDto);
+  create(@Body() createUsuarioDto: CreateUsuarioDto) {
+    return this.usuarioService.createUser(createUsuarioDto);
   }
 
   @Get()
@@ -46,8 +48,12 @@ export class UsuarioController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUsuarioDto: UpdateUsuarioDto) {
-    return this.usuarioService.update(+id, updateUsuarioDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateUsuarioDto: UpdateUsuarioDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.usuarioService.update(+id, updateUsuarioDto, Number(req.user.sub));
   }
 
   @Get('email/:email')
@@ -56,7 +62,7 @@ export class UsuarioController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usuarioService.remove(+id);
+  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.usuarioService.remove(+id, Number(req.user.sub));
   }
 }
