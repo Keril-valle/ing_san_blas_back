@@ -4,7 +4,8 @@ import { CatequesisService } from './catequesis.service';
 
 const COLUMNAS_EXPORTADAS = [
   'Nombre',
-  'Apellidos',
+  'Primer apellido',
+  'Segundo apellido',
   'Fecha de nacimiento',
   'Centro de catequesis',
   'Nivel a inscribirse',
@@ -31,7 +32,8 @@ export class CatequesisExportService {
   private async generarContenidoExcel(
     filas: Array<{
       nombre: string;
-      apellidos: string;
+      primerApellido: string;
+      segundoApellido: string;
       fechaNacimiento: string;
       centroCatequesis: string;
       nivelAInscribirse: string;
@@ -53,7 +55,8 @@ export class CatequesisExportService {
     for (const fila of filas) {
       const row = worksheet.addRow([
         fila.nombre,
-        fila.apellidos,
+        fila.primerApellido,
+        fila.segundoApellido,
         new Date(`${fila.fechaNacimiento}T00:00:00`),
         fila.centroCatequesis,
         fila.nivelAInscribirse,
@@ -61,8 +64,8 @@ export class CatequesisExportService {
         fila.fechaSolicitud,
       ]);
 
-      row.getCell(3).numFmt = 'dd/MM/yyyy';
-      row.getCell(7).numFmt = 'dd/MM/yyyy HH:mm';
+      row.getCell(4).numFmt = 'dd/MM/yyyy';
+      row.getCell(8).numFmt = 'dd/MM/yyyy HH:mm';
     }
 
     worksheet.columns.forEach((column) => {

@@ -18,11 +18,20 @@ export class PersonaInscribeCatequesis {
   @Column({ name: 'Nombre' })
   nombre: string;
 
-  @Column({ name: 'Apellidos' })
-  apellidos: string;
+  @Column({ name: 'PrimerApellido' })
+  primerApellido: string;
+
+  @Column({ name: 'SegundoApellido', type: 'varchar', nullable: true })
+  segundoApellido: string | null;
 
   @Column({ name: 'Parentesco' })
   parentesco: string;
+
+  @Column({ name: 'Correo', type: 'varchar', nullable: true })
+  correo: string | null;
+
+  @Column({ name: 'Telefono', type: 'varchar', nullable: true })
+  telefono: string | null;
 
   @OneToOne(
     () => InscripcionCatequesis,

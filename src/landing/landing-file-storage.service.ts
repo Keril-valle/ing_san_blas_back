@@ -7,12 +7,12 @@ import { randomBytes } from 'node:crypto';
 
 const cloudinaryAgent = new Agent({ rejectUnauthorized: false });
 
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp']);
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 @Injectable()
-export class CatequesisFileStorageService {
-  private readonly logger = new Logger(CatequesisFileStorageService.name);
+export class LandingFileStorageService {
+  private readonly logger = new Logger(LandingFileStorageService.name);
 
   constructor(private readonly configService: ConfigService) {
     cloudinary.config({
@@ -27,9 +27,10 @@ export class CatequesisFileStorageService {
     });
   }
 
-  async saveCatequesisFile(
+  async saveSectionImage(
     file: Express.Multer.File,
-    category: string,
+    sectionKey: 'hero' | 'sobre-nosotros' | 'historia',
+    variante = 'imagen',
   ): Promise<string> {
     if (!file || file.size <= 0) {
       throw new BadRequestException({ mensaje: 'El archivo está vacío.' });
@@ -44,7 +45,7 @@ export class CatequesisFileStorageService {
     const extension = this.resolveExtension(file.originalname);
     if (!extension || !ALLOWED_EXTENSIONS.has(extension)) {
       throw new BadRequestException({
-        mensaje: 'Formato no permitido. Use PDF, JPG, PNG o WEBP.',
+        mensaje: 'Formato no permitido. Use JPG, PNG o WEBP.',
       });
     }
 
@@ -53,19 +54,12 @@ export class CatequesisFileStorageService {
       throw new BadRequestException({ mensaje: 'El archivo está vacío.' });
     }
 
-    const safeCategory = category?.trim().toLowerCase() || 'general';
-    const esPdf = extension === '.pdf';
-    const mimeType = esPdf
-      ? 'application/pdf'
-      : (file.mimetype || `image/${extension.slice(1)}`);
-
     try {
       const uploadResult = await cloudinary.uploader.upload(
-        `data:${mimeType};base64,${buffer.toString('base64')}`,
+        `data:image/${extension.slice(1)};base64,${buffer.toString('base64')}`,
         {
-          public_id: `catequesis/${safeCategory}/${randomBytes(12).toString('hex')}`,
-          resource_type: esPdf ? 'raw' : 'image',
-          ...(esPdf ? { format: 'pdf' } : {}),
+          public_id: `landing/${sectionKey}/${variante}/${randomBytes(12).toString('hex')}`,
+          resource_type: 'image',
           agent: cloudinaryAgent,
         },
       );
@@ -74,10 +68,10 @@ export class CatequesisFileStorageService {
     } catch (error) {
       const detalle = this.detalleError(error);
       this.logger.error(
-        `Error subiendo archivo de catequesis a Cloudinary: ${detalle}`,
+        `Error subiendo imagen de ${sectionKey} a Cloudinary: ${detalle}`,
       );
       throw new BadRequestException({
-        mensaje: 'No se pudo subir el archivo, intente de nuevo.',
+        mensaje: 'No se pudo subir la imagen, intente de nuevo.',
       });
     }
   }

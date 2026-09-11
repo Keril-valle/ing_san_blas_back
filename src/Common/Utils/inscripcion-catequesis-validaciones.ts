@@ -69,3 +69,10 @@ export function validarFechaNoFutura(fecha?: string | null): boolean {
   hoy.setHours(0, 0, 0, 0);
   return parsed <= hoy;
 }
+
+export function unirApellidos(
+  primer?: string | null,
+  segundo?: string | null,
+): string {
+  return `${primer?.trim() ?? ''} ${segundo?.trim() ?? ''}`.trim();
+}

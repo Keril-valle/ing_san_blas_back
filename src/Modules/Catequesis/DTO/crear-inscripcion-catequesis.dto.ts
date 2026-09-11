@@ -3,12 +3,12 @@ import {
   Allow,
   IsBoolean,
   IsDateString,
+  IsEmail,
   IsIn,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
-  Min,
+  Matches,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -41,8 +41,14 @@ export class DatosCatequizandoDto {
   nombre: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Los apellidos del catequizando son obligatorios.' })
-  apellidos: string;
+  @IsNotEmpty({
+    message: 'El primer apellido del catequizando es obligatorio.',
+  })
+  primerApellido: string;
+
+  @IsOptional()
+  @IsString()
+  segundoApellido?: string | null;
 
   @IsDateString({}, { message: 'La fecha de nacimiento es obligatoria.' })
   fechaNacimiento: string;
@@ -116,9 +122,13 @@ export class DatosMadreDto {
 
   @IsString()
   @IsNotEmpty({
-    message: 'Los apellidos de la madre o encargada son obligatorios.',
+    message: 'El primer apellido de la madre o encargada es obligatorio.',
   })
-  apellidos: string;
+  primerApellido: string;
+
+  @IsOptional()
+  @IsString()
+  segundoApellido?: string | null;
 
   @IsString()
   @IsNotEmpty({
@@ -150,7 +160,11 @@ export class DatosPadreDto {
 
   @IsOptional()
   @IsString()
-  apellidos?: string;
+  primerApellido?: string;
+
+  @IsOptional()
+  @IsString()
+  segundoApellido?: string | null;
 
   @IsOptional()
   @IsString()
@@ -166,17 +180,36 @@ export class DatosPersonaInscribeDto {
 
   @IsString()
   @IsNotEmpty({
-    message: 'Los apellidos de la persona que inscribe son obligatorios.',
+    message: 'El primer apellido de la persona que inscribe es obligatorio.',
   })
-  apellidos: string;
+  primerApellido: string;
+
+  @IsOptional()
+  @IsString()
+  segundoApellido?: string | null;
 
   @IsString()
   @IsNotEmpty({ message: 'El parentesco es obligatorio.' })
   parentesco: string;
 
   @IsOptional()
-  @IsString()
+  @ValidateIf((_, value) => typeof value === 'string' && value.trim() !== '')
+  @IsEmail(
+    {},
+    {
+      message: 'El correo de la persona que inscribe no es válido.',
+    },
+  )
   correo?: string;
+
+  @IsString()
+  @IsNotEmpty({
+    message: 'El teléfono de la persona que inscribe es obligatorio.',
+  })
+  @Matches(/^\d{8}$/, {
+    message: 'El teléfono de la persona que inscribe debe tener 8 dígitos.',
+  })
+  telefono: string;
 }
 
 export class DatosPagoDto {
@@ -191,10 +224,6 @@ export class DatosPagoDto {
   @IsString()
   @IsNotEmpty({ message: 'El comprobante de pago es obligatorio.' })
   comprobanteArchivo: string;
-
-  @IsNumber({}, { message: 'El monto debe ser mayor que cero.' })
-  @Min(1, { message: 'El monto debe ser mayor que cero.' })
-  monto: number;
 }
 
 export class CrearInscripcionCatequesisDto {
@@ -218,9 +247,10 @@ export class CrearInscripcionCatequesisDto {
   @Type(() => DatosCondicionSaludDto)
   datosCondicionSalud: DatosCondicionSaludDto;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => DatosMadreDto)
-  datosMadre: DatosMadreDto;
+  datosMadre?: DatosMadreDto;
 
   @ValidateNested()
   @Type(() => DatosPersonaInscribeDto)
