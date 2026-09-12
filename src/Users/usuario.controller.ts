@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Req,
+  Query,
 } from '@nestjs/common';
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './DTO/create-usuario.dto';
@@ -23,9 +24,22 @@ export class UsuarioController {
     return this.usuarioService.createUser(createUsuarioDto);
   }
 
+  // sin query params devuelve la lista completa (compatibilidad con el frontend actual);
+  // con ?page=&limit=&search= responde { data, total, page, pages, limit } para paginar en el servidor
   @Get()
-  findAll() {
-    return this.usuarioService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    if (page === undefined && limit === undefined && search === undefined) {
+      return this.usuarioService.findAll();
+    }
+    return this.usuarioService.findAllPaginado(
+      Number(page) || 1,
+      Number(limit) || 10,
+      search,
+    );
   }
 
   @Public()
@@ -53,7 +67,11 @@ export class UsuarioController {
     @Body() updateUsuarioDto: UpdateUsuarioDto,
     @Req() req: RequestWithUser,
   ) {
-    return this.usuarioService.update(+id, updateUsuarioDto, Number(req.user.sub));
+    return this.usuarioService.update(
+      +id,
+      updateUsuarioDto,
+      Number(req.user.sub),
+    );
   }
 
   @Get('email/:email')

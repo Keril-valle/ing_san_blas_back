@@ -93,7 +93,7 @@ export class LandingFileStorageService {
   private detalleError(error: unknown): string {
     if (error instanceof Error) return error.message;
     if (error && typeof error === 'object' && 'message' in error) {
-      return String((error as { message: unknown }).message);
+      return String(error.message);
     }
     try {
       return JSON.stringify(error);

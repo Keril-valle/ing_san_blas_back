@@ -20,9 +20,7 @@ export class RegisterDto {
   @IsNotEmpty()
   email: string;
 
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
@@ -35,9 +33,7 @@ export class RegisterDto {
   )
   password: string;
 
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   confirmPassword: string;

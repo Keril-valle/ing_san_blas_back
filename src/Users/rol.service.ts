@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -77,18 +74,20 @@ export class RolService {
   }
 
   private normalizarPermisos(permisos: string[]): string[] {
-    const unicos = [...new Set(permisos.map((item) => item.trim()).filter(Boolean))];
-    const invalidos = unicos.filter((item) => !IDS_PERMISOS_ROL.includes(item as (typeof IDS_PERMISOS_ROL)[number]));
+    const unicos = [
+      ...new Set(permisos.map((item) => item.trim()).filter(Boolean)),
+    ];
+    const invalidos = unicos.filter(
+      (item) =>
+        !IDS_PERMISOS_ROL.includes(item as (typeof IDS_PERMISOS_ROL)[number]),
+    );
     if (invalidos.length > 0) {
       throw new BadRequestException({
         mensaje: 'Hay permisos que no son válidos.',
       });
     }
 
-    if (
-      unicos.some((item) => item !== 'panel') &&
-      !unicos.includes('panel')
-    ) {
+    if (unicos.some((item) => item !== 'panel') && !unicos.includes('panel')) {
       unicos.unshift('panel');
     }
 

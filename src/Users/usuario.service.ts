@@ -11,6 +11,7 @@ import { Role } from '../Common/Enums/Roles';
 import { Usuario } from './Entities/usuario.entity';
 import { RolService } from './rol.service';
 import { Repository, ILike } from 'typeorm';
+import type { FindOptionsWhere } from 'typeorm';
 import getNombreCedula from '../Common/Helpers/nombreCedula';
 import * as bcrypt from 'bcryptjs';
 
@@ -57,6 +58,37 @@ export class UsuarioService {
     return this.usuarioRepository.find({ where: { isActive: true } });
   }
 
+  // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
+  // data + total + pages para que el frontend controle la paginación sin cargar todo
+  async findAllPaginado(page = 1, limit = 10, search?: string) {
+    const pagina = Math.max(1, Math.floor(Number(page)) || 1);
+    const limite = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
+    const texto = search?.trim();
+
+    const where: FindOptionsWhere<Usuario> | FindOptionsWhere<Usuario>[] = texto
+      ? [
+          { isActive: true, nombre: ILike(`%${texto}%`) },
+          { isActive: true, email: ILike(`%${texto}%`) },
+          { isActive: true, telefono: ILike(`%${texto}%`) },
+        ]
+      : { isActive: true };
+
+    const [data, total] = await this.usuarioRepository.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      take: limite,
+      skip: (pagina - 1) * limite,
+    });
+
+    return {
+      data,
+      total,
+      page: pagina,
+      pages: Math.ceil(total / limite),
+      limit: limite,
+    };
+  }
+
   findOne(id: number) {
     return this.usuarioRepository.findOneBy({ id, isActive: true });
   }
@@ -93,7 +125,11 @@ export class UsuarioService {
     );
   }
 
-  async update(id: number, updateUsuarioDto: UpdateUsuarioDto, actorId?: number) {
+  async update(
+    id: number,
+    updateUsuarioDto: UpdateUsuarioDto,
+    actorId?: number,
+  ) {
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
 
     if (!user) {

@@ -57,7 +57,7 @@ export class CatequesisFileStorageService {
     const esPdf = extension === '.pdf';
     const mimeType = esPdf
       ? 'application/pdf'
-      : (file.mimetype || `image/${extension.slice(1)}`);
+      : file.mimetype || `image/${extension.slice(1)}`;
 
     try {
       const uploadResult = await cloudinary.uploader.upload(
@@ -99,7 +99,7 @@ export class CatequesisFileStorageService {
   private detalleError(error: unknown): string {
     if (error instanceof Error) return error.message;
     if (error && typeof error === 'object' && 'message' in error) {
-      return String((error as { message: unknown }).message);
+      return String(error.message);
     }
     try {
       return JSON.stringify(error);
