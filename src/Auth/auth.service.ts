@@ -31,7 +31,13 @@ export class AuthService {
   private async getTokens(userId: number, email: string, role: string) {
     const rol = await this.rolService.findByClave(role);
     const accesoPanel = this.rolService.tieneAccesoPanel(rol);
-    const payload = { jti: randomUUID(), sub: userId, email, role, accesoPanel };
+    const payload = {
+      jti: randomUUID(),
+      sub: userId,
+      email,
+      role,
+      accesoPanel,
+    };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload),

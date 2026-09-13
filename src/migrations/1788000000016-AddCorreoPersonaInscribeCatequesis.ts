@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddCorreoPersonaInscribeCatequesis1788000000016
-  implements MigrationInterface
-{
+export class AddCorreoPersonaInscribeCatequesis1788000000016 implements MigrationInterface {
   name = 'AddCorreoPersonaInscribeCatequesis1788000000016';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

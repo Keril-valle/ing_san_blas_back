@@ -52,7 +52,10 @@ export class MailService {
       return;
     }
 
-    const fromEmail = this.leerDato('MAIL_FROM_EMAIL', 'no-reply@sanblas.local');
+    const fromEmail = this.leerDato(
+      'MAIL_FROM_EMAIL',
+      'no-reply@sanblas.local',
+    );
     const fromName = this.leerDato('MAIL_FROM_NAME', 'Parroquia San Blas');
 
     try {
@@ -72,9 +75,7 @@ export class MailService {
           ? `${error.cause.name}: ${error.cause.message}`
           : undefined;
       const detalle = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        causa ? `${detalle} (${causa})` : detalle,
-      );
+      throw new Error(causa ? `${detalle} (${causa})` : detalle);
     }
   }
 }
