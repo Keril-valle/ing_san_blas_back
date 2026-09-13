@@ -148,6 +148,21 @@ export class LandingController {
     return this.landingService.update('horarios', dto);
   }
 
+  @Put('horarios/con-imagen')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
+  updateHorariosWithImage(
+    @Req() req: Request,
+    @UploadedFile() archivo?: Express.Multer.File,
+  ) {
+    return this.landingService.update(
+      'horarios',
+      this.leerPayload(req),
+      archivo,
+    );
+  }
+
   @Put('bautizos')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)

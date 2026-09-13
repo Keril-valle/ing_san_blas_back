@@ -85,6 +85,38 @@ const HISTORIA_DEFAULT: UpdateHistoriaDto = {
   videoUrl: 'https://www.youtube.com/embed/KWFL_AS5Xlk',
 };
 
+// valores del volante de la Santa Misa (se usan si aún no hay nada guardado)
+const HORARIOS_DEFAULT: UpdateHorariosDto = {
+  title: 'Horarios',
+  subtitle: 'de la Santa',
+  titleHighlight: 'Misa',
+  intro:
+    'Consulte los horarios de la Santa Misa en la Parroquia San Blas.',
+  bloques: [
+    {
+      titulo: 'Entre semana',
+      filas: [
+        { dia: 'Lunes - Martes - Miércoles', horas: ['05:00 PM'] },
+        {
+          dia: 'Jueves',
+          horas: ['Adoración: 04:00 PM', 'Santa Misa: 05:00 PM'],
+        },
+        { dia: 'Viernes', horas: ['05:00 PM'] },
+        { dia: 'Sábado', horas: ['05:00 PM'] },
+      ],
+    },
+    {
+      titulo: 'Misa dominical',
+      filas: [
+        {
+          dia: 'Domingo',
+          horas: ['07:00 AM', '08:00 AM', '10:30 AM', '05:00 PM'],
+        },
+      ],
+    },
+  ],
+};
+
 @Injectable()
 export class LandingService {
   constructor(
@@ -137,6 +169,23 @@ export class LandingService {
       };
     }
 
+    if (sectionKey === 'horarios') {
+      return {
+        sectionKey: 'horarios',
+        data: {
+          ...HORARIOS_DEFAULT,
+          bloques: HORARIOS_DEFAULT.bloques.map((bloque) => ({
+            ...bloque,
+            filas: bloque.filas.map((fila) => ({
+              ...fila,
+              horas: [...fila.horas],
+            })),
+          })),
+        },
+        updatedAt: null,
+      };
+    }
+
     return {
       sectionKey,
       data: {},
@@ -174,7 +223,12 @@ export class LandingService {
       ...payload,
     };
 
-    if (sectionKey === 'hero' || sectionKey === 'sobre-nosotros') {
+    // la imagen de fondo se maneja igual que en el hero (Cloudinary o eliminar)
+    if (
+      sectionKey === 'hero' ||
+      sectionKey === 'sobre-nosotros' ||
+      sectionKey === 'horarios'
+    ) {
       if (archivo) {
         current.imageUrl = await this.fileStorageService.saveSectionImage(
           archivo,
