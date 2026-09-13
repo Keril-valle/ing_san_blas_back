@@ -192,15 +192,15 @@ export class DatosPersonaInscribeDto {
   @IsNotEmpty({ message: 'El parentesco es obligatorio.' })
   parentesco: string;
 
-  @IsOptional()
-  @ValidateIf((_, value) => typeof value === 'string' && value.trim() !== '')
+  @IsString()
+  @IsNotEmpty({ message: 'El correo de la persona que inscribe es obligatorio.' })
   @IsEmail(
     {},
     {
       message: 'El correo de la persona que inscribe no es válido.',
     },
   )
-  correo?: string;
+  correo: string;
 
   @IsString()
   @IsNotEmpty({
