@@ -5,9 +5,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterDto } from '../Auth/DTO/register.dto';
+import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
+import { Role } from '../Common/Enums/Roles';
 import { Usuario } from './Entities/usuario.entity';
+import { RolService } from './rol.service';
 import { Repository, ILike } from 'typeorm';
+import type { FindOptionsWhere } from 'typeorm';
 import getNombreCedula from '../Common/Helpers/nombreCedula';
 import * as bcrypt from 'bcryptjs';
 
@@ -16,9 +20,10 @@ export class UsuarioService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    private readonly rolService: RolService,
   ) {}
 
-  async createUser(registerDto: RegisterDto) {
+  async createUser(registerDto: RegisterDto | CreateUsuarioDto) {
     if (registerDto.password !== registerDto.confirmPassword) {
       throw new BadRequestException('Las contraseñas no coinciden');
     }
@@ -29,10 +34,21 @@ export class UsuarioService {
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+    const roleSolicitado =
+      'role' in registerDto && typeof registerDto.role === 'string'
+        ? registerDto.role.trim()
+        : Role.USER;
+    const rol = await this.rolService.assertExiste(roleSolicitado);
+    const telefono =
+      'telefono' in registerDto && typeof registerDto.telefono === 'string'
+        ? registerDto.telefono
+        : null;
     const user = this.usuarioRepository.create({
       nombre: registerDto.nombre,
       email: registerDto.email,
       password: hashedPassword,
+      role: rol.clave,
+      telefono,
     });
 
     return this.usuarioRepository.save(user);
@@ -40,6 +56,37 @@ export class UsuarioService {
 
   findAll() {
     return this.usuarioRepository.find({ where: { isActive: true } });
+  }
+
+  // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
+  // data + total + pages para que el frontend controle la paginación sin cargar todo
+  async findAllPaginado(page = 1, limit = 10, search?: string) {
+    const pagina = Math.max(1, Math.floor(Number(page)) || 1);
+    const limite = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
+    const texto = search?.trim();
+
+    const where: FindOptionsWhere<Usuario> | FindOptionsWhere<Usuario>[] = texto
+      ? [
+          { isActive: true, nombre: ILike(`%${texto}%`) },
+          { isActive: true, email: ILike(`%${texto}%`) },
+          { isActive: true, telefono: ILike(`%${texto}%`) },
+        ]
+      : { isActive: true };
+
+    const [data, total] = await this.usuarioRepository.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      take: limite,
+      skip: (pagina - 1) * limite,
+    });
+
+    return {
+      data,
+      total,
+      page: pagina,
+      pages: Math.ceil(total / limite),
+      limit: limite,
+    };
   }
 
   findOne(id: number) {
@@ -78,11 +125,29 @@ export class UsuarioService {
     );
   }
 
-  async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
+  async update(
+    id: number,
+    updateUsuarioDto: UpdateUsuarioDto,
+    actorId?: number,
+  ) {
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
+    }
+
+    const esMismoUsuario = actorId != null && id === actorId;
+
+    if (esMismoUsuario) {
+      if (
+        updateUsuarioDto.role !== undefined &&
+        updateUsuarioDto.role !== user.role
+      ) {
+        throw new BadRequestException('No puede cambiar su propio rol.');
+      }
+      if (updateUsuarioDto.isActive === false) {
+        throw new BadRequestException('No puede inactivar su propia cuenta.');
+      }
     }
 
     if (updateUsuarioDto.password !== undefined) {
@@ -96,10 +161,27 @@ export class UsuarioService {
       user.nombre = updateUsuarioDto.nombre;
     }
 
+    if (updateUsuarioDto.telefono !== undefined) {
+      user.telefono = updateUsuarioDto.telefono;
+    }
+
+    if (!esMismoUsuario) {
+      if (updateUsuarioDto.role !== undefined) {
+        const rol = await this.rolService.assertExiste(updateUsuarioDto.role);
+        user.role = rol.clave;
+      }
+      if (updateUsuarioDto.isActive !== undefined) {
+        user.isActive = updateUsuarioDto.isActive;
+      }
+    }
+
     return await this.usuarioRepository.save(user);
   }
 
-  async remove(id: number) {
+  async remove(id: number, actorId?: number) {
+    if (actorId != null && id === actorId) {
+      throw new BadRequestException('No puede inactivar su propia cuenta.');
+    }
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
 
     if (!user) {

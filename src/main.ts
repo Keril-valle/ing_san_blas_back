@@ -1,8 +1,23 @@
 import helmet from 'helmet';
+import { config as loadEnv } from 'dotenv';
+import * as tls from 'node:tls';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { ValidationError } from 'class-validator';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './Common/Filters/global-exception.filter';
+import { mapValidationErrors } from './Common/validation-errors';
+
+loadEnv();
+
+try {
+  tls.setDefaultCACertificates([
+    ...tls.getCACertificates(),
+    ...tls.getCACertificates('system'),
+  ]);
+} catch {
+  // Si Node no puede leer el almacén de Windows, se siguen usando los certificados embebidos
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -41,6 +56,8 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors: ValidationError[]) =>
+        new BadRequestException(mapValidationErrors(errors)),
     }),
   );
 

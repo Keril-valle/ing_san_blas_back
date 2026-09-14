@@ -104,8 +104,7 @@ export class EventoService {
         datos.fechaFin === undefined
           ? evento.fechaFin
           : this.soloFecha(datos.fechaFin),
-      hora:
-        datos.hora === undefined ? evento.hora : this.soloHora(datos.hora),
+      hora: datos.hora === undefined ? evento.hora : this.soloHora(datos.hora),
       imagenUrl: eliminarImagen
         ? null
         : datos.imagenUrl === undefined
@@ -175,7 +174,9 @@ export class EventoService {
 
   private soloHora(hora?: string | null) {
     if (!hora) return null;
-    const match = String(hora).trim().match(/^(\d{1,2}):(\d{2})/);
+    const match = String(hora)
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})/);
     if (!match) return null;
     return `${match[1].padStart(2, '0')}:${match[2]}`;
   }
@@ -188,7 +189,10 @@ export class EventoService {
   private validarFechas(
     fechaInicio?: string,
     fechaFin?: string | null,
-    originales?: { inicioOriginal?: string | null; finOriginal?: string | null },
+    originales?: {
+      inicioOriginal?: string | null;
+      finOriginal?: string | null;
+    },
   ) {
     const hoy = new Date().toLocaleDateString('en-CA', {
       timeZone: 'America/Costa_Rica',

@@ -24,9 +24,6 @@ export class PagoInscripcionCatequesis {
   @Column({ name: 'ComprobanteArchivo' })
   comprobanteArchivo: string;
 
-  @Column({ name: 'Monto', type: 'numeric' })
-  monto: number;
-
   @OneToOne(() => InscripcionCatequesis, (inscripcion) => inscripcion.pago, {
     onDelete: 'CASCADE',
   })

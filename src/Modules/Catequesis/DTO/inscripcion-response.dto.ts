@@ -6,10 +6,17 @@ export class InscripcionResumenDto {
   estado: string;
   fechaSolicitud: Date;
   telefonoEncargada: string;
+  nombreEncargado: string;
+  correoEncargado: string;
+  // motivo/observaciones solo se incluyen cuando la inscripción fue rechazada
+  motivoRechazo?: string | null;
+  observaciones?: string | null;
 }
 
 export class CatequizandoDetalleDto {
   nombre: string;
+  primerApellido: string;
+  segundoApellido: string;
   apellidos: string;
   fechaNacimiento: string;
   direccionExacta: string;
@@ -35,6 +42,8 @@ export class CondicionSaludDetalleDto {
 
 export class MadreDetalleDto {
   nombre: string;
+  primerApellido: string;
+  segundoApellido: string;
   apellidos: string;
   direccionExacta: string;
   ciudad: string;
@@ -44,15 +53,18 @@ export class MadreDetalleDto {
 
 export class PersonaInscribeDetalleDto {
   nombre: string;
+  primerApellido: string;
+  segundoApellido: string;
   apellidos: string;
   parentesco: string;
+  correo: string;
+  telefono: string;
 }
 
 export class PagoDetalleDto {
   metodoPago: string;
   numeroComprobanteSinpe: string;
   comprobanteArchivo: string;
-  monto: number;
 }
 
 export class InscripcionDetalleDto {
@@ -63,6 +75,9 @@ export class InscripcionDetalleDto {
   fechaSolicitud: Date;
   feBautismoArchivo: string;
   observacionAdministrativa: string | null;
+  // motivo/observaciones solo se incluyen cuando la inscripción fue rechazada
+  motivoRechazo?: string | null;
+  observaciones?: string | null;
   catequizando: CatequizandoDetalleDto;
   bautismo: BautismoDetalleDto;
   adecuacion: AdecuacionDetalleDto;

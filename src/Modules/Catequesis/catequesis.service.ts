@@ -9,12 +9,14 @@ import {
   InscripcionDetalleDto,
   InscripcionResumenDto,
 } from './DTO/inscripcion-response.dto';
+import { HistorialInscripcionCatequesisDto } from './DTO/historial-inscripcion-response.dto';
 import {
   MENSAJE_FECHA_BAUTISMO_FUTURA,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
   MENSAJE_NIVEL_INVALIDO,
   normalizarEstadoInscripcion,
   normalizarNivelInscripcion,
+  unirApellidos,
   validarFechaNoFutura,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
 
@@ -45,7 +47,8 @@ export class CatequesisService {
       feBautismoArchivo: dto.datosInscripcion.feBautismoArchivo.trim(),
       catequizando: {
         nombre: dto.datosCatequizando.nombre.trim(),
-        apellidos: dto.datosCatequizando.apellidos.trim(),
+        primerApellido: dto.datosCatequizando.primerApellido.trim(),
+        segundoApellido: dto.datosCatequizando.segundoApellido?.trim() || null,
         fechaNacimiento: dto.datosCatequizando.fechaNacimiento.trim(),
         direccionExacta: dto.datosCatequizando.direccionExacta.trim(),
       },
@@ -68,24 +71,32 @@ export class CatequesisService {
         descripcionEnfermedad:
           dto.datosCondicionSalud.descripcionEnfermedad?.trim() || null,
       },
-      madre: {
-        nombre: dto.datosMadre.nombre.trim(),
-        apellidos: dto.datosMadre.apellidos.trim(),
-        direccionExacta: dto.datosMadre.direccionExacta.trim(),
-        ciudad: dto.datosMadre.ciudad.trim(),
-        provincia: dto.datosMadre.provincia.trim(),
-        telefono: dto.datosMadre.telefono.trim(),
-      },
+      ...(dto.datosMadre
+        ? {
+            madre: {
+              nombre: dto.datosMadre.nombre.trim(),
+              primerApellido: dto.datosMadre.primerApellido.trim(),
+              segundoApellido: dto.datosMadre.segundoApellido?.trim() || null,
+              direccionExacta: dto.datosMadre.direccionExacta.trim(),
+              ciudad: dto.datosMadre.ciudad.trim(),
+              provincia: dto.datosMadre.provincia.trim(),
+              telefono: dto.datosMadre.telefono.trim(),
+            },
+          }
+        : {}),
       personaInscribe: {
         nombre: dto.datosPersonaInscribe.nombre.trim(),
-        apellidos: dto.datosPersonaInscribe.apellidos.trim(),
+        primerApellido: dto.datosPersonaInscribe.primerApellido.trim(),
+        segundoApellido:
+          dto.datosPersonaInscribe.segundoApellido?.trim() || null,
         parentesco: dto.datosPersonaInscribe.parentesco.trim(),
+        correo: dto.datosPersonaInscribe.correo?.trim() || null,
+        telefono: dto.datosPersonaInscribe.telefono.trim(),
       },
       pago: {
         metodoPago: dto.datosPago.metodoPago.trim(),
         numeroComprobanteSinpe: dto.datosPago.numeroComprobanteSinpe.trim(),
         comprobanteArchivo: dto.datosPago.comprobanteArchivo.trim(),
-        monto: dto.datosPago.monto,
       },
     });
 
@@ -99,19 +110,129 @@ export class CatequesisService {
     };
   }
 
-  async findAll(estado?: string | null): Promise<InscripcionResumenDto[]> {
+  async findAll(opciones: {
+    estado?: string | null;
+    nombre?: string;
+    encargado?: string;
+    q?: string;
+  }): Promise<InscripcionResumenDto[]> {
     const query = this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
       .leftJoinAndSelect('inscripcion.madre', 'madre')
+      .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
       .orderBy('inscripcion.fechaSolicitud', 'DESC');
 
-    if (estado) {
-      query.andWhere('inscripcion.estado = :estado', { estado });
+    if (opciones.estado) {
+      query.andWhere('inscripcion.estado = :estado', {
+        estado: opciones.estado,
+      });
+    } else {
+      query.andWhere('inscripcion.estado NOT IN (:...estadosFinales)', {
+        estadosFinales: ['Aprobada', 'Rechazada'],
+      });
+    }
+
+    if (opciones.nombre) {
+      const nombre = `%${opciones.nombre.toLowerCase()}%`;
+      query.andWhere(
+        `LOWER(CONCAT(COALESCE(catequizando.nombre, ''), ' ', COALESCE(catequizando.primerApellido, ''), ' ', COALESCE(catequizando.segundoApellido, ''))) LIKE :nombre`,
+        { nombre },
+      );
+    }
+
+    if (opciones.encargado) {
+      const encargado = `%${opciones.encargado.toLowerCase()}%`;
+      query.andWhere(
+        `(LOWER(CONCAT(COALESCE(personaInscribe.nombre, ''), ' ', COALESCE(personaInscribe.primerApellido, ''), ' ', COALESCE(personaInscribe.segundoApellido, ''))) LIKE :encargado
+          OR LOWER(CONCAT(COALESCE(madre.nombre, ''), ' ', COALESCE(madre.primerApellido, ''), ' ', COALESCE(madre.segundoApellido, ''))) LIKE :encargado)`,
+        { encargado },
+      );
+    }
+
+    if (opciones.q) {
+      const q = `%${opciones.q.toLowerCase()}%`;
+      query.andWhere(
+        `(LOWER(CONCAT(COALESCE(catequizando.nombre, ''), ' ', COALESCE(catequizando.primerApellido, ''), ' ', COALESCE(catequizando.segundoApellido, ''))) LIKE :q
+          OR LOWER(COALESCE(madre.telefono, '')) LIKE :q
+          OR LOWER(COALESCE(personaInscribe.telefono, '')) LIKE :q
+          OR LOWER(CONCAT(COALESCE(personaInscribe.nombre, ''), ' ', COALESCE(personaInscribe.primerApellido, ''), ' ', COALESCE(personaInscribe.segundoApellido, ''))) LIKE :q
+          OR LOWER(CONCAT(COALESCE(madre.nombre, ''), ' ', COALESCE(madre.primerApellido, ''), ' ', COALESCE(madre.segundoApellido, ''))) LIKE :q)`,
+        { q },
+      );
     }
 
     const inscripciones = await query.getMany();
     return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));
+  }
+
+  async historial(opciones: {
+    estado?: string;
+    desde?: string;
+    hasta?: string;
+  }): Promise<{
+    total: number;
+    historial: HistorialInscripcionCatequesisDto[];
+  }> {
+    const qb = this.inscripcionRepository
+      .createQueryBuilder('inscripcion')
+      .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
+      .leftJoinAndSelect('inscripcion.madre', 'madre')
+      .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
+      .where('inscripcion.estado IN (:...estadosFinales)', {
+        estadosFinales: ['Aprobada', 'Rechazada'],
+      });
+
+    if (opciones.estado) {
+      const estadoNorm =
+        opciones.estado.toLowerCase() === 'aprobado' ||
+        opciones.estado.toLowerCase() === 'aprobada'
+          ? 'Aprobada'
+          : 'Rechazada';
+      qb.andWhere('inscripcion.estado = :estado', { estado: estadoNorm });
+    }
+
+    if (opciones.desde) {
+      qb.andWhere('inscripcion.fechaSolicitud >= :desde', {
+        desde: new Date(`${opciones.desde}T00:00:00`),
+      });
+    }
+
+    if (opciones.hasta) {
+      const hasta = new Date(`${opciones.hasta}T00:00:00`);
+      hasta.setDate(hasta.getDate() + 1);
+      qb.andWhere('inscripcion.fechaSolicitud < :hasta', { hasta });
+    }
+
+    qb.orderBy('inscripcion.fechaSolicitud', 'DESC');
+
+    const [items, total] = await qb.getManyAndCount();
+
+    return {
+      total,
+      historial: items.map((inscripcion) => {
+        const nombre = inscripcion.catequizando?.nombre ?? '';
+        const apellidos = unirApellidos(
+          inscripcion.catequizando?.primerApellido,
+          inscripcion.catequizando?.segundoApellido,
+        );
+
+        return {
+          id: inscripcion.id,
+          nombreCatequizando: `${nombre} ${apellidos}`.trim(),
+          centroCatequesis: inscripcion.centroCatequesis,
+          nivelAInscribirse: inscripcion.nivelAInscribirse,
+          estado: inscripcion.estado,
+          fechaSolicitud: inscripcion.fechaSolicitud,
+          telefonoEncargada:
+            inscripcion.personaInscribe?.telefono ??
+            inscripcion.madre?.telefono ??
+            '',
+          observacionAdministrativa: inscripcion.observacionAdministrativa,
+          fechaActualizacionEstado: inscripcion.fechaActualizacionEstado,
+        };
+      }),
+    };
   }
 
   async findById(id: number): Promise<InscripcionDetalleDto | null> {
@@ -134,7 +255,8 @@ export class CatequesisService {
   async findForExport(estado: string): Promise<
     Array<{
       nombre: string;
-      apellidos: string;
+      primerApellido: string;
+      segundoApellido: string;
       fechaNacimiento: string;
       centroCatequesis: string;
       nivelAInscribirse: string;
@@ -150,7 +272,8 @@ export class CatequesisService {
 
     return inscripciones.map((inscripcion) => ({
       nombre: inscripcion.catequizando?.nombre ?? '',
-      apellidos: inscripcion.catequizando?.apellidos ?? '',
+      primerApellido: inscripcion.catequizando?.primerApellido ?? '',
+      segundoApellido: inscripcion.catequizando?.segundoApellido ?? '',
       fechaNacimiento: inscripcion.catequizando?.fechaNacimiento ?? '',
       centroCatequesis: inscripcion.centroCatequesis,
       nivelAInscribirse: inscripcion.nivelAInscribirse,
@@ -209,7 +332,14 @@ export class CatequesisService {
     inscripcion: InscripcionCatequesis,
   ): InscripcionResumenDto {
     const nombre = inscripcion.catequizando?.nombre ?? '';
-    const apellidos = inscripcion.catequizando?.apellidos ?? '';
+    const apellidos = unirApellidos(
+      inscripcion.catequizando?.primerApellido,
+      inscripcion.catequizando?.segundoApellido,
+    );
+
+    const nombreEncargado =
+      `${inscripcion.personaInscribe?.nombre ?? ''} ${unirApellidos(inscripcion.personaInscribe?.primerApellido, inscripcion.personaInscribe?.segundoApellido)}`.trim() ||
+      `${inscripcion.madre?.nombre ?? ''} ${unirApellidos(inscripcion.madre?.primerApellido, inscripcion.madre?.segundoApellido)}`.trim();
 
     return {
       id: inscripcion.id,
@@ -218,7 +348,19 @@ export class CatequesisService {
       nivelAInscribirse: inscripcion.nivelAInscribirse,
       estado: inscripcion.estado,
       fechaSolicitud: inscripcion.fechaSolicitud,
-      telefonoEncargada: inscripcion.madre?.telefono ?? '',
+      telefonoEncargada:
+        inscripcion.personaInscribe?.telefono ??
+        inscripcion.madre?.telefono ??
+        '',
+      nombreEncargado,
+      correoEncargado: inscripcion.personaInscribe?.correo ?? '',
+      // motivo/observaciones únicamente para rechazadas; derivados de la observación persistida
+      ...(inscripcion.estado === 'Rechazada'
+        ? {
+            motivoRechazo: inscripcion.observacionAdministrativa,
+            observaciones: inscripcion.observacionAdministrativa,
+          }
+        : {}),
     };
   }
 
@@ -233,9 +375,21 @@ export class CatequesisService {
       fechaSolicitud: inscripcion.fechaSolicitud,
       feBautismoArchivo: inscripcion.feBautismoArchivo,
       observacionAdministrativa: inscripcion.observacionAdministrativa,
+      // motivo/observaciones únicamente para rechazadas; derivados de la observación persistida
+      ...(inscripcion.estado === 'Rechazada'
+        ? {
+            motivoRechazo: inscripcion.observacionAdministrativa,
+            observaciones: inscripcion.observacionAdministrativa,
+          }
+        : {}),
       catequizando: {
         nombre: inscripcion.catequizando?.nombre ?? '',
-        apellidos: inscripcion.catequizando?.apellidos ?? '',
+        primerApellido: inscripcion.catequizando?.primerApellido ?? '',
+        segundoApellido: inscripcion.catequizando?.segundoApellido ?? '',
+        apellidos: unirApellidos(
+          inscripcion.catequizando?.primerApellido,
+          inscripcion.catequizando?.segundoApellido,
+        ),
         fechaNacimiento: inscripcion.catequizando?.fechaNacimiento ?? '',
         direccionExacta: inscripcion.catequizando?.direccionExacta ?? '',
       },
@@ -260,7 +414,12 @@ export class CatequesisService {
       },
       madre: {
         nombre: inscripcion.madre?.nombre ?? '',
-        apellidos: inscripcion.madre?.apellidos ?? '',
+        primerApellido: inscripcion.madre?.primerApellido ?? '',
+        segundoApellido: inscripcion.madre?.segundoApellido ?? '',
+        apellidos: unirApellidos(
+          inscripcion.madre?.primerApellido,
+          inscripcion.madre?.segundoApellido,
+        ),
         direccionExacta: inscripcion.madre?.direccionExacta ?? '',
         ciudad: inscripcion.madre?.ciudad ?? '',
         provincia: inscripcion.madre?.provincia ?? '',
@@ -268,14 +427,20 @@ export class CatequesisService {
       },
       personaInscribe: {
         nombre: inscripcion.personaInscribe?.nombre ?? '',
-        apellidos: inscripcion.personaInscribe?.apellidos ?? '',
+        primerApellido: inscripcion.personaInscribe?.primerApellido ?? '',
+        segundoApellido: inscripcion.personaInscribe?.segundoApellido ?? '',
+        apellidos: unirApellidos(
+          inscripcion.personaInscribe?.primerApellido,
+          inscripcion.personaInscribe?.segundoApellido,
+        ),
         parentesco: inscripcion.personaInscribe?.parentesco ?? '',
+        correo: inscripcion.personaInscribe?.correo ?? '',
+        telefono: inscripcion.personaInscribe?.telefono ?? '',
       },
       pago: {
         metodoPago: inscripcion.pago?.metodoPago ?? '',
         numeroComprobanteSinpe: inscripcion.pago?.numeroComprobanteSinpe ?? '',
         comprobanteArchivo: inscripcion.pago?.comprobanteArchivo ?? '',
-        monto: Number(inscripcion.pago?.monto ?? 0),
       },
     };
   }

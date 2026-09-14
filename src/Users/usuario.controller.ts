@@ -6,24 +6,40 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
+  Query,
 } from '@nestjs/common';
 import { UsuarioService } from './usuario.service';
-import { RegisterDto } from '../Auth/DTO/register.dto';
+import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 import { Public } from '../Auth/Decorators/public.decorator';
+import type { RequestWithUser } from '../Common/Interfaces/requestWithUser.interface';
 
 @Controller('usuario')
 export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) {}
 
   @Post()
-  create(@Body() registerDto: RegisterDto) {
-    return this.usuarioService.createUser(registerDto);
+  create(@Body() createUsuarioDto: CreateUsuarioDto) {
+    return this.usuarioService.createUser(createUsuarioDto);
   }
 
+  // sin query params devuelve la lista completa (compatibilidad con el frontend actual);
+  // con ?page=&limit=&search= responde { data, total, page, pages, limit } para paginar en el servidor
   @Get()
-  findAll() {
-    return this.usuarioService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    if (page === undefined && limit === undefined && search === undefined) {
+      return this.usuarioService.findAll();
+    }
+    return this.usuarioService.findAllPaginado(
+      Number(page) || 1,
+      Number(limit) || 10,
+      search,
+    );
   }
 
   @Public()
@@ -46,8 +62,16 @@ export class UsuarioController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUsuarioDto: UpdateUsuarioDto) {
-    return this.usuarioService.update(+id, updateUsuarioDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateUsuarioDto: UpdateUsuarioDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.usuarioService.update(
+      +id,
+      updateUsuarioDto,
+      Number(req.user.sub),
+    );
   }
 
   @Get('email/:email')
@@ -56,7 +80,7 @@ export class UsuarioController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usuarioService.remove(+id);
+  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.usuarioService.remove(+id, Number(req.user.sub));
   }
 }
