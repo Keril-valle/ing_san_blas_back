@@ -31,14 +31,24 @@ export class UsuarioController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('state') state?: string,
   ) {
-    if (page === undefined && limit === undefined && search === undefined) {
+    if (
+      page === undefined &&
+      limit === undefined &&
+      search === undefined &&
+      role === undefined &&
+      state === undefined
+    ) {
       return this.usuarioService.findAll();
     }
     return this.usuarioService.findAllPaginado(
       Number(page) || 1,
       Number(limit) || 10,
       search,
+      role,
+      state,
     );
   }
 

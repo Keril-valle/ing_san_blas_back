@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MinLength,
@@ -37,4 +38,12 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   confirmPassword: string;
+
+  @Transform(transformarTexto)
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{4}$/, {
+    message: 'El teléfono debe tener el formato 8888-8888',
+  })
+  telefono?: string;
 }
