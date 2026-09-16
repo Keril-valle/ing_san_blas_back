@@ -384,6 +384,7 @@ export class CatequesisService {
         : {}),
       catequizando: {
         nombre: inscripcion.catequizando?.nombre ?? '',
+        segundoNombre: inscripcion.catequizando?.segundoNombre ?? '',
         primerApellido: inscripcion.catequizando?.primerApellido ?? '',
         segundoApellido: inscripcion.catequizando?.segundoApellido ?? '',
         apellidos: unirApellidos(

@@ -40,6 +40,10 @@ export class DatosCatequizandoDto {
   @IsNotEmpty({ message: 'El nombre del catequizando es obligatorio.' })
   nombre: string;
 
+  @IsOptional()
+  @IsString()
+  segundoNombre?: string | null;
+
   @IsString()
   @IsNotEmpty({
     message: 'El primer apellido del catequizando es obligatorio.',
