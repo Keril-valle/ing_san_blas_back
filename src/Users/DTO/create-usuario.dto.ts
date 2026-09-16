@@ -19,19 +19,12 @@ export class CreateUsuarioDto extends RegisterDto {
   })
   role?: string;
 
-<<<<<<< HEAD
-=======
   // telefono es requerido para creación de usuario (override del opcional en RegisterDto)
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @Transform(transformarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   @Matches(/^\d{4}-\d{4}$/, {
     message: 'El teléfono debe tener el formato 8888-8888',
   })
-<<<<<<< HEAD
-  telefono: string;
-=======
   declare telefono: string;
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 }
