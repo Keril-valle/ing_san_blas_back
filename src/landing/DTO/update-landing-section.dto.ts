@@ -316,6 +316,8 @@ export class UpdateContactoDto {
   mapaUrl: string;
 }
 
+<<<<<<< HEAD
+=======
 // fila día → horas del volante (ej. Domingo :: 07:00 AM, 08:00 AM)
 export class HorarioFilaDto {
   @Transform(transformarTexto)
@@ -339,6 +341,7 @@ export class HorarioFilaDto {
 }
 
 // bloque del volante (ej. Entre semana, Misa dominical) con sus filas
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 export class HorarioBloqueDto {
   @Transform(transformarTexto)
   @IsString({ message: 'El título del bloque debe ser texto.' })
@@ -348,12 +351,24 @@ export class HorarioBloqueDto {
   })
   titulo: string;
 
+<<<<<<< HEAD
+  @Transform(recortarLineas)
+  @IsArray({ message: 'Los horarios del bloque son obligatorios.' })
+  @ArrayMinSize(1, { message: 'Cada bloque debe incluir al menos un horario.' })
+  @IsString({ each: true, message: 'Cada horario debe ser texto.' })
+  @MaxLength(200, {
+    each: true,
+    message: 'Cada horario no puede superar 200 caracteres.',
+  })
+  items: string[];
+=======
   @IsArray({ message: 'Las filas del bloque son obligatorias.' })
   @ArrayMinSize(1, { message: 'Cada bloque debe incluir al menos una fila.' })
   @ArrayMaxSize(10, { message: 'Cada bloque puede incluir máximo 10 filas.' })
   @ValidateNested({ each: true })
   @Type(() => HorarioFilaDto)
   filas: HorarioFilaDto[];
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 }
 
 export class UpdateHorariosDto {
@@ -364,6 +379,8 @@ export class UpdateHorariosDto {
   title: string;
 
   @Transform(transformarTexto)
+<<<<<<< HEAD
+=======
   @IsString({ message: 'El subtítulo debe ser texto.' })
   @IsNotEmpty({ message: 'El subtítulo es obligatorio.' })
   @MaxLength(80, { message: 'El subtítulo no puede superar 80 caracteres.' })
@@ -378,6 +395,7 @@ export class UpdateHorariosDto {
   titleHighlight: string;
 
   @Transform(transformarTexto)
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @IsString({ message: 'La introducción debe ser texto.' })
   @IsNotEmpty({ message: 'La introducción es obligatoria.' })
   @MaxLength(220, {
@@ -386,6 +404,13 @@ export class UpdateHorariosDto {
   intro: string;
 
   @IsArray({ message: 'Los bloques de horarios son obligatorios.' })
+<<<<<<< HEAD
+  @ArrayMinSize(4, { message: 'Debe incluir 4 bloques de horarios.' })
+  @ArrayMaxSize(4, { message: 'Debe incluir 4 bloques de horarios.' })
+  @ValidateNested({ each: true })
+  @Type(() => HorarioBloqueDto)
+  bloques: HorarioBloqueDto[];
+=======
   @ArrayMinSize(1, { message: 'Debe incluir al menos un bloque de horarios.' })
   @ArrayMaxSize(4, { message: 'Puede incluir máximo 4 bloques de horarios.' })
   @ValidateNested({ each: true })
@@ -403,6 +428,7 @@ export class UpdateHorariosDto {
   @IsOptional()
   @IsBoolean()
   eliminarImagen?: boolean;
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 }
 
 export class UpdateBautizosDto {

@@ -80,6 +80,8 @@ const HISTORIA_DEFAULT: UpdateHistoriaDto = {
     'Hoy en día, la Parroquia San Blas mantiene sus puertas abiertas y su vocación firme. Invitamos a todos los feligreses y visitantes a caminar por sus naves, sentir el legado histórico que descansa bajo su techo colonial y acompañarnos en esta gran misión espiritual.',
   videoUrl: 'https://www.youtube.com/embed/KWFL_AS5Xlk',
 };
+<<<<<<< HEAD
+=======
 
 // valores del volante de la Santa Misa (se usan si aún no hay nada guardado)
 const HORARIOS_DEFAULT: UpdateHorariosDto = {
@@ -112,6 +114,7 @@ const HORARIOS_DEFAULT: UpdateHorariosDto = {
     },
   ],
 };
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
 @Injectable()
 export class LandingService {
@@ -165,6 +168,8 @@ export class LandingService {
       };
     }
 
+<<<<<<< HEAD
+=======
     if (sectionKey === 'horarios') {
       return {
         sectionKey: 'horarios',
@@ -182,6 +187,7 @@ export class LandingService {
       };
     }
 
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
     return {
       sectionKey,
       data: {},
@@ -219,12 +225,16 @@ export class LandingService {
       ...payload,
     };
 
+<<<<<<< HEAD
+    if (sectionKey === 'hero' || sectionKey === 'sobre-nosotros') {
+=======
     // la imagen de fondo se maneja igual que en el hero (Cloudinary o eliminar)
     if (
       sectionKey === 'hero' ||
       sectionKey === 'sobre-nosotros' ||
       sectionKey === 'horarios'
     ) {
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
       if (archivo) {
         current.imageUrl = await this.fileStorageService.saveSectionImage(
           archivo,

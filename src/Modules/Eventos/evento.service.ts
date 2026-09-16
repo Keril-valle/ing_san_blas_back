@@ -9,6 +9,7 @@ import { Evento } from './Entities/evento.entity';
 import { CreateEventoDto } from './DTO/create-evento.dto';
 import { UpdateEventoDto } from './DTO/update-evento.dto';
 import { EventoFileStorageService } from './evento-file-storage.service';
+import { EstadoEvento } from '../../Common/Enums/EstadoEvento';
 
 @Injectable()
 export class EventoService {
@@ -57,7 +58,11 @@ export class EventoService {
       fechaFin: this.soloFecha(createEventoDto.fechaFin),
       hora: this.soloHora(createEventoDto.hora),
       imagenUrl: this.soloTexto(createEventoDto.imagenUrl),
+<<<<<<< HEAD
+      estado: EstadoEvento.BORRADOR,
+=======
       estado: 'borrador',
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
     });
     return this.eventoRepository.save(evento);
   }
@@ -68,7 +73,11 @@ export class EventoService {
 
   findPublicos() {
     return this.eventoRepository.find({
+<<<<<<< HEAD
+      where: { estado: EstadoEvento.PUBLICADO },
+=======
       where: { estado: 'publicado' },
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
     });
   }
 
@@ -82,6 +91,17 @@ export class EventoService {
 
   async update(id: number, updateEventoDto: UpdateEventoDto) {
     const evento = await this.findOne(id);
+<<<<<<< HEAD
+    const { eliminarImagen, ...datos } = updateEventoDto;
+    this.validarFechas(
+      datos.fechaInicio ?? evento.fechaInicio,
+      datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin,
+      {
+        inicioOriginal: evento.fechaInicio,
+        finOriginal: evento.fechaFin,
+      },
+    );
+=======
     const {
       publicado: _publicado,
       activo: _activo,
@@ -95,6 +115,7 @@ export class EventoService {
       inicioOriginal: evento.fechaInicio,
       finOriginal: evento.fechaFin,
     });
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
     Object.assign(evento, datos, {
       fechaInicio:
         datos.fechaInicio === undefined
@@ -117,47 +138,79 @@ export class EventoService {
   async publicar(id: number) {
     const evento = await this.findOne(id);
 
+<<<<<<< HEAD
+    if (evento.estado !== EstadoEvento.BORRADOR) {
+=======
     if (evento.estado !== 'borrador') {
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
       throw new BadRequestException('Este evento ya fue publicado.');
     }
 
     this.validarFechas(evento.fechaInicio, evento.fechaFin);
 
+<<<<<<< HEAD
+    evento.estado = EstadoEvento.PUBLICADO;
+=======
     evento.estado = 'publicado';
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
     return this.eventoRepository.save(evento);
   }
 
   async activar(id: number) {
     const evento = await this.findOne(id);
 
+<<<<<<< HEAD
+    if (evento.estado === EstadoEvento.BORRADOR) {
+=======
     if (evento.estado === 'borrador') {
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
       throw new BadRequestException(
         'Solo se pueden activar eventos publicados.',
       );
     }
 
+<<<<<<< HEAD
+    if (evento.estado === EstadoEvento.PUBLICADO) {
+      throw new BadRequestException('Este evento ya está activo.');
+    }
+
+    evento.estado = EstadoEvento.PUBLICADO;
+=======
     if (evento.estado === 'publicado') {
       throw new BadRequestException('Este evento ya está activo.');
     }
 
     evento.estado = 'publicado';
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
     return this.eventoRepository.save(evento);
   }
 
   async desactivar(id: number) {
     const evento = await this.findOne(id);
 
+<<<<<<< HEAD
+    if (evento.estado === EstadoEvento.BORRADOR) {
+=======
     if (evento.estado === 'borrador') {
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
       throw new BadRequestException(
         'Solo se pueden desactivar eventos publicados.',
       );
     }
 
+<<<<<<< HEAD
+    if (evento.estado === EstadoEvento.DESACTIVADO) {
+      throw new BadRequestException('Este evento ya está inactivo.');
+    }
+
+    evento.estado = EstadoEvento.DESACTIVADO;
+=======
     if (evento.estado === 'desactivado') {
       throw new BadRequestException('Este evento ya está inactivo.');
     }
 
     evento.estado = 'desactivado';
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
     return this.eventoRepository.save(evento);
   }
 

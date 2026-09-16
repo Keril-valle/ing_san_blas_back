@@ -101,7 +101,6 @@ import { NotificationsModule } from './Notifications/notifications.module';
       }),
     }),
 
-    // Configuración del módulo de limitación de solicitudes (throttling)
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
