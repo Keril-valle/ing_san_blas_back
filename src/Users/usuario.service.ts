@@ -60,6 +60,7 @@ export class UsuarioService {
 
   // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
   // data + total + pages para que el frontend controle la paginación sin cargar todo
+<<<<<<< HEAD
   async findAllPaginado(page = 1, limit = 10, search?: string) {
     const pagina = Math.max(1, Math.floor(Number(page)) || 1);
     const limite = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
@@ -79,6 +80,47 @@ export class UsuarioService {
       take: limite,
       skip: (pagina - 1) * limite,
     });
+=======
+  async findAllPaginado(
+    page = 1,
+    limit = 10,
+    search?: string,
+    role?: string,
+    state?: string,
+  ) {
+    const pagina = Math.max(1, Math.floor(Number(page)) || 1);
+    const limite = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
+    const texto = search?.trim();
+    const rolFiltro = role?.trim();
+    const estadoFiltro = state?.trim();
+
+    const qb = this.usuarioRepository
+      .createQueryBuilder('usuario')
+      .orderBy('usuario.createdAt', 'DESC')
+      .take(limite)
+      .skip((pagina - 1) * limite);
+
+    if (rolFiltro) {
+      qb.andWhere('usuario.role = :role', { role: rolFiltro });
+    }
+
+    if (estadoFiltro === 'active') {
+      qb.andWhere('usuario.isActive = :isActive', { isActive: true });
+    } else if (estadoFiltro === 'inactive') {
+      qb.andWhere('usuario.isActive = :isActive', { isActive: false });
+    } else {
+      qb.andWhere('usuario.isActive = :isActive', { isActive: true });
+    }
+
+    if (texto) {
+      qb.andWhere(
+        '(LOWER(usuario.nombre) LIKE LOWER(:texto) OR LOWER(usuario.email) LIKE LOWER(:texto) OR LOWER(usuario.telefono) LIKE LOWER(:texto))',
+        { texto: `%${texto}%` },
+      );
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
     return {
       data,

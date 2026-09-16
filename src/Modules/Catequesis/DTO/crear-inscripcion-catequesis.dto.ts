@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   Allow,
   IsBoolean,
@@ -18,11 +18,17 @@ import {
   MENSAJE_NIVEL_INVALIDO,
 } from '../../../Common/Utils/inscripcion-catequesis-validaciones';
 
+// quita espacios de los extremos antes de validar (así "   " cuenta como vacío y falla el IsNotEmpty)
+const recortarTexto = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim() : value;
+
 export class DatosInscripcionDto {
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El centro de catequesis es obligatorio.' })
   centroCatequesis: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El nivel a inscribirse es obligatorio.' })
   @IsIn(['Primero', 'Sétimo', 'primero', 'sétimo', 'setimo', 'septimo'], {
@@ -30,33 +36,50 @@ export class DatosInscripcionDto {
   })
   nivelAInscribirse: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'La fe de bautismo es obligatoria.' })
   feBautismoArchivo: string;
 }
 
 export class DatosCatequizandoDto {
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El nombre del catequizando es obligatorio.' })
   nombre: string;
 
+<<<<<<< HEAD
   @IsOptional()
   @IsString()
   segundoNombre?: string | null;
 
   @IsString()
+=======
+  @Transform(recortarTexto)
+  @IsString()
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @IsNotEmpty({
     message: 'El primer apellido del catequizando es obligatorio.',
   })
   primerApellido: string;
+<<<<<<< HEAD
 
   @IsOptional()
   @IsString()
   segundoApellido?: string | null;
+=======
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
+  @IsOptional()
+  @Transform(recortarTexto)
+  @IsString()
+  segundoApellido?: string | null;
+
+  @Transform(recortarTexto)
   @IsDateString({}, { message: 'La fecha de nacimiento es obligatoria.' })
   fechaNacimiento: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message: 'La dirección exacta del catequizando es obligatoria.',
@@ -65,23 +88,28 @@ export class DatosCatequizandoDto {
 }
 
 export class DatosBautismoDto {
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'La parroquia de bautismo es obligatoria.' })
   parroquia: string;
 
   @IsOptional()
+  @Transform(recortarTexto)
   @IsDateString()
   fecha?: string | null;
 
   @IsOptional()
+  @Transform(recortarTexto)
   @IsString()
   tomo?: string | null;
 
   @IsOptional()
+  @Transform(recortarTexto)
   @IsString()
   folio?: string | null;
 
   @IsOptional()
+  @Transform(recortarTexto)
   @IsString()
   asiento?: string | null;
 }
@@ -95,6 +123,7 @@ export class DatosAdecuacionDto {
   @ValidateIf(
     (dto: DatosAdecuacionDto) => dto.requiereAdecuacionCentroEducativo,
   )
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message:
@@ -111,6 +140,7 @@ export class DatosCondicionSaludDto {
   portadorEnfermedadCronica: boolean;
 
   @ValidateIf((dto: DatosCondicionSaludDto) => dto.portadorEnfermedadCronica)
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message:
@@ -120,36 +150,50 @@ export class DatosCondicionSaludDto {
 }
 
 export class DatosMadreDto {
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El nombre de la madre o encargada es obligatorio.' })
   nombre: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message: 'El primer apellido de la madre o encargada es obligatorio.',
   })
   primerApellido: string;
+<<<<<<< HEAD
 
   @IsOptional()
   @IsString()
   segundoApellido?: string | null;
+=======
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
+  @IsOptional()
+  @Transform(recortarTexto)
+  @IsString()
+  segundoApellido?: string | null;
+
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message: 'La dirección exacta de la madre o encargada es obligatoria.',
   })
   direccionExacta: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'La ciudad de la madre o encargada es obligatoria.' })
   ciudad: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message: 'La provincia de la madre o encargada es obligatoria.',
   })
   provincia: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message: 'El teléfono de la madre o encargada es obligatorio.',
@@ -159,53 +203,87 @@ export class DatosMadreDto {
 
 export class DatosPadreDto {
   @IsOptional()
+  @Transform(recortarTexto)
   @IsString()
   nombre?: string;
 
   @IsOptional()
+  @Transform(recortarTexto)
   @IsString()
   primerApellido?: string;
+<<<<<<< HEAD
 
   @IsOptional()
   @IsString()
   segundoApellido?: string | null;
+=======
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
   @IsOptional()
+  @Transform(recortarTexto)
+  @IsString()
+  segundoApellido?: string | null;
+
+  @IsOptional()
+  @Transform(recortarTexto)
   @IsString()
   telefono?: string;
 }
 
 export class DatosPersonaInscribeDto {
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message: 'El nombre de la persona que inscribe es obligatorio.',
   })
   nombre: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message: 'El primer apellido de la persona que inscribe es obligatorio.',
   })
   primerApellido: string;
+<<<<<<< HEAD
 
   @IsOptional()
   @IsString()
   segundoApellido?: string | null;
+=======
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
+  @IsOptional()
+  @Transform(recortarTexto)
+  @IsString()
+  segundoApellido?: string | null;
+
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El parentesco es obligatorio.' })
   parentesco: string;
 
+<<<<<<< HEAD
   @IsString()
   @IsNotEmpty({ message: 'El correo de la persona que inscribe es obligatorio.' })
+=======
+  @IsOptional()
+  @Transform(recortarTexto)
+  @ValidateIf((_, value) => typeof value === 'string' && value.trim() !== '')
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @IsEmail(
     {},
     {
       message: 'El correo de la persona que inscribe no es válido.',
     },
   )
+<<<<<<< HEAD
   correo: string;
 
+=======
+  correo?: string;
+
+  @Transform(recortarTexto)
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @IsString()
   @IsNotEmpty({
     message: 'El teléfono de la persona que inscribe es obligatorio.',
@@ -217,14 +295,17 @@ export class DatosPersonaInscribeDto {
 }
 
 export class DatosPagoDto {
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El método de pago es obligatorio.' })
   metodoPago: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El número de comprobante SINPE es obligatorio.' })
   numeroComprobanteSinpe: string;
 
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El comprobante de pago es obligatorio.' })
   comprobanteArchivo: string;
@@ -272,6 +353,7 @@ export class CrearInscripcionCatequesisDto {
 }
 
 export class ActualizarEstadoInscripcionDto {
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El estado es obligatorio.' })
   @IsIn([...ESTADOS_INSCRIPCION_VALIDOS], {
@@ -283,6 +365,7 @@ export class ActualizarEstadoInscripcionDto {
     (dto: ActualizarEstadoInscripcionDto) =>
       dto.estado?.toLowerCase() === 'rechazada',
   )
+  @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message:

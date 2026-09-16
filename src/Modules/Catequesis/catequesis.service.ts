@@ -282,6 +282,24 @@ export class CatequesisService {
     }));
   }
 
+  async findByCorreoSolicitante(
+    correo: string,
+  ): Promise<InscripcionResumenDto[]> {
+    const inscripciones = await this.inscripcionRepository
+      .createQueryBuilder('inscripcion')
+      .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
+      .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
+      .leftJoinAndSelect('inscripcion.madre', 'madre')
+      .where(
+        'LOWER(personaInscribe.correo) = LOWER(:correo)',
+        { correo: correo.trim() },
+      )
+      .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .getMany();
+
+    return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));
+  }
+
   async updateEstado(
     id: number,
     estado: string,
@@ -384,7 +402,10 @@ export class CatequesisService {
         : {}),
       catequizando: {
         nombre: inscripcion.catequizando?.nombre ?? '',
+<<<<<<< HEAD
         segundoNombre: inscripcion.catequizando?.segundoNombre ?? '',
+=======
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
         primerApellido: inscripcion.catequizando?.primerApellido ?? '',
         segundoApellido: inscripcion.catequizando?.segundoApellido ?? '',
         apellidos: unirApellidos(

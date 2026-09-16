@@ -11,6 +11,8 @@ import { EstadoEvento } from '../../../Common/Enums/EstadoEvento';
 
 export type EstadoEventoDb = 'borrador' | 'publicado' | 'desactivado';
 
+export type EstadoEventoDb = 'borrador' | 'publicado' | 'desactivado';
+
 @Entity()
 export class Evento {
   @PrimaryGeneratedColumn()
@@ -39,11 +41,19 @@ export class Evento {
 
   @Column({
     type: 'enum',
+<<<<<<< HEAD
     enum: EstadoEvento,
     enumName: 'evento_estado_enum',
     default: EstadoEvento.BORRADOR,
   })
   estado: EstadoEvento;
+=======
+    enum: ['borrador', 'publicado', 'desactivado'],
+    enumName: 'evento_estado_enum',
+    default: 'borrador',
+  })
+  estado: EstadoEventoDb;
+>>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
   @CreateDateColumn({
     type: 'timestamptz',
