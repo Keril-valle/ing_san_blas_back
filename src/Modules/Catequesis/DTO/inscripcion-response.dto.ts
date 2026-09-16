@@ -15,10 +15,7 @@ export class InscripcionResumenDto {
 
 export class CatequizandoDetalleDto {
   nombre: string;
-<<<<<<< HEAD
   segundoNombre: string | null;
-=======
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   primerApellido: string;
   segundoApellido: string;
   apellidos: string;

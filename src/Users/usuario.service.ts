@@ -60,27 +60,6 @@ export class UsuarioService {
 
   // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
   // data + total + pages para que el frontend controle la paginación sin cargar todo
-<<<<<<< HEAD
-  async findAllPaginado(page = 1, limit = 10, search?: string) {
-    const pagina = Math.max(1, Math.floor(Number(page)) || 1);
-    const limite = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
-    const texto = search?.trim();
-
-    const where: FindOptionsWhere<Usuario> | FindOptionsWhere<Usuario>[] = texto
-      ? [
-          { isActive: true, nombre: ILike(`%${texto}%`) },
-          { isActive: true, email: ILike(`%${texto}%`) },
-          { isActive: true, telefono: ILike(`%${texto}%`) },
-        ]
-      : { isActive: true };
-
-    const [data, total] = await this.usuarioRepository.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      take: limite,
-      skip: (pagina - 1) * limite,
-    });
-=======
   async findAllPaginado(
     page = 1,
     limit = 10,
@@ -120,7 +99,6 @@ export class UsuarioService {
     }
 
     const [data, total] = await qb.getManyAndCount();
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
     return {
       data,

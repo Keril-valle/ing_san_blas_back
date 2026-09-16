@@ -151,8 +151,6 @@ export class LandingController {
     return this.landingService.update('horarios', dto);
   }
 
-<<<<<<< HEAD
-=======
   @Put('horarios/con-imagen')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -168,7 +166,6 @@ export class LandingController {
     );
   }
 
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @Put('bautizos')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)

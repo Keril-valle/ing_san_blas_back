@@ -48,27 +48,12 @@ export class DatosCatequizandoDto {
   @IsNotEmpty({ message: 'El nombre del catequizando es obligatorio.' })
   nombre: string;
 
-<<<<<<< HEAD
-  @IsOptional()
-  @IsString()
-  segundoNombre?: string | null;
-
-  @IsString()
-=======
   @Transform(recortarTexto)
   @IsString()
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @IsNotEmpty({
     message: 'El primer apellido del catequizando es obligatorio.',
   })
   primerApellido: string;
-<<<<<<< HEAD
-
-  @IsOptional()
-  @IsString()
-  segundoApellido?: string | null;
-=======
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
   @IsOptional()
   @Transform(recortarTexto)
@@ -161,13 +146,6 @@ export class DatosMadreDto {
     message: 'El primer apellido de la madre o encargada es obligatorio.',
   })
   primerApellido: string;
-<<<<<<< HEAD
-
-  @IsOptional()
-  @IsString()
-  segundoApellido?: string | null;
-=======
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
   @IsOptional()
   @Transform(recortarTexto)
@@ -211,13 +189,6 @@ export class DatosPadreDto {
   @Transform(recortarTexto)
   @IsString()
   primerApellido?: string;
-<<<<<<< HEAD
-
-  @IsOptional()
-  @IsString()
-  segundoApellido?: string | null;
-=======
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
   @IsOptional()
   @Transform(recortarTexto)
@@ -244,13 +215,6 @@ export class DatosPersonaInscribeDto {
     message: 'El primer apellido de la persona que inscribe es obligatorio.',
   })
   primerApellido: string;
-<<<<<<< HEAD
-
-  @IsOptional()
-  @IsString()
-  segundoApellido?: string | null;
-=======
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
 
   @IsOptional()
   @Transform(recortarTexto)
@@ -262,28 +226,18 @@ export class DatosPersonaInscribeDto {
   @IsNotEmpty({ message: 'El parentesco es obligatorio.' })
   parentesco: string;
 
-<<<<<<< HEAD
-  @IsString()
-  @IsNotEmpty({ message: 'El correo de la persona que inscribe es obligatorio.' })
-=======
   @IsOptional()
   @Transform(recortarTexto)
   @ValidateIf((_, value) => typeof value === 'string' && value.trim() !== '')
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @IsEmail(
     {},
     {
       message: 'El correo de la persona que inscribe no es válido.',
     },
   )
-<<<<<<< HEAD
-  correo: string;
-
-=======
   correo?: string;
 
   @Transform(recortarTexto)
->>>>>>> bd7a1deecf80cba859aa59e42afda582b1d64951
   @IsString()
   @IsNotEmpty({
     message: 'El teléfono de la persona que inscribe es obligatorio.',
