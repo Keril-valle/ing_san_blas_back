@@ -18,9 +18,6 @@ export class Catequizando {
   @Column({ name: 'Nombre' })
   nombre: string;
 
-  @Column({ name: 'SegundoNombre', type: 'varchar', nullable: true })
-  segundoNombre: string | null;
-
   @Column({ name: 'PrimerApellido' })
   primerApellido: string;
 
