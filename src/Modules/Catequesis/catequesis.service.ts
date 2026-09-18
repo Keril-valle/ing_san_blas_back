@@ -11,6 +11,7 @@ import {
 } from './DTO/inscripcion-response.dto';
 import { HistorialInscripcionCatequesisDto } from './DTO/historial-inscripcion-response.dto';
 import {
+  MENSAJE_ESTADO_INVALIDO,
   MENSAJE_FECHA_BAUTISMO_FUTURA,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
   MENSAJE_NIVEL_INVALIDO,
@@ -314,9 +315,7 @@ export class CatequesisService {
 
     const estadoNormalizado = normalizarEstadoInscripcion(estado);
     if (!estadoNormalizado) {
-      throw new BadRequestException({
-        mensaje: 'El estado solo puede ser Pendiente, Aprobada o Rechazada.',
-      });
+      throw new BadRequestException({ mensaje: MENSAJE_ESTADO_INVALIDO });
     }
 
     inscripcion.estado = estadoNormalizado;
@@ -391,6 +390,7 @@ export class CatequesisService {
       nivelAInscribirse: inscripcion.nivelAInscribirse,
       estado: inscripcion.estado,
       fechaSolicitud: inscripcion.fechaSolicitud,
+      fechaActualizacionEstado: inscripcion.fechaActualizacionEstado ?? null,
       feBautismoArchivo: inscripcion.feBautismoArchivo,
       observacionAdministrativa: inscripcion.observacionAdministrativa,
       // motivo/observaciones únicamente para rechazadas; derivados de la observación persistida
@@ -402,7 +402,6 @@ export class CatequesisService {
         : {}),
       catequizando: {
         nombre: inscripcion.catequizando?.nombre ?? '',
-        segundoNombre: inscripcion.catequizando?.segundoNombre ?? '',
         primerApellido: inscripcion.catequizando?.primerApellido ?? '',
         segundoApellido: inscripcion.catequizando?.segundoApellido ?? '',
         apellidos: unirApellidos(
