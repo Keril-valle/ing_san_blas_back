@@ -291,10 +291,9 @@ export class CatequesisService {
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
       .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
       .leftJoinAndSelect('inscripcion.madre', 'madre')
-      .where(
-        'LOWER(personaInscribe.correo) = LOWER(:correo)',
-        { correo: correo.trim() },
-      )
+      .where('LOWER(personaInscribe.correo) = LOWER(:correo)', {
+        correo: correo.trim(),
+      })
       .orderBy('inscripcion.fechaSolicitud', 'DESC')
       .getMany();
 

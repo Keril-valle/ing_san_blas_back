@@ -29,7 +29,8 @@ export class LandingFileStorageService {
 
   async saveSectionImage(
     file: Express.Multer.File,
-    sectionKey: 'hero' | 'sobre-nosotros' | 'historia' | 'horarios',
+    sectionKey:
+      'hero' | 'sobre-nosotros' | 'historia' | 'horarios' | 'servicios',
     variante = 'imagen',
   ): Promise<string> {
     if (!file || file.size <= 0) {

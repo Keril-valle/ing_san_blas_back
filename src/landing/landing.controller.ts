@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Post,
   Put,
   Req,
   UploadedFile,
@@ -28,11 +29,14 @@ import { mapValidationErrors } from '../Common/validation-errors';
 import {
   UpdateBautizosDto,
   UpdateContactoDto,
+  UpdateDonacionesDto,
   UpdateHeroDto,
   UpdateHistoriaDto,
   UpdateHorariosDto,
+  UpdateServiciosDto,
   UpdateSobreNosotrosDto,
 } from './DTO/update-landing-section.dto';
+import { RestablecerLandingDto } from './DTO/restablecer-landing.dto';
 import { LandingService } from './landing.service';
 
 const LIMITE_IMAGEN = {
@@ -171,6 +175,62 @@ export class LandingController {
   @HttpCode(HttpStatus.OK)
   updateBautizos(@Body() dto: UpdateBautizosDto) {
     return this.landingService.update('bautizos', dto);
+  }
+
+  @Put('servicios')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  updateServicios(@Body() dto: UpdateServiciosDto) {
+    return this.landingService.update('servicios', dto);
+  }
+
+  @Put('servicios/con-imagen')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'archivoServicio1', maxCount: 1 },
+        { name: 'archivoServicio2', maxCount: 1 },
+        { name: 'archivoServicio3', maxCount: 1 },
+        { name: 'archivoServicio4', maxCount: 1 },
+        { name: 'archivoServicio5', maxCount: 1 },
+      ],
+      LIMITE_IMAGEN,
+    ),
+  )
+  updateServiciosWithImage(
+    @Req() req: Request,
+    @UploadedFiles()
+    archivos?: Record<string, Express.Multer.File[]>,
+  ) {
+    const archivosServicios: Record<string, Express.Multer.File> = {};
+    for (const [campo, lista] of Object.entries(archivos ?? {})) {
+      if (lista?.[0]) archivosServicios[campo] = lista[0];
+    }
+    return this.landingService.update(
+      'servicios',
+      this.leerPayload(req),
+      undefined,
+      undefined,
+      archivosServicios,
+    );
+  }
+
+  @Put('donaciones')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  updateDonaciones(@Body() dto: UpdateDonacionesDto) {
+    return this.landingService.update('donaciones', dto);
+  }
+
+  // Restablece una o varias secciones (sin body = todas). Sirve pa el botón
+  // por card y pa el "Restablecer todo" del menú global.
+  @Post('restablecer')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  restablecer(@Body() dto: RestablecerLandingDto) {
+    return this.landingService.restablecer(dto.sectionKeys);
   }
 
   @Public()
