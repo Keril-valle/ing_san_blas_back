@@ -165,6 +165,9 @@ export class UsuarioService {
       ) {
         throw new BadRequestException('No puede cambiar su propio rol.');
       }
+      if (updateUsuarioDto.isActive === false) {
+        throw new BadRequestException('No puede inactivar su propia cuenta.');
+      }
     }
 
     if (updateUsuarioDto.password !== undefined) {
@@ -182,13 +185,14 @@ export class UsuarioService {
       user.telefono = updateUsuarioDto.telefono;
     }
 
-    if (!esMismoUsuario && updateUsuarioDto.role !== undefined) {
-      const rol = await this.rolService.assertExiste(updateUsuarioDto.role);
-      user.role = rol.clave;
-    }
-
-    if (updateUsuarioDto.isActive !== undefined) {
-      user.isActive = updateUsuarioDto.isActive;
+    if (!esMismoUsuario) {
+      if (updateUsuarioDto.role !== undefined) {
+        const rol = await this.rolService.assertExiste(updateUsuarioDto.role);
+        user.role = rol.clave;
+      }
+      if (updateUsuarioDto.isActive !== undefined) {
+        user.isActive = updateUsuarioDto.isActive;
+      }
     }
 
     return await this.usuarioRepository.save(user);
