@@ -11,7 +11,6 @@ import { Role } from '../../Common/Enums/Roles';
 import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 
 export class CreateUsuarioDto extends RegisterDto {
-  // valida que el rol esté dentro de los permitidos del sistema (mismo set que ofrece el frontend)
   @IsOptional()
   @IsString({ message: 'El rol debe ser texto.' })
   @IsIn(Object.values(Role), {
@@ -19,12 +18,11 @@ export class CreateUsuarioDto extends RegisterDto {
   })
   role?: string;
 
-  // telefono es requerido para creación de usuario (override del opcional en RegisterDto)
   @Transform(transformarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   @Matches(/^\d{4}-\d{4}$/, {
     message: 'El teléfono debe tener el formato 8888-8888',
   })
-  declare telefono: string;
+  telefono: string;
 }
