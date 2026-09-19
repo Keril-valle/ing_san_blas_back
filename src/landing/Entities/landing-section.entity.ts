@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -15,6 +16,10 @@ export class LandingSection {
 
   @Column({ type: 'jsonb', default: {} })
   data: Record<string, unknown>;
+
+  // fecha en que se sembró/creó la sección (solo auditoría, no la usa el editor)
+  @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
+  createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;

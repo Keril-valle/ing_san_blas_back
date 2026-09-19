@@ -168,8 +168,9 @@ export class CatequesisController {
       });
     }
 
-    const inscripciones =
-      await this.catequesisService.findByCorreoSolicitante(correo.trim());
+    const inscripciones = await this.catequesisService.findByCorreoSolicitante(
+      correo.trim(),
+    );
 
     return {
       inscripciones,

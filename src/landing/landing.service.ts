@@ -6,112 +6,23 @@ import { Repository } from 'typeorm';
 import {
   UpdateBautizosDto,
   UpdateContactoDto,
+  UpdateDonacionesDto,
   UpdateHeroDto,
   UpdateHistoriaDto,
   UpdateHorariosDto,
+  UpdateServiciosDto,
   UpdateSobreNosotrosDto,
 } from './DTO/update-landing-section.dto';
 import { LandingSection } from './Entities/landing-section.entity';
 import { LandingFileStorageService } from './landing-file-storage.service';
+import {
+  clonarDefault,
+  LANDING_SECTION_KEYS,
+  type LandingSectionKey,
+} from './landing.defaults';
 import { mapValidationErrors } from '../Common/validation-errors';
 
-export const LANDING_SECTION_KEYS = [
-  'hero',
-  'sobre-nosotros',
-  'historia',
-  'contacto',
-  'horarios',
-  'bautizos',
-] as const;
-
-export type LandingSectionKey = (typeof LANDING_SECTION_KEYS)[number];
-
-const HERO_DEFAULT: UpdateHeroDto = {
-  subtitle: 'Desde 1544',
-  title: 'Firme en la',
-  titleHighlight: 'Fe y Tradición',
-  description:
-    'Ubicada en el corazón de Nicoya, la Parroquia San Blas es testimonio vivo de nuestra historia y esperanza cristiana.',
-};
-
-const SOBRE_NOSOTROS_DEFAULT: UpdateSobreNosotrosDto = {
-  eyebrow: 'Sobre Nosotros',
-  title: 'Una parroquia que guarda la fe, la historia y la cercanía de Nicoya',
-  lead: 'La Parroquia San Blas de Nicoya es un referente espiritual y cultural de Costa Rica. Su historia, su misión pastoral y su vocación de servicio siguen acompañando a una comunidad viva, hospitalaria y profundamente creyente.',
-  cards: [
-    {
-      icono: '01',
-      titulo: 'Raíz histórica',
-      texto:
-        'La Parroquia San Blas ha acompañado la vida espiritual de Nicoya desde sus orígenes, siendo parte esencial de la memoria religiosa y cultural de Costa Rica.',
-    },
-    {
-      icono: '02',
-      titulo: 'Identidad cultural',
-      texto:
-        'Su presencia ha contribuido a preservar tradiciones, celebraciones y expresiones de fe que fortalecen el sentido de pertenencia de la comunidad nicoyana.',
-    },
-    {
-      icono: '03',
-      titulo: 'Misión espiritual',
-      texto:
-        'Nuestra misión es anunciar el Evangelio, celebrar los sacramentos y sostener la fe del pueblo con una pastoral cercana, serena y comprometida.',
-    },
-    {
-      icono: '04',
-      titulo: 'Servicio a la comunidad',
-      texto:
-        'Acompañamos a niños, jóvenes, adultos mayores y familias con catequesis, formación y espacios de servicio que buscan unir fe y vida diaria.',
-    },
-  ],
-};
-
-const HISTORIA_DEFAULT: UpdateHistoriaDto = {
-  eyebrow: 'Raíces de Fe',
-  subtitle: 'Un tesoro colonial en el corazón de Guanacaste',
-  origenes:
-    'La Parroquia de San Blas, ubicada en el majestuoso cantón de Nicoya, es más que una edificación religiosa; es un símbolo indeleble de la historia colonial de Costa Rica y de la profunda devoción que caracteriza a la región Chorotega. Con orígenes que se remontan al año 1544, esta iglesia se consolida como una de las parroquias más antiguas y valiosas del país.',
-  restauraciones:
-    'A lo largo de los siglos, estos muros han sido testigos silenciosos del paso del tiempo. Diversos eventos naturales han puesto a prueba la fortaleza del templo, motivando importantes labores de restauración que han reafirmado la perseverancia y fe inquebrantable de la comunidad nicoyana a través de las generaciones.',
-  cita: '"Un espacio donde nuestra tradición ancestral se encuentra con la paz espiritual."',
-  fachada:
-    'Su inconfundible fachada, su armazón de cálidos tonos blancos y su imponente techo resguardan elementos invaluables que entrelazan la influencia indígena y española. Esta mezcla se respira en cada rincón, desde el campanario hasta los históricos retablos de su interior.',
-  invitacion:
-    'Hoy en día, la Parroquia San Blas mantiene sus puertas abiertas y su vocación firme. Invitamos a todos los feligreses y visitantes a caminar por sus naves, sentir el legado histórico que descansa bajo su techo colonial y acompañarnos en esta gran misión espiritual.',
-  videoUrl: 'https://www.youtube.com/embed/KWFL_AS5Xlk',
-};
-
-// valores del volante de la Santa Misa (se usan si aún no hay nada guardado)
-const HORARIOS_DEFAULT: UpdateHorariosDto = {
-  title: 'Horarios',
-  subtitle: 'de la Santa',
-  titleHighlight: 'Misa',
-  intro:
-    'Consulte los horarios de la Santa Misa en la Parroquia San Blas.',
-  bloques: [
-    {
-      titulo: 'Entre semana',
-      filas: [
-        { dia: 'Lunes - Martes - Miércoles', horas: ['05:00 PM'] },
-        {
-          dia: 'Jueves',
-          horas: ['Adoración: 04:00 PM', 'Santa Misa: 05:00 PM'],
-        },
-        { dia: 'Viernes', horas: ['05:00 PM'] },
-        { dia: 'Sábado', horas: ['05:00 PM'] },
-      ],
-    },
-    {
-      titulo: 'Misa dominical',
-      filas: [
-        {
-          dia: 'Domingo',
-          horas: ['07:00 AM', '08:00 AM', '10:30 AM', '05:00 PM'],
-        },
-      ],
-    },
-  ],
-};
+export { LANDING_SECTION_KEYS, type LandingSectionKey };
 
 @Injectable()
 export class LandingService {
@@ -138,53 +49,10 @@ export class LandingService {
       return this.toResponse(section);
     }
 
-    if (sectionKey === 'hero') {
-      return {
-        sectionKey: 'hero',
-        data: { ...HERO_DEFAULT },
-        updatedAt: null,
-      };
-    }
-
-    if (sectionKey === 'sobre-nosotros') {
-      return {
-        sectionKey: 'sobre-nosotros',
-        data: {
-          ...SOBRE_NOSOTROS_DEFAULT,
-          cards: SOBRE_NOSOTROS_DEFAULT.cards.map((card) => ({ ...card })),
-        },
-        updatedAt: null,
-      };
-    }
-
-    if (sectionKey === 'historia') {
-      return {
-        sectionKey: 'historia',
-        data: { ...HISTORIA_DEFAULT },
-        updatedAt: null,
-      };
-    }
-
-    if (sectionKey === 'horarios') {
-      return {
-        sectionKey: 'horarios',
-        data: {
-          ...HORARIOS_DEFAULT,
-          bloques: HORARIOS_DEFAULT.bloques.map((bloque) => ({
-            ...bloque,
-            filas: bloque.filas.map((fila) => ({
-              ...fila,
-              horas: [...fila.horas],
-            })),
-          })),
-        },
-        updatedAt: null,
-      };
-    }
-
+    // todavía no hay fila guardada: se devuelve el default de código
     return {
       sectionKey,
-      data: {},
+      data: clonarDefault(sectionKey),
       updatedAt: null,
     };
   }
@@ -196,6 +64,7 @@ export class LandingService {
     archivosPorCampo?: Partial<
       Record<'headerImageUrl' | 'quoteImageUrl', Express.Multer.File>
     >,
+    archivosServicios?: Record<string, Express.Multer.File | undefined>,
   ) {
     this.assertSectionKey(sectionKey);
 
@@ -261,9 +130,64 @@ export class LandingService {
       delete current.eliminarQuoteImagen;
     }
 
+    // cada servicio puede traer su propia imagen (archivoServicio1..N)
+    if (sectionKey === 'servicios' && archivosServicios) {
+      const items = Array.isArray(current.items)
+        ? (current.items as Array<Record<string, unknown>>)
+        : [];
+
+      for (const [campo, file] of Object.entries(archivosServicios)) {
+        if (!file) continue;
+        const match = /^archivoServicio(\d+)$/.exec(campo);
+        if (!match) continue;
+        const index = Number(match[1]) - 1;
+        if (index < 0 || index >= items.length) continue;
+        items[index].imageUrl = await this.fileStorageService.saveSectionImage(
+          file,
+          'servicios',
+          `item-${index + 1}`,
+        );
+      }
+
+      current.items = items;
+    }
+
     section.data = current;
     const saved = await this.landingRepository.save(section);
     return this.toResponse(saved);
+  }
+
+  // Restablece una o varias secciones a su configuración por defecto.
+  // Sin `sectionKeys` restablece todas; con array, solo las indicadas.
+  async restablecer(sectionKeys?: string[]) {
+    const claves: LandingSectionKey[] = sectionKeys?.length
+      ? (sectionKeys as LandingSectionKey[])
+      : [...LANDING_SECTION_KEYS];
+
+    // valida todas antes de tocar la base pa no dejar un reset a medias
+    claves.forEach((clave) => this.assertSectionKey(clave));
+
+    const restablecidas: ReturnType<LandingService['toResponse']>[] = [];
+
+    for (const sectionKey of claves) {
+      // el default ya trae la imagen original de Cloudinary, así que el reset
+      // también restaura la imagen (no solo los textos)
+      const data = clonarDefault(sectionKey) as Record<string, unknown>;
+
+      let section = await this.landingRepository.findOne({
+        where: { sectionKey },
+      });
+
+      if (!section) {
+        section = this.landingRepository.create({ sectionKey });
+      }
+
+      section.data = data;
+      const saved = await this.landingRepository.save(section);
+      restablecidas.push(this.toResponse(saved));
+    }
+
+    return restablecidas;
   }
 
   private async normalizarSeccion(
@@ -283,6 +207,10 @@ export class LandingService {
         return this.validarDto(UpdateHorariosDto, data);
       case 'bautizos':
         return this.validarDto(UpdateBautizosDto, data);
+      case 'servicios':
+        return this.validarDto(UpdateServiciosDto, data);
+      case 'donaciones':
+        return this.validarDto(UpdateDonacionesDto, data);
       default: {
         const exhaustivo: never = sectionKey;
         throw new BadRequestException({
@@ -324,6 +252,7 @@ export class LandingService {
       sectionKey: section.sectionKey,
       data: section.data ?? {},
       updatedAt: section.updatedAt?.toISOString() ?? null,
+      createdAt: section.createdAt?.toISOString() ?? null,
     };
   }
 }
