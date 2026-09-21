@@ -317,14 +317,13 @@ export class ActualizarEstadoInscripcionDto {
 
   @ValidateIf(
     (dto: ActualizarEstadoInscripcionDto) =>
-      dto.estado?.toLowerCase() === 'rechazada' ||
-      dto.estado?.toLowerCase() === 'requiere_modificacion',
+      dto.estado?.toLowerCase() === 'rechazada',
   )
   @Transform(recortarTexto)
   @IsString()
   @IsNotEmpty({
     message:
-      'La observación administrativa es obligatoria cuando el estado es Rechazada o Modificación solicitada.',
+      'La observación administrativa es obligatoria cuando el estado es Rechazada.',
   })
   observacion?: string | null;
 }

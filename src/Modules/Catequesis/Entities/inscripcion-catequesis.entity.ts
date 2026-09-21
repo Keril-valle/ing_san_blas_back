@@ -34,6 +34,9 @@ export class InscripcionCatequesis {
   })
   fechaActualizacionEstado: Date | null;
 
+  @Column({ name: 'RevisadoPor', type: 'int', nullable: true })
+  revisadoPor: number | null;
+
   @Column({ name: 'FeBautismoArchivo' })
   feBautismoArchivo: string;
 
