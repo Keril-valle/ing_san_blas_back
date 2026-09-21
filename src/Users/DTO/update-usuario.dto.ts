@@ -2,6 +2,7 @@ import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsEmail,
   IsIn,
   IsNotEmpty,
   IsOptional,
