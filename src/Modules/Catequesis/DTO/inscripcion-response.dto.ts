@@ -73,6 +73,7 @@ export class InscripcionDetalleDto {
   nivelAInscribirse: string;
   estado: string;
   fechaSolicitud: Date;
+  fechaActualizacionEstado: Date | null;
   feBautismoArchivo: string;
   observacionAdministrativa: string | null;
   // motivo/observaciones solo se incluyen cuando la inscripción fue rechazada

@@ -159,6 +159,25 @@ export class CatequesisController {
     }
   }
 
+  @Public()
+  @Get('consulta')
+  async consultarPorCorreo(@Query('correo') correo: string) {
+    if (!correo?.trim()) {
+      throw new BadRequestException({
+        mensaje: 'El correo es obligatorio para la consulta.',
+      });
+    }
+
+    const inscripciones = await this.catequesisService.findByCorreoSolicitante(
+      correo.trim(),
+    );
+
+    return {
+      inscripciones,
+      total: inscripciones.length,
+    };
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN)
   async findOne(@Param('id', ParseIntPipe) id: number) {

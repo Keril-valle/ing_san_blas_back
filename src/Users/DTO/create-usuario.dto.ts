@@ -11,7 +11,6 @@ import { Role } from '../../Common/Enums/Roles';
 import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 
 export class CreateUsuarioDto extends RegisterDto {
-  // valida que el rol esté dentro de los permitidos del sistema (mismo set que ofrece el frontend)
   @IsOptional()
   @IsString({ message: 'El rol debe ser texto.' })
   @IsIn(Object.values(Role), {

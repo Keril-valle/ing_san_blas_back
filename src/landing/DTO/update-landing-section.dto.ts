@@ -446,3 +446,175 @@ export class UpdateBautizosDto {
   })
   solicitud: string;
 }
+
+// detalle opcional que se muestra en el modal del carrusel de servicios
+export class ServicioDetalleDto {
+  @Transform(transformarTexto)
+  @IsString({ message: 'El subtítulo del servicio debe ser texto.' })
+  @IsNotEmpty({ message: 'El subtítulo del servicio es obligatorio.' })
+  @MaxLength(120, {
+    message: 'El subtítulo del servicio no puede superar 120 caracteres.',
+  })
+  subtitle: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'La descripción ampliada debe ser texto.' })
+  @IsNotEmpty({ message: 'La descripción ampliada es obligatoria.' })
+  @MaxLength(300, {
+    message: 'La descripción ampliada no puede superar 300 caracteres.',
+  })
+  description: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'El horario del servicio debe ser texto.' })
+  @IsNotEmpty({ message: 'El horario del servicio es obligatorio.' })
+  @MaxLength(300, {
+    message: 'El horario del servicio no puede superar 300 caracteres.',
+  })
+  schedule: string;
+
+  @Transform(recortarLineas)
+  @IsArray({ message: 'Los requisitos del servicio son obligatorios.' })
+  @ArrayMinSize(1, { message: 'Incluya al menos un requisito del servicio.' })
+  @IsString({ each: true, message: 'Cada requisito debe ser texto.' })
+  @MaxLength(200, {
+    each: true,
+    message: 'Cada requisito no puede superar 200 caracteres.',
+  })
+  requirements: string[];
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'El contacto del servicio debe ser texto.' })
+  @IsNotEmpty({ message: 'El contacto del servicio es obligatorio.' })
+  @MaxLength(200, {
+    message: 'El contacto del servicio no puede superar 200 caracteres.',
+  })
+  contact: string;
+}
+
+export class ServicioItemDto {
+  @Transform(transformarTexto)
+  @IsString({ message: 'El título del servicio debe ser texto.' })
+  @IsNotEmpty({ message: 'El título del servicio es obligatorio.' })
+  @MaxLength(80, {
+    message: 'El título del servicio no puede superar 80 caracteres.',
+  })
+  title: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'La descripción del servicio debe ser texto.' })
+  @IsNotEmpty({ message: 'La descripción del servicio es obligatoria.' })
+  @MaxLength(300, {
+    message: 'La descripción del servicio no puede superar 300 caracteres.',
+  })
+  description: string;
+
+  @ValidateIf((_, value) => typeof value === 'string' && value.trim() !== '')
+  @IsUrl(
+    { require_protocol: true },
+    { message: 'La URL de la imagen del servicio no es válida.' },
+  )
+  imageUrl?: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'La categoría del servicio debe ser texto.' })
+  @IsNotEmpty({ message: 'La categoría del servicio es obligatoria.' })
+  @MaxLength(60, {
+    message: 'La categoría del servicio no puede superar 60 caracteres.',
+  })
+  category: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'El texto del botón debe ser texto.' })
+  @IsNotEmpty({ message: 'El texto del botón es obligatorio.' })
+  @MaxLength(40, {
+    message: 'El texto del botón no puede superar 40 caracteres.',
+  })
+  buttonLabel: string;
+
+  @IsOptional()
+  @ValidateIf((_, value) => typeof value === 'string' && value.trim() !== '')
+  @IsString({ message: 'El enlace del servicio debe ser texto.' })
+  @MaxLength(200, {
+    message: 'El enlace del servicio no puede superar 200 caracteres.',
+  })
+  linkTo?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ServicioDetalleDto)
+  modalDetails?: ServicioDetalleDto;
+}
+
+export class UpdateServiciosDto {
+  @Transform(transformarTexto)
+  @IsString({ message: 'La etiqueta debe ser texto.' })
+  @IsNotEmpty({ message: 'La etiqueta es obligatoria.' })
+  @MaxLength(40, { message: 'La etiqueta no puede superar 40 caracteres.' })
+  eyebrow: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'El título debe ser texto.' })
+  @IsNotEmpty({ message: 'El título es obligatorio.' })
+  @MaxLength(80, { message: 'El título no puede superar 80 caracteres.' })
+  title: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'La introducción debe ser texto.' })
+  @IsNotEmpty({ message: 'La introducción es obligatoria.' })
+  @MaxLength(260, {
+    message: 'La introducción no puede superar 260 caracteres.',
+  })
+  intro: string;
+
+  @IsArray({ message: 'Los servicios son obligatorios.' })
+  @ArrayMinSize(1, { message: 'Incluya al menos un servicio.' })
+  @ArrayMaxSize(12, { message: 'Puede incluir máximo 12 servicios.' })
+  @ValidateNested({ each: true })
+  @Type(() => ServicioItemDto)
+  items: ServicioItemDto[];
+}
+
+export class UpdateDonacionesDto {
+  @Transform(transformarTexto)
+  @IsString({ message: 'El título debe ser texto.' })
+  @IsNotEmpty({ message: 'El título es obligatorio.' })
+  @MaxLength(80, { message: 'El título no puede superar 80 caracteres.' })
+  title: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'La introducción debe ser texto.' })
+  @IsNotEmpty({ message: 'La introducción es obligatoria.' })
+  @MaxLength(300, {
+    message: 'La introducción no puede superar 300 caracteres.',
+  })
+  intro: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'El SINPE móvil debe ser texto.' })
+  @IsNotEmpty({ message: 'El SINPE móvil es obligatorio.' })
+  @MaxLength(40, {
+    message: 'El SINPE móvil no puede superar 40 caracteres.',
+  })
+  @Matches(/^[\d\s-]{8,40}$/, {
+    message: 'El SINPE móvil no tiene un formato válido.',
+  })
+  sinpe: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'La cuenta bancaria debe ser texto.' })
+  @IsNotEmpty({ message: 'La cuenta bancaria es obligatoria.' })
+  @MaxLength(60, {
+    message: 'La cuenta bancaria no puede superar 60 caracteres.',
+  })
+  @Matches(/^[A-Za-z]{2}[\dA-Za-z]{6,40}$/, {
+    message: 'La cuenta bancaria no tiene un formato válido (IBAN).',
+  })
+  cuentaBancaria: string;
+
+  @Transform(transformarTexto)
+  @IsString({ message: 'El banco debe ser texto.' })
+  @IsNotEmpty({ message: 'El banco es obligatorio.' })
+  @MaxLength(80, { message: 'El banco no puede superar 80 caracteres.' })
+  banco: string;
+}

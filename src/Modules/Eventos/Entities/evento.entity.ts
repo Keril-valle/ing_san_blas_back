@@ -7,6 +7,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { EstadoEvento } from '../../../Common/Enums/EstadoEvento';
 
 export type EstadoEventoDb = 'borrador' | 'publicado' | 'desactivado';
 
@@ -38,11 +39,11 @@ export class Evento {
 
   @Column({
     type: 'enum',
-    enum: ['borrador', 'publicado', 'desactivado'],
+    enum: EstadoEvento,
     enumName: 'evento_estado_enum',
-    default: 'borrador',
+    default: EstadoEvento.BORRADOR,
   })
-  estado: EstadoEventoDb;
+  estado: EstadoEvento;
 
   @CreateDateColumn({
     type: 'timestamptz',

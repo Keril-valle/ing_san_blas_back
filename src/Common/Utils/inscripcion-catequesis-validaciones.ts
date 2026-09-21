@@ -2,6 +2,7 @@ export const ESTADOS_INSCRIPCION_VALIDOS = [
   'Pendiente',
   'Aprobada',
   'Rechazada',
+  'requiere_modificacion',
 ] as const;
 
 export const NIVELES_INSCRIPCION_VALIDOS = ['Primero', 'Sétimo'] as const;
@@ -9,7 +10,7 @@ export const NIVELES_INSCRIPCION_VALIDOS = ['Primero', 'Sétimo'] as const;
 export const MENSAJE_NIVEL_INVALIDO =
   'El nivel a inscribirse solo puede ser Primero o Sétimo.';
 export const MENSAJE_ESTADO_INVALIDO =
-  'El estado solo puede ser Pendiente, Aprobada o Rechazada.';
+  'El estado solo puede ser Pendiente, Aprobada, Rechazada o Modificación solicitada.';
 export const MENSAJE_ID_INVALIDO = 'El id debe ser mayor que 0.';
 export const MENSAJE_NO_ENCONTRADO =
   'No se encontró una inscripción con el id indicado.';

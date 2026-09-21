@@ -11,6 +11,7 @@ import {
 } from './DTO/inscripcion-response.dto';
 import { HistorialInscripcionCatequesisDto } from './DTO/historial-inscripcion-response.dto';
 import {
+  MENSAJE_ESTADO_INVALIDO,
   MENSAJE_FECHA_BAUTISMO_FUTURA,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
   MENSAJE_NIVEL_INVALIDO,
@@ -282,6 +283,23 @@ export class CatequesisService {
     }));
   }
 
+  async findByCorreoSolicitante(
+    correo: string,
+  ): Promise<InscripcionResumenDto[]> {
+    const inscripciones = await this.inscripcionRepository
+      .createQueryBuilder('inscripcion')
+      .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
+      .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
+      .leftJoinAndSelect('inscripcion.madre', 'madre')
+      .where('LOWER(personaInscribe.correo) = LOWER(:correo)', {
+        correo: correo.trim(),
+      })
+      .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .getMany();
+
+    return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));
+  }
+
   async updateEstado(
     id: number,
     estado: string,
@@ -296,9 +314,7 @@ export class CatequesisService {
 
     const estadoNormalizado = normalizarEstadoInscripcion(estado);
     if (!estadoNormalizado) {
-      throw new BadRequestException({
-        mensaje: 'El estado solo puede ser Pendiente, Aprobada o Rechazada.',
-      });
+      throw new BadRequestException({ mensaje: MENSAJE_ESTADO_INVALIDO });
     }
 
     inscripcion.estado = estadoNormalizado;
@@ -373,6 +389,7 @@ export class CatequesisService {
       nivelAInscribirse: inscripcion.nivelAInscribirse,
       estado: inscripcion.estado,
       fechaSolicitud: inscripcion.fechaSolicitud,
+      fechaActualizacionEstado: inscripcion.fechaActualizacionEstado ?? null,
       feBautismoArchivo: inscripcion.feBautismoArchivo,
       observacionAdministrativa: inscripcion.observacionAdministrativa,
       // motivo/observaciones únicamente para rechazadas; derivados de la observación persistida

@@ -54,12 +54,4 @@ export class CreateEventoDto {
   @IsString()
   @MaxLength(500, { message: 'La URL de la imagen es demasiado larga.' })
   imagenUrl?: string | null;
-
-  @IsOptional()
-  @IsBoolean()
-  publicado?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  activo?: boolean;
 }

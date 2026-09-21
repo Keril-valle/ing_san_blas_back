@@ -9,6 +9,7 @@ import { Evento } from './Entities/evento.entity';
 import { CreateEventoDto } from './DTO/create-evento.dto';
 import { UpdateEventoDto } from './DTO/update-evento.dto';
 import { EventoFileStorageService } from './evento-file-storage.service';
+import { EstadoEvento } from '../../Common/Enums/EstadoEvento';
 
 @Injectable()
 export class EventoService {
@@ -44,20 +45,15 @@ export class EventoService {
 
   create(createEventoDto: CreateEventoDto) {
     this.validarFechas(createEventoDto.fechaInicio, createEventoDto.fechaFin);
-    const {
-      publicado: _publicado,
-      activo: _activo,
-      ...datos
-    } = createEventoDto;
     const evento = this.eventoRepository.create({
-      ...datos,
+      ...createEventoDto,
       fechaInicio:
         this.soloFecha(createEventoDto.fechaInicio) ??
         createEventoDto.fechaInicio,
       fechaFin: this.soloFecha(createEventoDto.fechaFin),
       hora: this.soloHora(createEventoDto.hora),
       imagenUrl: this.soloTexto(createEventoDto.imagenUrl),
-      estado: 'borrador',
+      estado: EstadoEvento.BORRADOR,
     });
     return this.eventoRepository.save(evento);
   }
@@ -68,7 +64,7 @@ export class EventoService {
 
   findPublicos() {
     return this.eventoRepository.find({
-      where: { estado: 'publicado' },
+      where: { estado: EstadoEvento.PUBLICADO },
     });
   }
 
@@ -82,19 +78,15 @@ export class EventoService {
 
   async update(id: number, updateEventoDto: UpdateEventoDto) {
     const evento = await this.findOne(id);
-    const {
-      publicado: _publicado,
-      activo: _activo,
-      eliminarImagen,
-      ...datos
-    } = updateEventoDto;
-    const fechaInicio = datos.fechaInicio ?? evento.fechaInicio;
-    const fechaFin =
-      datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin;
-    this.validarFechas(fechaInicio, fechaFin, {
-      inicioOriginal: evento.fechaInicio,
-      finOriginal: evento.fechaFin,
-    });
+    const { eliminarImagen, ...datos } = updateEventoDto;
+    this.validarFechas(
+      datos.fechaInicio ?? evento.fechaInicio,
+      datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin,
+      {
+        inicioOriginal: evento.fechaInicio,
+        finOriginal: evento.fechaFin,
+      },
+    );
     Object.assign(evento, datos, {
       fechaInicio:
         datos.fechaInicio === undefined
@@ -117,47 +109,47 @@ export class EventoService {
   async publicar(id: number) {
     const evento = await this.findOne(id);
 
-    if (evento.estado !== 'borrador') {
+    if (evento.estado !== EstadoEvento.BORRADOR) {
       throw new BadRequestException('Este evento ya fue publicado.');
     }
 
     this.validarFechas(evento.fechaInicio, evento.fechaFin);
 
-    evento.estado = 'publicado';
+    evento.estado = EstadoEvento.PUBLICADO;
     return this.eventoRepository.save(evento);
   }
 
   async activar(id: number) {
     const evento = await this.findOne(id);
 
-    if (evento.estado === 'borrador') {
+    if (evento.estado === EstadoEvento.BORRADOR) {
       throw new BadRequestException(
         'Solo se pueden activar eventos publicados.',
       );
     }
 
-    if (evento.estado === 'publicado') {
+    if (evento.estado === EstadoEvento.PUBLICADO) {
       throw new BadRequestException('Este evento ya está activo.');
     }
 
-    evento.estado = 'publicado';
+    evento.estado = EstadoEvento.PUBLICADO;
     return this.eventoRepository.save(evento);
   }
 
   async desactivar(id: number) {
     const evento = await this.findOne(id);
 
-    if (evento.estado === 'borrador') {
+    if (evento.estado === EstadoEvento.BORRADOR) {
       throw new BadRequestException(
         'Solo se pueden desactivar eventos publicados.',
       );
     }
 
-    if (evento.estado === 'desactivado') {
+    if (evento.estado === EstadoEvento.DESACTIVADO) {
       throw new BadRequestException('Este evento ya está inactivo.');
     }
 
-    evento.estado = 'desactivado';
+    evento.estado = EstadoEvento.DESACTIVADO;
     return this.eventoRepository.save(evento);
   }
 
