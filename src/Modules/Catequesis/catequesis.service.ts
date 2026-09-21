@@ -12,7 +12,6 @@ import {
 import { HistorialInscripcionCatequesisDto } from './DTO/historial-inscripcion-response.dto';
 import {
   MENSAJE_ESTADO_INVALIDO,
-  MENSAJE_FECHA_BAUTISMO_FUTURA,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
   MENSAJE_NIVEL_INVALIDO,
   normalizarEstadoInscripcion,
@@ -52,13 +51,6 @@ export class CatequesisService {
         segundoApellido: dto.datosCatequizando.segundoApellido?.trim() || null,
         fechaNacimiento: dto.datosCatequizando.fechaNacimiento.trim(),
         direccionExacta: dto.datosCatequizando.direccionExacta.trim(),
-      },
-      bautismo: {
-        parroquia: dto.datosBautismo.parroquia.trim(),
-        fecha: dto.datosBautismo.fecha?.trim() || null,
-        tomo: dto.datosBautismo.tomo?.trim() || null,
-        folio: dto.datosBautismo.folio?.trim() || null,
-        asiento: dto.datosBautismo.asiento?.trim() || null,
       },
       adecuacion: {
         requiereAdecuacionCentroEducativo:
@@ -337,10 +329,6 @@ export class CatequesisService {
       throw new BadRequestException({
         mensaje: MENSAJE_FECHA_NACIMIENTO_FUTURA,
       });
-    }
-
-    if (!validarFechaNoFutura(dto.datosBautismo.fecha)) {
-      throw new BadRequestException({ mensaje: MENSAJE_FECHA_BAUTISMO_FUTURA });
     }
   }
 
