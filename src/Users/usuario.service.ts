@@ -127,6 +127,11 @@ export class UsuarioService {
     return this.usuarioRepository.findOneBy({ email, isActive: true });
   }
 
+  async estaActivo(id: number): Promise<boolean> {
+    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
+    return user != null;
+  }
+
   findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
       where: { email, isActive: true },
