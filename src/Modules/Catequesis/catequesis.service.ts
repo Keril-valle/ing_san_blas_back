@@ -108,7 +108,17 @@ export class CatequesisService {
     nombre?: string;
     encargado?: string;
     q?: string;
-  }): Promise<InscripcionResumenDto[]> {
+    nivel?: string;
+    filial?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: InscripcionResumenDto[];
+    total: number;
+    page: number;
+    pages: number;
+    limit: number;
+  }> {
     const query = this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
@@ -155,8 +165,38 @@ export class CatequesisService {
       );
     }
 
-    const inscripciones = await query.getMany();
-    return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));
+    if (opciones.nivel) {
+      query.andWhere(
+        'LOWER(inscripcion.nivelAInscribirse) = LOWER(:nivel)',
+        { nivel: opciones.nivel },
+      );
+    }
+
+    if (opciones.filial) {
+      query.andWhere(
+        'LOWER(inscripcion.centroCatequesis) = LOWER(:filial)',
+        { filial: opciones.filial },
+      );
+    }
+
+    const pagina = Math.max(1, Math.floor(opciones.page ?? 1) || 1);
+    const limite = Math.min(
+      100,
+      Math.max(1, Math.floor(opciones.limit ?? 10) || 10),
+    );
+
+    const [inscripciones, total] = await query
+      .take(limite)
+      .skip((pagina - 1) * limite)
+      .getManyAndCount();
+
+    return {
+      data: inscripciones.map((inscripcion) => this.toResumenDto(inscripcion)),
+      total,
+      page: pagina,
+      pages: Math.ceil(total / limite),
+      limit: limite,
+    };
   }
 
   async historial(opciones: {
