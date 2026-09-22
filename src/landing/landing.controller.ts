@@ -28,14 +28,14 @@ import { Role } from '../Common/Enums/Roles';
 import { mapValidationErrors } from '../Common/validation-errors';
 import {
   UpdateBautizosDto,
-  UpdateContactoDto,
-  UpdateDonacionesDto,
   UpdateHeroDto,
-  UpdateHistoriaDto,
-  UpdateHorariosDto,
   UpdateServiciosDto,
   UpdateSobreNosotrosDto,
 } from './DTO/update-landing-section.dto';
+import { UpdateContactoDto } from './DTO/update-contacto.dto';
+import { UpdateDonacionesDto } from './DTO/update-donaciones.dto';
+import { UpdateHistoriaDto } from './DTO/update-historia.dto';
+import { UpdateHorariosDto } from './DTO/update-horarios.dto';
 import { RestablecerLandingDto } from './DTO/restablecer-landing.dto';
 import { LandingService } from './landing.service';
 

@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { InscripcionCatequesis } from './Entities/inscripcion-catequesis.entity';
+import { Usuario } from '../../Users/Entities/usuario.entity';
 import { CrearInscripcionCatequesisDto } from './DTO/crear-inscripcion-catequesis.dto';
 import {
   ActualizarEstadoResponseDto,
@@ -20,11 +21,27 @@ import {
   validarFechaNoFutura,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
 
+const unirNombreEncargado = (inscripcion: InscripcionCatequesis): string => {
+  const personaInscribe = `${inscripcion.personaInscribe?.nombre ?? ''} ${unirApellidos(
+    inscripcion.personaInscribe?.primerApellido,
+    inscripcion.personaInscribe?.segundoApellido,
+  )}`.trim();
+
+  if (personaInscribe) return personaInscribe;
+
+  return `${inscripcion.madre?.nombre ?? ''} ${unirApellidos(
+    inscripcion.madre?.primerApellido,
+    inscripcion.madre?.segundoApellido,
+  )}`.trim();
+};
+
 @Injectable()
 export class CatequesisService {
   constructor(
     @InjectRepository(InscripcionCatequesis)
     private readonly inscripcionRepository: Repository<InscripcionCatequesis>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
   async create(
@@ -203,6 +220,7 @@ export class CatequesisService {
     estado?: string;
     desde?: string;
     hasta?: string;
+    encargado?: string;
   }): Promise<{
     total: number;
     historial: HistorialInscripcionCatequesisDto[];
@@ -225,6 +243,15 @@ export class CatequesisService {
       qb.andWhere('inscripcion.estado = :estado', { estado: estadoNorm });
     }
 
+    if (opciones.encargado) {
+      const encargado = `%${opciones.encargado.toLowerCase()}%`;
+      qb.andWhere(
+        `(LOWER(CONCAT(COALESCE(personaInscribe.nombre, ''), ' ', COALESCE(personaInscribe.primerApellido, ''), ' ', COALESCE(personaInscribe.segundoApellido, ''))) LIKE :encargado
+          OR LOWER(CONCAT(COALESCE(madre.nombre, ''), ' ', COALESCE(madre.primerApellido, ''), ' ', COALESCE(madre.segundoApellido, ''))) LIKE :encargado)`,
+        { encargado },
+      );
+    }
+
     if (opciones.desde) {
       qb.andWhere('inscripcion.fechaSolicitud >= :desde', {
         desde: new Date(`${opciones.desde}T00:00:00`),
@@ -237,9 +264,27 @@ export class CatequesisService {
       qb.andWhere('inscripcion.fechaSolicitud < :hasta', { hasta });
     }
 
-    qb.orderBy('inscripcion.fechaSolicitud', 'DESC');
+    qb.orderBy('inscripcion.fechaActualizacionEstado', 'DESC');
 
     const [items, total] = await qb.getManyAndCount();
+
+    const revisorIds = [
+      ...new Set(
+        items
+          .map((inscripcion) => inscripcion.revisadoPor)
+          .filter((id): id is number => id != null),
+      ),
+    ];
+
+    const revisores = new Map<number, string>();
+    if (revisorIds.length > 0) {
+      const usuarios = await this.usuarioRepository.find({
+        where: { id: In(revisorIds) },
+      });
+      for (const usuario of usuarios) {
+        revisores.set(usuario.id, usuario.nombre?.trim() || usuario.email);
+      }
+    }
 
     return {
       total,
@@ -261,8 +306,13 @@ export class CatequesisService {
             inscripcion.personaInscribe?.telefono ??
             inscripcion.madre?.telefono ??
             '',
+          nombreEncargado: unirNombreEncargado(inscripcion),
           observacionAdministrativa: inscripcion.observacionAdministrativa,
           fechaActualizacionEstado: inscripcion.fechaActualizacionEstado,
+          revisor:
+            inscripcion.revisadoPor != null
+              ? (revisores.get(inscripcion.revisadoPor) ?? null)
+              : null,
         };
       }),
     };
@@ -336,6 +386,7 @@ export class CatequesisService {
     id: number,
     estado: string,
     observacion?: string | null,
+    revisorId?: number,
   ): Promise<ActualizarEstadoResponseDto | null> {
     const inscripcion = await this.inscripcionRepository.findOne({
       where: { id },
@@ -352,6 +403,7 @@ export class CatequesisService {
     inscripcion.estado = estadoNormalizado;
     inscripcion.observacionAdministrativa = observacion?.trim() || null;
     inscripcion.fechaActualizacionEstado = new Date();
+    inscripcion.revisadoPor = revisorId ?? null;
 
     const saved = await this.inscripcionRepository.save(inscripcion);
 
@@ -391,7 +443,8 @@ export class CatequesisService {
       centroCatequesis: inscripcion.centroCatequesis,
       nivelAInscribirse: inscripcion.nivelAInscribirse,
       estado: inscripcion.estado,
-      fechaSolicitud: inscripcion.fechaSolicitud,
+      fechaEnvio: inscripcion.fechaSolicitud,
+      fechaRevision: inscripcion.fechaActualizacionEstado ?? null,
       telefonoEncargada:
         inscripcion.personaInscribe?.telefono ??
         inscripcion.madre?.telefono ??
