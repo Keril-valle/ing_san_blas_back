@@ -13,7 +13,6 @@ import {
 import { HistorialInscripcionCatequesisDto } from './DTO/historial-inscripcion-response.dto';
 import {
   MENSAJE_ESTADO_INVALIDO,
-  MENSAJE_FECHA_BAUTISMO_FUTURA,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
   MENSAJE_NIVEL_INVALIDO,
   normalizarEstadoInscripcion,
@@ -69,13 +68,6 @@ export class CatequesisService {
         segundoApellido: dto.datosCatequizando.segundoApellido?.trim() || null,
         fechaNacimiento: dto.datosCatequizando.fechaNacimiento.trim(),
         direccionExacta: dto.datosCatequizando.direccionExacta.trim(),
-      },
-      bautismo: {
-        parroquia: dto.datosBautismo.parroquia.trim(),
-        fecha: dto.datosBautismo.fecha?.trim() || null,
-        tomo: dto.datosBautismo.tomo?.trim() || null,
-        folio: dto.datosBautismo.folio?.trim() || null,
-        asiento: dto.datosBautismo.asiento?.trim() || null,
       },
       adecuacion: {
         requiereAdecuacionCentroEducativo:
@@ -133,7 +125,17 @@ export class CatequesisService {
     nombre?: string;
     encargado?: string;
     q?: string;
-  }): Promise<InscripcionResumenDto[]> {
+    nivel?: string;
+    filial?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: InscripcionResumenDto[];
+    total: number;
+    page: number;
+    pages: number;
+    limit: number;
+  }> {
     const query = this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
@@ -180,8 +182,38 @@ export class CatequesisService {
       );
     }
 
-    const inscripciones = await query.getMany();
-    return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));
+    if (opciones.nivel) {
+      query.andWhere(
+        'LOWER(inscripcion.nivelAInscribirse) = LOWER(:nivel)',
+        { nivel: opciones.nivel },
+      );
+    }
+
+    if (opciones.filial) {
+      query.andWhere(
+        'LOWER(inscripcion.centroCatequesis) = LOWER(:filial)',
+        { filial: opciones.filial },
+      );
+    }
+
+    const pagina = Math.max(1, Math.floor(opciones.page ?? 1) || 1);
+    const limite = Math.min(
+      100,
+      Math.max(1, Math.floor(opciones.limit ?? 10) || 10),
+    );
+
+    const [inscripciones, total] = await query
+      .take(limite)
+      .skip((pagina - 1) * limite)
+      .getManyAndCount();
+
+    return {
+      data: inscripciones.map((inscripcion) => this.toResumenDto(inscripcion)),
+      total,
+      page: pagina,
+      pages: Math.ceil(total / limite),
+      limit: limite,
+    };
   }
 
   async historial(opciones: {
@@ -389,10 +421,6 @@ export class CatequesisService {
       throw new BadRequestException({
         mensaje: MENSAJE_FECHA_NACIMIENTO_FUTURA,
       });
-    }
-
-    if (!validarFechaNoFutura(dto.datosBautismo.fecha)) {
-      throw new BadRequestException({ mensaje: MENSAJE_FECHA_BAUTISMO_FUTURA });
     }
   }
 

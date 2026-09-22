@@ -29,6 +29,7 @@ import {
   ActualizarEstadoInscripcionDto,
   CrearInscripcionCatequesisDto,
 } from './DTO/crear-inscripcion-catequesis.dto';
+import { ConsultarInscripcionesDto } from './DTO/consultar-inscripciones.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
@@ -56,27 +57,8 @@ export class CatequesisController {
 
   @Get()
   @Roles(Role.ADMIN)
-  async findAll(
-    @Query('estado') estado?: string,
-    @Query('nombre') nombre?: string,
-    @Query('encargado') encargado?: string,
-    @Query('q') q?: string,
-  ) {
-    let estadoNormalizado: string | null = null;
-
-    if (estado?.trim()) {
-      estadoNormalizado = normalizarEstadoInscripcion(estado);
-      if (!estadoNormalizado) {
-        throw new BadRequestException({ mensaje: MENSAJE_ESTADO_INVALIDO });
-      }
-    }
-
-    return this.catequesisService.findAll({
-      estado: estadoNormalizado,
-      nombre: nombre?.trim() || undefined,
-      encargado: encargado?.trim() || undefined,
-      q: q?.trim() || undefined,
-    });
+  async findAll(@Query() filtros: ConsultarInscripcionesDto) {
+    return this.catequesisService.findAll(filtros);
   }
 
   @Get('historial')

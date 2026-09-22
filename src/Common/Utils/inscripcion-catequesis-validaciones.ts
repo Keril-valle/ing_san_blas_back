@@ -15,8 +15,6 @@ export const MENSAJE_NO_ENCONTRADO =
   'No se encontró una inscripción con el id indicado.';
 export const MENSAJE_FECHA_NACIMIENTO_FUTURA =
   'La fecha de nacimiento no puede ser futura.';
-export const MENSAJE_FECHA_BAUTISMO_FUTURA =
-  'La fecha de bautismo no puede ser futura.';
 
 export function esIdValido(id: number): boolean {
   return id > 0;

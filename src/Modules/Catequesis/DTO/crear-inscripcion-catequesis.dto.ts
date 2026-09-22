@@ -72,33 +72,6 @@ export class DatosCatequizandoDto {
   direccionExacta: string;
 }
 
-export class DatosBautismoDto {
-  @Transform(recortarTexto)
-  @IsString()
-  @IsNotEmpty({ message: 'La parroquia de bautismo es obligatoria.' })
-  parroquia: string;
-
-  @IsOptional()
-  @Transform(recortarTexto)
-  @IsDateString()
-  fecha?: string | null;
-
-  @IsOptional()
-  @Transform(recortarTexto)
-  @IsString()
-  tomo?: string | null;
-
-  @IsOptional()
-  @Transform(recortarTexto)
-  @IsString()
-  folio?: string | null;
-
-  @IsOptional()
-  @Transform(recortarTexto)
-  @IsString()
-  asiento?: string | null;
-}
-
 export class DatosAdecuacionDto {
   @IsBoolean({
     message: 'Debe indicar si requiere adecuación en el centro educativo.',
@@ -273,10 +246,6 @@ export class CrearInscripcionCatequesisDto {
   @ValidateNested()
   @Type(() => DatosCatequizandoDto)
   datosCatequizando: DatosCatequizandoDto;
-
-  @ValidateNested()
-  @Type(() => DatosBautismoDto)
-  datosBautismo: DatosBautismoDto;
 
   @ValidateNested()
   @Type(() => DatosAdecuacionDto)
