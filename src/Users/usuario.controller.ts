@@ -12,7 +12,10 @@ import {
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
+import { BuscarUsuariosDto } from './DTO/buscar-usuarios.dto';
 import { Public } from '../Auth/Decorators/public.decorator';
+import { Roles } from '../Auth/Decorators/roles.decorator';
+import { Role } from '../Common/Enums/Roles';
 import type { RequestWithUser } from '../Common/Interfaces/requestWithUser.interface';
 
 @Controller('usuario')
@@ -27,13 +30,9 @@ export class UsuarioController {
   // sin query params devuelve la lista completa (compatibilidad con el frontend actual);
   // con ?page=&limit=&search= responde { data, total, page, pages, limit } para paginar en el servidor
   @Get()
-  findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-    @Query('role') role?: string,
-    @Query('state') state?: string,
-  ) {
+  @Roles(Role.ADMIN)
+  findAll(@Query() buscarUsuariosDto: BuscarUsuariosDto) {
+    const { page, limit, search, role, state } = buscarUsuariosDto;
     if (
       page === undefined &&
       limit === undefined &&
@@ -43,13 +42,7 @@ export class UsuarioController {
     ) {
       return this.usuarioService.findAll();
     }
-    return this.usuarioService.findAllPaginado(
-      Number(page) || 1,
-      Number(limit) || 10,
-      search,
-      role,
-      state,
-    );
+    return this.usuarioService.findAllPaginado(page, limit, search, role, state);
   }
 
   @Public()

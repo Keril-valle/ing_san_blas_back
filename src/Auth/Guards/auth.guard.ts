@@ -8,6 +8,7 @@ import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../Decorators/public.decorator';
+import { UsuarioService } from '../../Users/usuario.service';
 
 @Injectable()
 //este metodo se ejecuta antes de una peticion y valida que el usuario este autenticado y pueda usar el recurso solictado
@@ -15,7 +16,8 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
-  ) {} //inyectamos el jwtService y el reflector para poder usarlo en el guard
+    private readonly usuarioService: UsuarioService,
+  ) {} //inyectamos el jwtService, el reflector y el usuarioService para poder usarlo en el guard
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Antes de validar nada, preguntamos: ¿esta ruta está marcada como pública?
@@ -39,6 +41,13 @@ export class AuthGuard implements CanActivate {
     try {
       const payload = await this.jwtService.verifyAsync(token);
       request['user'] = payload;
+
+      // Si el usuario fue desactivado, los tokens emitidos en sesiones previas
+      // dejan de ser válidos para cualquier dispositivo.
+      const activo = await this.usuarioService.estaActivo(payload.sub);
+      if (!activo) {
+        throw new UnauthorizedException();
+      }
 
       // Si la validación es exitosa, devuelve true, permitiendo el acceso.
       // Si la validación falla, devuelve false, denegando el acceso.
