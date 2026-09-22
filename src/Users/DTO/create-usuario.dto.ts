@@ -21,8 +21,8 @@ export class CreateUsuarioDto extends RegisterDto {
   @Transform(transformarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
-  @Matches(/^\d{4}-\d{4}$/, {
-    message: 'El teléfono debe tener el formato 8888-8888',
+  @Matches(/^[1-9]\d{3}-\d{4}$/, {
+    message: 'El teléfono debe tener el formato 8888-8888 y no comenzar con cero',
   })
   telefono: string;
 }
