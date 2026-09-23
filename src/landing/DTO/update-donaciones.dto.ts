@@ -1,10 +1,5 @@
 import { Transform } from 'class-transformer';
-import {
-  IsNotEmpty,
-  IsString,
-  MaxLength,
-  Matches,
-} from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength, Matches } from 'class-validator';
 import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 
 export class UpdateDonacionesDto {

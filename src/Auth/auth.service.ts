@@ -7,8 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
+import { Role } from '../Common/Enums/Roles';
 import { LoginDto } from './DTO/login.dto';
-import { RegisterDto } from './DTO/register.dto';
 import { UsuarioService } from '../Users/usuario.service';
 import { RolService } from '../Users/rol.service';
 import { createHash } from 'crypto';
@@ -29,13 +29,18 @@ export class AuthService {
   }
 
   private async getTokens(userId: number, email: string, role: string) {
-    const rol = await this.rolService.findByClave(role);
-    const accesoPanel = this.rolService.tieneAccesoPanel(rol);
+    const roles = await this.usuarioService.obtenerRolesDeUsuario(userId);
+    const rolesEfectivos = roles.length > 0 ? roles : [role];
+    const permisos = await this.rolService.permisosDeRoles(rolesEfectivos);
+    const accesoPanel =
+      permisos.includes('panel') || rolesEfectivos.includes(Role.SECRETARIO);
     const payload = {
       jti: randomUUID(),
       sub: userId,
       email,
       role,
+      roles: rolesEfectivos,
+      permisos,
       accesoPanel,
     };
 
@@ -77,11 +82,6 @@ export class AuthService {
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
     return { ...tokens, email: user.email };
-  }
-
-  async register(registerDto: RegisterDto) {
-    await this.usuarioService.createUser(registerDto);
-    return this.login(registerDto);
   }
 
   async refreshTokens(userId: number, refreshToken: string) {

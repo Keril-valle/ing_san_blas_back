@@ -2,7 +2,6 @@ import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './DTO/login.dto';
-import { RegisterDto } from './DTO/register.dto';
 import { RecuperarContrasenaDto } from './DTO/recuperar-contrasena.dto';
 import { Auth } from './Decorators/auth.decorators';
 import { Role } from '../Common/Enums/Roles';
@@ -22,14 +21,6 @@ export class AuthController {
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
-  }
-
-  // Endpoint para crear un nuevo usuario en el sistema.
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // limita a 3 intentos por minuto para prevenir abusos en el registro
-  @Public() // login no requiere estar autenticado (obvio, es como te autenticás)
-  @Post('register')
-  register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
   }
 
   @Get('prueba')

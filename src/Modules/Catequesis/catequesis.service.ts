@@ -22,10 +22,11 @@ import {
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
 
 const unirNombreEncargado = (inscripcion: InscripcionCatequesis): string => {
-  const personaInscribe = `${inscripcion.personaInscribe?.nombre ?? ''} ${unirApellidos(
-    inscripcion.personaInscribe?.primerApellido,
-    inscripcion.personaInscribe?.segundoApellido,
-  )}`.trim();
+  const personaInscribe =
+    `${inscripcion.personaInscribe?.nombre ?? ''} ${unirApellidos(
+      inscripcion.personaInscribe?.primerApellido,
+      inscripcion.personaInscribe?.segundoApellido,
+    )}`.trim();
 
   if (personaInscribe) return personaInscribe;
 
@@ -183,17 +184,15 @@ export class CatequesisService {
     }
 
     if (opciones.nivel) {
-      query.andWhere(
-        'LOWER(inscripcion.nivelAInscribirse) = LOWER(:nivel)',
-        { nivel: opciones.nivel },
-      );
+      query.andWhere('LOWER(inscripcion.nivelAInscribirse) = LOWER(:nivel)', {
+        nivel: opciones.nivel,
+      });
     }
 
     if (opciones.filial) {
-      query.andWhere(
-        'LOWER(inscripcion.centroCatequesis) = LOWER(:filial)',
-        { filial: opciones.filial },
-      );
+      query.andWhere('LOWER(inscripcion.centroCatequesis) = LOWER(:filial)', {
+        filial: opciones.filial,
+      });
     }
 
     const pagina = Math.max(1, Math.floor(opciones.page ?? 1) || 1);

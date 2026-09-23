@@ -9,8 +9,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
-import { Role } from '../../Common/Enums/Roles';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import { BuscarSacramentosNormalizadosDto } from './DTO/buscar-sacramentos-normalizados.dto';
 import {
   CreateSacramentoNormalizadoDto,
@@ -20,7 +19,7 @@ import { BusquedaNormalizadaService } from './busqueda-normalizada.service';
 
 //http://localhost:3000/Sacramentos-nuevos/buscar?tipoSacramento=1
 @Controller('Sacramentos-nuevos')
-@Roles(Role.ADMIN)
+@Permisos('sacramentos')
 export class BusquedaNormalizadaController {
   constructor(private readonly busquedaService: BusquedaNormalizadaService) {}
 

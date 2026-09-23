@@ -31,9 +31,8 @@ import {
 } from './DTO/crear-inscripcion-catequesis.dto';
 import { ConsultarInscripcionesDto } from './DTO/consultar-inscripciones.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
-import { Role } from '../../Common/Enums/Roles';
 import {
   MENSAJE_ESTADO_INVALIDO,
   MENSAJE_ID_INVALIDO,
@@ -56,13 +55,13 @@ export class CatequesisController {
   ) {}
 
   @Get()
-  @Roles(Role.ADMIN)
+  @Permisos('catequesis')
   async findAll(@Query() filtros: ConsultarInscripcionesDto) {
     return this.catequesisService.findAll(filtros);
   }
 
   @Get('historial')
-  @Roles(Role.ADMIN)
+  @Permisos('catequesis')
   async historial(
     @Query('estado') estado?: string,
     @Query('encargado') encargado?: string,
@@ -117,7 +116,7 @@ export class CatequesisController {
   }
 
   @Get('exportar')
-  @Roles(Role.ADMIN)
+  @Permisos('catequesis')
   async exportar(@Query('estado') estado: string, @Res() response: Response) {
     if (!estado?.trim()) {
       throw new BadRequestException({ mensaje: 'El estado es obligatorio.' });
@@ -165,7 +164,7 @@ export class CatequesisController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN)
+  @Permisos('catequesis')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     if (!esIdValido(id)) {
       throw new BadRequestException({ mensaje: MENSAJE_ID_INVALIDO });
@@ -264,7 +263,7 @@ export class CatequesisController {
   }
 
   @Put(':id/estado')
-  @Roles(Role.ADMIN)
+  @Permisos('catequesis')
   async updateEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: ActualizarEstadoInscripcionDto,

@@ -25,7 +25,7 @@ import { BuscarSolicSacramentoDto } from './DTO/buscar-solic-sacramento.dto';
 import { SolicSacramentoService } from './solic-sacramento.service';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
 import { Public } from '../../Auth/Decorators/public.decorator';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import type { Request } from 'express';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
 
@@ -71,32 +71,37 @@ export class SolicSacramentoController {
   }
 
   @SkipThrottle()
+  @Permisos('constancias')
   @Get()
   findAll(@Query() filters: SearchSolicSacramentoDto) {
     return this.solicSacraService.findAll(filters);
   }
 
+  @Permisos('constancias')
   @Get('buscar')
-  @Roles('admin', 'secretary', 'Administrador', 'Secretario')
   buscar(@Query() filters: BuscarSolicSacramentoDto) {
     return this.solicSacraService.buscar(filters);
   }
 
+  @Permisos('constancias')
   @Get('buscar/nombre/:nombre')
   async BuscarSolicPorNombre(@Param('nombre') nombre: string) {
     return this.solicSacraService.BuscarSolicPorNombre(nombre);
   }
 
+  @Permisos('constancias')
   @Get('buscar/apellido/:apellido')
   async BuscarSolicPorApellido(@Param('apellido') apellido: string) {
     return this.solicSacraService.BuscarSolicPorApellido(apellido);
   }
 
+  @Permisos('constancias')
   @Get('buscar/cedula/:cedula')
   async BuscarSolicPorCedula(@Param('cedula') cedula: string) {
     return this.solicSacraService.BuscarSolicPorCedula(+cedula);
   }
 
+  @Permisos('constancias')
   @Get('buscar/estado/:estado')
   async BuscarPorEstado(@Param('estado') estado: EstadoSolicitud) {
     return this.solicSacraService.BuscarPorEstado(estado);
@@ -107,17 +112,19 @@ export class SolicSacramentoController {
     return this.solicSacraService.verEstadoSolicitud(+id);
   }
 
+  @Permisos('constancias')
   @Get('historial-rechazos')
-  @Roles('Administrador', 'Secretario')
   async obtenerHistorialRechazos() {
     return this.solicSacraService.obtenerHistorialRechazos();
   }
 
+  @Permisos('constancias')
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.solicSacraService.findOne(+id);
   }
 
+  @Permisos('constancias')
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -126,6 +133,7 @@ export class SolicSacramentoController {
     return this.solicSacraService.update(+id, updateSolicSacramentoDto);
   }
 
+  @Permisos('constancias')
   @Patch('cambiar-estado/:id')
   async CambiarEstadoSolicitud(
     @Param('id') id: string,
@@ -137,14 +145,15 @@ export class SolicSacramentoController {
     );
   }
 
+  @Permisos('constancias')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.solicSacraService.remove(+id);
   }
 
+  @Permisos('constancias')
   @Patch(':id/rechazar')
-  @Roles('Administrador', 'Secretario')
   async rechazarSolicitud(
     @Param('id') id: string,
     @Body() rechazarSolicitudDto: RechazarSolicitudDto,

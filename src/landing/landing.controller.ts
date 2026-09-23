@@ -23,8 +23,7 @@ import { ValidationError } from 'class-validator';
 import { memoryStorage } from 'multer';
 import type { Request } from 'express';
 import { Public } from '../Auth/Decorators/public.decorator';
-import { Roles } from '../Auth/Decorators/roles.decorator';
-import { Role } from '../Common/Enums/Roles';
+import { Permisos } from '../Auth/Decorators/permisos.decorator';
 import { mapValidationErrors } from '../Common/validation-errors';
 import {
   UpdateBautizosDto,
@@ -64,14 +63,14 @@ export class LandingController {
   }
 
   @Put('hero')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateHero(@Body() dto: UpdateHeroDto) {
     return this.landingService.update('hero', dto);
   }
 
   @Put('hero/con-imagen')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
   updateHeroWithImage(
@@ -82,14 +81,14 @@ export class LandingController {
   }
 
   @Put('sobre-nosotros')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateSobreNosotros(@Body() dto: UpdateSobreNosotrosDto) {
     return this.landingService.update('sobre-nosotros', dto);
   }
 
   @Put('sobre-nosotros/con-imagen')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
   updateSobreNosotrosWithImage(
@@ -104,14 +103,14 @@ export class LandingController {
   }
 
   @Put('historia')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateHistoria(@Body() dto: UpdateHistoriaDto) {
     return this.landingService.update('historia', dto);
   }
 
   @Put('historia/con-imagen')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(
     FileFieldsInterceptor(
@@ -142,21 +141,21 @@ export class LandingController {
   }
 
   @Put('contacto')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateContacto(@Body() dto: UpdateContactoDto) {
     return this.landingService.update('contacto', dto);
   }
 
   @Put('horarios')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateHorarios(@Body() dto: UpdateHorariosDto) {
     return this.landingService.update('horarios', dto);
   }
 
   @Put('horarios/con-imagen')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
   updateHorariosWithImage(
@@ -171,21 +170,21 @@ export class LandingController {
   }
 
   @Put('bautizos')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateBautizos(@Body() dto: UpdateBautizosDto) {
     return this.landingService.update('bautizos', dto);
   }
 
   @Put('servicios')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateServicios(@Body() dto: UpdateServiciosDto) {
     return this.landingService.update('servicios', dto);
   }
 
   @Put('servicios/con-imagen')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(
     FileFieldsInterceptor(
@@ -218,7 +217,7 @@ export class LandingController {
   }
 
   @Put('donaciones')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   updateDonaciones(@Body() dto: UpdateDonacionesDto) {
     return this.landingService.update('donaciones', dto);
@@ -227,7 +226,7 @@ export class LandingController {
   // Restablece una o varias secciones (sin body = todas). Sirve pa el botón
   // por card y pa el "Restablecer todo" del menú global.
   @Post('restablecer')
-  @Roles(Role.ADMIN)
+  @Permisos('landing')
   @HttpCode(HttpStatus.OK)
   restablecer(@Body() dto: RestablecerLandingDto) {
     return this.landingService.restablecer(dto.sectionKeys);
