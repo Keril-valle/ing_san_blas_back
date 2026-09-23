@@ -32,13 +32,16 @@ export class UsuarioController {
   @Permisos('usuarios')
   @Get()
   findAll(@Query() buscarUsuariosDto: BuscarUsuariosDto) {
-    const { page, limit, search, role, state } = buscarUsuariosDto;
+    const { page, limit, search, role, state, sortBy, sortDirection } =
+      buscarUsuariosDto;
     if (
       page === undefined &&
       limit === undefined &&
       search === undefined &&
       role === undefined &&
-      state === undefined
+      state === undefined &&
+      sortBy === undefined &&
+      sortDirection === undefined
     ) {
       return this.usuarioService.findAll();
     }
@@ -48,6 +51,8 @@ export class UsuarioController {
       search,
       role,
       state,
+      sortBy,
+      sortDirection,
     );
   }
 
