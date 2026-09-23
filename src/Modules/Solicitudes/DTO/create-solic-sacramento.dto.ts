@@ -76,6 +76,15 @@ export class CreateSolicSacramentoDto {
 
   @Transform(normalizarTexto)
   @IsString()
+  @IsNotEmpty({ message: 'La parroquia es obligatoria.' })
+  @Length(1, 100)
+  @Matches(nombreValido, {
+    message: 'La parroquia solo puede contener letras, espacios o guiones',
+  })
+  Parroquia: string;
+
+  @Transform(normalizarTexto)
+  @IsString()
   @IsNotEmpty()
   @Length(1, 250)
   @Matches(textoSinEtiquetas, {

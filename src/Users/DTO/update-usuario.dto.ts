@@ -2,11 +2,13 @@ import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsEmail,
   IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
   ValidateIf,
 } from 'class-validator';
 import { RegisterDto } from '../../Auth/DTO/register.dto';
@@ -20,6 +22,7 @@ export class UpdateUsuarioDto extends PartialType(
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty({ message: 'La confirmación de contraseña es obligatoria' })
+  @MaxLength(64)
   confirmPassword: string;
 
   // si el usuario conservaba un rol custom y no se toca, el frontend no envía role;
@@ -38,8 +41,8 @@ export class UpdateUsuarioDto extends PartialType(
   @IsOptional()
   @Transform(transformarTexto)
   @IsString()
-  @Matches(/^\d{4}-\d{4}$/, {
-    message: 'El teléfono debe tener el formato 8888-8888',
+  @Matches(/^[1-9]\d{3}-\d{4}$/, {
+    message: 'El teléfono debe tener el formato 8888-8888 y no comenzar con cero',
   })
   telefono?: string;
 }

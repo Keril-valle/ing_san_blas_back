@@ -1,12 +1,15 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { plainToInstance } from 'class-transformer';
 import { RegisterDto } from '../Auth/DTO/register.dto';
 import { CreateUsuarioDto } from './DTO/create-usuario.dto';
 import { UpdateUsuarioDto } from './DTO/update-usuario.dto';
+import { UsuarioRespuestaDto } from './DTO/usuario-respuesta.dto';
 import { Role } from '../Common/Enums/Roles';
 import { Usuario } from './Entities/usuario.entity';
 import { RolService } from './rol.service';
@@ -28,9 +31,12 @@ export class UsuarioService {
       throw new BadRequestException('Las contraseñas no coinciden');
     }
 
-    const existingUser = await this.findOneByEmail(registerDto.email);
+    const existingUser = await this.usuarioRepository.findOneBy({
+      email: ILike(registerDto.email),
+      isActive: true,
+    });
     if (existingUser) {
-      throw new BadRequestException('El ingresado email ya está registrado');
+      throw new ConflictException('El ingresado email ya está registrado');
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
@@ -55,7 +61,9 @@ export class UsuarioService {
   }
 
   findAll() {
-    return this.usuarioRepository.find({ where: { isActive: true } });
+    return this.usuarioRepository.find({ where: { isActive: true } }).then(
+      (usuarios) => plainToInstance(UsuarioRespuestaDto, usuarios),
+    );
   }
 
   // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
@@ -101,7 +109,7 @@ export class UsuarioService {
     const [data, total] = await qb.getManyAndCount();
 
     return {
-      data,
+      data: plainToInstance(UsuarioRespuestaDto, data),
       total,
       page: pagina,
       pages: Math.ceil(total / limite),
@@ -109,12 +117,19 @@ export class UsuarioService {
     };
   }
 
-  findOne(id: number) {
-    return this.usuarioRepository.findOneBy({ id, isActive: true });
+  async findOne(id: number) {
+    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
+    if (!user) return null;
+    return plainToInstance(UsuarioRespuestaDto, user);
   }
 
   findOneByEmail(email: string) {
     return this.usuarioRepository.findOneBy({ email, isActive: true });
+  }
+
+  async estaActivo(id: number): Promise<boolean> {
+    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
+    return user != null;
   }
 
   findByEmailWithPassword(email: string) {
@@ -227,6 +242,6 @@ export class UsuarioService {
     if (data.length === 0) {
       throw new NotFoundException('No existen coincidencias');
     }
-    return data;
+    return plainToInstance(UsuarioRespuestaDto, data);
   }
 }

@@ -4,7 +4,8 @@ export class InscripcionResumenDto {
   centroCatequesis: string;
   nivelAInscribirse: string;
   estado: string;
-  fechaSolicitud: Date;
+  fechaEnvio: Date;
+  fechaRevision: Date | null;
   telefonoEncargada: string;
   nombreEncargado: string;
   correoEncargado: string;

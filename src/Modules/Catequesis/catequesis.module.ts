@@ -8,6 +8,7 @@ import { CondicionSaludCatequizando } from './Entities/condicion-salud-catequiza
 import { MadreCatequizando } from './Entities/madre-catequizando.entity';
 import { PagoInscripcionCatequesis } from './Entities/pago-inscripcion-catequesis.entity';
 import { PersonaInscribeCatequesis } from './Entities/persona-inscribe-catequesis.entity';
+import { Usuario } from '../../Users/Entities/usuario.entity';
 import { CatequesisService } from './catequesis.service';
 import { CatequesisExportService } from './catequesis-export.service';
 import { CatequesisFileStorageService } from './catequesis-file-storage.service';
@@ -24,6 +25,7 @@ import { CatequesisController } from './catequesis.controller';
       MadreCatequizando,
       PagoInscripcionCatequesis,
       PersonaInscribeCatequesis,
+      Usuario,
     ]),
   ],
   controllers: [CatequesisController],

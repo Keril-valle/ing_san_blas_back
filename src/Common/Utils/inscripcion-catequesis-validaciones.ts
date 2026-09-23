@@ -2,7 +2,6 @@ export const ESTADOS_INSCRIPCION_VALIDOS = [
   'Pendiente',
   'Aprobada',
   'Rechazada',
-  'requiere_modificacion',
 ] as const;
 
 export const NIVELES_INSCRIPCION_VALIDOS = ['Primero', 'Sétimo'] as const;
@@ -10,14 +9,12 @@ export const NIVELES_INSCRIPCION_VALIDOS = ['Primero', 'Sétimo'] as const;
 export const MENSAJE_NIVEL_INVALIDO =
   'El nivel a inscribirse solo puede ser Primero o Sétimo.';
 export const MENSAJE_ESTADO_INVALIDO =
-  'El estado solo puede ser Pendiente, Aprobada, Rechazada o Modificación solicitada.';
+  'El estado solo puede ser Pendiente, Aprobada o Rechazada.';
 export const MENSAJE_ID_INVALIDO = 'El id debe ser mayor que 0.';
 export const MENSAJE_NO_ENCONTRADO =
   'No se encontró una inscripción con el id indicado.';
 export const MENSAJE_FECHA_NACIMIENTO_FUTURA =
   'La fecha de nacimiento no puede ser futura.';
-export const MENSAJE_FECHA_BAUTISMO_FUTURA =
-  'La fecha de bautismo no puede ser futura.';
 
 export function esIdValido(id: number): boolean {
   return id > 0;

@@ -12,6 +12,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Res,
   UploadedFiles,
   UseInterceptors,
@@ -28,8 +29,10 @@ import {
   ActualizarEstadoInscripcionDto,
   CrearInscripcionCatequesisDto,
 } from './DTO/crear-inscripcion-catequesis.dto';
+import { ConsultarInscripcionesDto } from './DTO/consultar-inscripciones.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Roles } from '../../Auth/Decorators/roles.decorator';
+import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
 import { Role } from '../../Common/Enums/Roles';
 import {
   MENSAJE_ESTADO_INVALIDO,
@@ -54,33 +57,15 @@ export class CatequesisController {
 
   @Get()
   @Roles(Role.ADMIN)
-  async findAll(
-    @Query('estado') estado?: string,
-    @Query('nombre') nombre?: string,
-    @Query('encargado') encargado?: string,
-    @Query('q') q?: string,
-  ) {
-    let estadoNormalizado: string | null = null;
-
-    if (estado?.trim()) {
-      estadoNormalizado = normalizarEstadoInscripcion(estado);
-      if (!estadoNormalizado) {
-        throw new BadRequestException({ mensaje: MENSAJE_ESTADO_INVALIDO });
-      }
-    }
-
-    return this.catequesisService.findAll({
-      estado: estadoNormalizado,
-      nombre: nombre?.trim() || undefined,
-      encargado: encargado?.trim() || undefined,
-      q: q?.trim() || undefined,
-    });
+  async findAll(@Query() filtros: ConsultarInscripcionesDto) {
+    return this.catequesisService.findAll(filtros);
   }
 
   @Get('historial')
   @Roles(Role.ADMIN)
   async historial(
     @Query('estado') estado?: string,
+    @Query('encargado') encargado?: string,
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
   ) {
@@ -125,6 +110,7 @@ export class CatequesisController {
 
     return this.catequesisService.historial({
       estado: estado?.trim() || undefined,
+      encargado: encargado?.trim() || undefined,
       desde,
       hasta,
     });
@@ -282,6 +268,7 @@ export class CatequesisController {
   async updateEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: ActualizarEstadoInscripcionDto,
+    @Req() req: RequestWithUser,
   ) {
     if (!esIdValido(id)) {
       throw new BadRequestException({ mensaje: MENSAJE_ID_INVALIDO });
@@ -298,6 +285,7 @@ export class CatequesisController {
       id,
       estadoNormalizado,
       dto.observacion,
+      req.user.sub,
     );
 
     if (!response) {
