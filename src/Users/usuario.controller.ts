@@ -32,17 +32,28 @@ export class UsuarioController {
   @Get()
   @Roles(Role.ADMIN)
   findAll(@Query() buscarUsuariosDto: BuscarUsuariosDto) {
-    const { page, limit, search, role, state } = buscarUsuariosDto;
+    const { page, limit, search, role, state, sortBy, sortDirection } =
+      buscarUsuariosDto;
     if (
       page === undefined &&
       limit === undefined &&
       search === undefined &&
       role === undefined &&
-      state === undefined
+      state === undefined &&
+      sortBy === undefined &&
+      sortDirection === undefined
     ) {
       return this.usuarioService.findAll();
     }
-    return this.usuarioService.findAllPaginado(page, limit, search, role, state);
+    return this.usuarioService.findAllPaginado(
+      page,
+      limit,
+      search,
+      role,
+      state,
+      sortBy,
+      sortDirection,
+    );
   }
 
   @Public()

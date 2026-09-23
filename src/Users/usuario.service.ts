@@ -18,6 +18,19 @@ import type { FindOptionsWhere } from 'typeorm';
 import getNombreCedula from '../Common/Helpers/nombreCedula';
 import * as bcrypt from 'bcryptjs';
 
+// whitelist de columnas ordenables: mapea el param del DTO a la propiedad real de la entidad.
+// nunca se concatena un string del cliente dentro de orderBy (evita inyección SQL)
+const COLUMNAS_ORDEN_USUARIO = {
+  nombre: 'usuario.nombre',
+  email: 'usuario.email',
+  telefono: 'usuario.telefono',
+  role: 'usuario.role',
+  state: 'usuario.isActive',
+  createdAt: 'usuario.createdAt',
+} as const;
+
+type ColumnaOrdenUsuario = keyof typeof COLUMNAS_ORDEN_USUARIO;
+
 @Injectable()
 export class UsuarioService {
   constructor(
@@ -61,9 +74,9 @@ export class UsuarioService {
   }
 
   findAll() {
-    return this.usuarioRepository.find({ where: { isActive: true } }).then(
-      (usuarios) => plainToInstance(UsuarioRespuestaDto, usuarios),
-    );
+    return this.usuarioRepository
+      .find({ where: { isActive: true } })
+      .then((usuarios) => plainToInstance(UsuarioRespuestaDto, usuarios));
   }
 
   // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
@@ -74,6 +87,8 @@ export class UsuarioService {
     search?: string,
     role?: string,
     state?: string,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc',
   ) {
     const pagina = Math.max(1, Math.floor(Number(page)) || 1);
     const limite = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
@@ -81,9 +96,17 @@ export class UsuarioService {
     const rolFiltro = role?.trim();
     const estadoFiltro = state?.trim();
 
+    // orden por columna elegida por el usuario, con fallback al orden por defecto.
+    // el id de desempate evita que al paginar se repitan o salten filas con el mismo valor
+    const columnaOrden =
+      COLUMNAS_ORDEN_USUARIO[sortBy as ColumnaOrdenUsuario] ??
+      'usuario.createdAt';
+    const direccionOrden = sortDirection === 'asc' ? 'ASC' : 'DESC';
+
     const qb = this.usuarioRepository
       .createQueryBuilder('usuario')
-      .orderBy('usuario.createdAt', 'DESC')
+      .orderBy(columnaOrden, direccionOrden)
+      .addOrderBy('usuario.id', 'DESC')
       .take(limite)
       .skip((pagina - 1) * limite);
 
