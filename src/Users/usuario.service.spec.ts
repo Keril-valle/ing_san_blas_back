@@ -32,6 +32,9 @@ const crearServicio = (filas: unknown[] = [], total = 0) => {
 
   const repository = {
     createQueryBuilder: jest.fn(() => qb),
+    // findAllPaginado enriquece cada fila con conRoles(), que hace un query crudo
+    // al join usuario_roles/rol. sin esto el mock revienta con "reading 'query'"
+    manager: { query: jest.fn().mockResolvedValue([]) },
   } as unknown as Repository<Usuario>;
 
   const service = new UsuarioService(repository, {} as unknown as RolService);
