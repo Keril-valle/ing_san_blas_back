@@ -527,6 +527,7 @@ export class CatequesisService {
         '',
       nombreEncargado,
       correoEncargado: inscripcion.personaInscribe?.correo ?? '',
+      observacionAdministrativa: inscripcion.observacionAdministrativa,
       // motivo/observaciones únicamente para rechazadas; derivados de la observación persistida
       ...(inscripcion.estado === 'Rechazada'
         ? {
