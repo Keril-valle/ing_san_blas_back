@@ -40,11 +40,8 @@ export class UsuarioService {
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
-    const roleSolicitado =
-      'role' in registerDto && typeof registerDto.role === 'string'
-        ? registerDto.role.trim()
-        : Role.USER;
-    const rol = await this.rolService.assertExiste(roleSolicitado);
+    const rolesSolicitados = this.rolesSolicitadosDe(registerDto);
+    const roles = await this.rolService.assertExisten(rolesSolicitados);
     const telefono =
       'telefono' in registerDto && typeof registerDto.telefono === 'string'
         ? registerDto.telefono
@@ -53,17 +50,58 @@ export class UsuarioService {
       nombre: registerDto.nombre,
       email: registerDto.email,
       password: hashedPassword,
-      role: rol.clave,
+      role: roles[0].clave,
       telefono,
     });
 
-    return this.usuarioRepository.save(user);
+    const saved = await this.usuarioRepository.save(user);
+    await this.reemplazarRolesUsuario(
+      saved.id,
+      roles.map((rol) => rol.id),
+    );
+    return saved;
+  }
+
+  async obtenerRolesDeUsuario(id: number): Promise<string[]> {
+    const rows = await this.usuarioRepository.manager.query<
+      Array<{ clave: string }>
+    >(
+      'SELECT r.clave FROM usuario_roles ur JOIN rol r ON r.id = ur.rol_id WHERE ur.usuario_id = $1 ORDER BY r.id ASC',
+      [id],
+    );
+    return rows.map((row) => row.clave);
+  }
+
+  private rolesSolicitadosDe(dto: RegisterDto | CreateUsuarioDto): string[] {
+    if ('roles' in dto && Array.isArray(dto.roles) && dto.roles.length > 0) {
+      const limpias = [
+        ...new Set(dto.roles.map((rol) => rol.trim()).filter(Boolean)),
+      ];
+      if (limpias.length > 0) return limpias;
+    }
+    return [Role.USER];
+  }
+
+  private async reemplazarRolesUsuario(
+    usuarioId: number,
+    rolIds: number[],
+  ): Promise<void> {
+    await this.usuarioRepository.manager.query(
+      'DELETE FROM usuario_roles WHERE usuario_id = $1',
+      [usuarioId],
+    );
+    for (const rolId of rolIds) {
+      await this.usuarioRepository.manager.query(
+        'INSERT INTO usuario_roles (usuario_id, rol_id) VALUES ($1, $2)',
+        [usuarioId, rolId],
+      );
+    }
   }
 
   findAll() {
-    return this.usuarioRepository.find({ where: { isActive: true } }).then(
-      (usuarios) => plainToInstance(UsuarioRespuestaDto, usuarios),
-    );
+    return this.usuarioRepository
+      .find({ where: { isActive: true } })
+      .then((usuarios) => plainToInstance(UsuarioRespuestaDto, usuarios));
   }
 
   // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
@@ -201,6 +239,9 @@ export class UsuarioService {
       ) {
         throw new BadRequestException('No puede cambiar su propio rol.');
       }
+      if (updateUsuarioDto.roles !== undefined) {
+        throw new BadRequestException('No puede cambiar sus propios roles.');
+      }
       if (updateUsuarioDto.isActive === false) {
         throw new BadRequestException('No puede inactivar su propia cuenta.');
       }
@@ -225,6 +266,19 @@ export class UsuarioService {
       if (updateUsuarioDto.role !== undefined) {
         const rol = await this.rolService.assertExiste(updateUsuarioDto.role);
         user.role = rol.clave;
+      }
+      if (updateUsuarioDto.roles !== undefined) {
+        if (updateUsuarioDto.roles.length === 0) {
+          throw new BadRequestException('Debe indicar al menos un rol.');
+        }
+        const roles = await this.rolService.assertExisten(
+          updateUsuarioDto.roles,
+        );
+        user.role = roles[0].clave;
+        await this.reemplazarRolesUsuario(
+          user.id,
+          roles.map((rol) => rol.id),
+        );
       }
       if (updateUsuarioDto.isActive !== undefined) {
         user.isActive = updateUsuarioDto.isActive;

@@ -13,12 +13,11 @@ import {
   Put,
 } from '@nestjs/common';
 import { ComunionService } from './comunion.service';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
-import { Role } from '../../Common/Enums/Roles';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import { normalizeComunionInput } from '../../Common/Utils/sacramento-input-normalizer';
 
 @Controller('Comunion')
-@Roles(Role.ADMIN)
+@Permisos('sacramentos')
 export class ComunionController {
   constructor(private readonly comunionService: ComunionService) {}
 

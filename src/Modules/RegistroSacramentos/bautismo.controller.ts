@@ -13,12 +13,11 @@ import {
   Put,
 } from '@nestjs/common';
 import { BautismoService } from './bautismo.service';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
-import { Role } from '../../Common/Enums/Roles';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import { normalizeBautismoInput } from '../../Common/Utils/sacramento-input-normalizer';
 
 @Controller('Bautismo')
-@Roles(Role.ADMIN)
+@Permisos('sacramentos')
 export class BautismoController {
   constructor(private readonly bautismoService: BautismoService) {}
 

@@ -13,12 +13,11 @@ import {
   Put,
 } from '@nestjs/common';
 import { ConfirmacionService } from './confirmacion.service';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
-import { Role } from '../../Common/Enums/Roles';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import { normalizeConfirmacionInput } from '../../Common/Utils/sacramento-input-normalizer';
 
 @Controller('Confirmacion')
-@Roles(Role.ADMIN)
+@Permisos('sacramentos')
 export class ConfirmacionController {
   constructor(private readonly confirmacionService: ConfirmacionService) {}
 

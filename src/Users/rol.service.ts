@@ -35,6 +35,14 @@ export class RolService {
     return rol;
   }
 
+  async assertExisten(claves: string[]): Promise<Rol[]> {
+    const roles: Rol[] = [];
+    for (const clave of claves) {
+      roles.push(await this.assertExiste(clave));
+    }
+    return roles;
+  }
+
   async create(dto: CreateRolDto) {
     const nombre = dto.nombre.trim();
     const descripcion = (dto.descripcion ?? '').trim();
@@ -42,7 +50,15 @@ export class RolService {
     const claveBase = claveDesdeNombre(nombre);
     const clave = await this.claveUnica(claveBase);
 
-    if (clave === 'admin' || clave === 'user') {
+    const CLAVES_RESERVADAS = [
+      'admin',
+      'user',
+      'secretario',
+      'catequista',
+      'gestor-eventos',
+      'gestor-donaciones',
+    ];
+    if (CLAVES_RESERVADAS.includes(clave)) {
       throw new BadRequestException({
         mensaje: 'Ese nombre está reservado para un rol del sistema.',
       });
@@ -70,7 +86,18 @@ export class RolService {
 
   tieneAccesoPanel(rol: Rol | null): boolean {
     if (!rol) return false;
-    return rol.clave === 'admin' || rol.permisos.includes('panel');
+    return rol.clave === 'secretario' || rol.permisos.includes('panel');
+  }
+
+  async permisosDeRoles(claves: string[]): Promise<string[]> {
+    const permisos = new Set<string>();
+    for (const clave of claves) {
+      const rol = await this.findByClave(clave);
+      if (!rol) continue;
+      for (const permiso of rol.permisos) permisos.add(permiso);
+    }
+    if (claves.includes('secretario')) permisos.add('panel');
+    return [...permisos];
   }
 
   private normalizarPermisos(permisos: string[]): string[] {

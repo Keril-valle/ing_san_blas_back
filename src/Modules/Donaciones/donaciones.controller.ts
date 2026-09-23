@@ -22,8 +22,7 @@ import { CreateDonacionDto } from './DTO/create-donacion.dto';
 import { UpdateEstadoDonacionDto } from './DTO/update-estado-donacion.dto';
 import { RechazarDonacionDto } from './DTO/rechazar-donacion.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
-import { Role } from '../../Common/Enums/Roles';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
 
 @Controller('Donacion')
@@ -31,7 +30,7 @@ export class DonacionesController {
   constructor(private readonly donacionesService: DonacionesService) {}
 
   @Get()
-  @Roles(Role.ADMIN)
+  @Permisos('donaciones')
   findAll() {
     return this.donacionesService.findAll();
   }
@@ -39,7 +38,7 @@ export class DonacionesController {
   // Ojo: esta ruta va antes de ':id' para que 'solicitudes' no caiga en el ParseIntPipe
   // Endpoint de solicitudes para el personal (solo admins, el 401/403 lo dan los guards globales)
   @Get('solicitudes')
-  @Roles(Role.ADMIN)
+  @Permisos('donaciones')
   async findSolicitudes() {
     try {
       return await this.donacionesService.findSolicitudes();
@@ -56,7 +55,7 @@ export class DonacionesController {
 
   // Cuenta las solicitudes nuevas desde la última visita del personal (banner del módulo)
   @Get('nuevas')
-  @Roles(Role.ADMIN)
+  @Permisos('donaciones')
   async contarNuevas(@Query('desde') desde: string) {
     const fecha = new Date(desde);
     if (Number.isNaN(fecha.getTime())) {
@@ -70,7 +69,7 @@ export class DonacionesController {
 
   // Historial de donaciones ya procesadas, con filtros opcionales de estado y rango de fechas
   @Get('historial')
-  @Roles(Role.ADMIN)
+  @Permisos('donaciones')
   async historial(
     @Query('estado') estado?: string,
     @Query('desde') desde?: string,
@@ -121,7 +120,7 @@ export class DonacionesController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN)
+  @Permisos('donaciones')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const donacion = await this.donacionesService.findById(id);
     if (!donacion) {
@@ -163,7 +162,7 @@ export class DonacionesController {
   }
 
   @Patch(':id/estado')
-  @Roles(Role.ADMIN)
+  @Permisos('donaciones')
   async updateEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEstadoDonacionDto,
@@ -187,7 +186,7 @@ export class DonacionesController {
 
   // Endpoint aparte para rechazar con motivo obligatorio (así queda guardado y auditado)
   @Patch(':id/rechazar')
-  @Roles(Role.ADMIN)
+  @Permisos('donaciones')
   async rechazarDonacion(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RechazarDonacionDto,
