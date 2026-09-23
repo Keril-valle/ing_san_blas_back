@@ -1,5 +1,5 @@
 import {
-  IsIn,
+  IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -7,22 +7,20 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { RegisterDto } from '../../Auth/DTO/register.dto';
-import { Role } from '../../Common/Enums/Roles';
 import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 
 export class CreateUsuarioDto extends RegisterDto {
   @IsOptional()
-  @IsString({ message: 'El rol debe ser texto.' })
-  @IsIn(Object.values(Role), {
-    message: 'El rol indicado no es un rol válido.',
-  })
-  role?: string;
+  @IsArray({ message: 'Los roles deben venir como una lista.' })
+  @IsString({ each: true, message: 'Cada rol debe ser texto.' })
+  roles?: string[];
 
   @Transform(transformarTexto)
   @IsString()
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   @Matches(/^[1-9]\d{3}-\d{4}$/, {
-    message: 'El teléfono debe tener el formato 8888-8888 y no comenzar con cero',
+    message:
+      'El teléfono debe tener el formato 8888-8888 y no comenzar con cero',
   })
   telefono: string;
 }

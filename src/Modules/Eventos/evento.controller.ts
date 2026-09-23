@@ -22,8 +22,7 @@ import { EventoService } from './evento.service';
 import { CreateEventoDto } from './DTO/create-evento.dto';
 import { UpdateEventoDto } from './DTO/update-evento.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
-import { Role } from '../../Common/Enums/Roles';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 
 const LIMITE_IMAGEN = {
   storage: memoryStorage(),
@@ -59,25 +58,25 @@ export class EventoController {
   }
 
   @Get()
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   findAll() {
     return this.eventoService.findAll();
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   findOne(@Param('id') id: string) {
     return this.eventoService.findOne(+id);
   }
   //la ruta para el post es http://localhost:3000/api/Eventos
   @Post()
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   create(@Body() createEventoDto: CreateEventoDto) {
     return this.eventoService.create(createEventoDto);
   }
 
   @Post('con-imagen')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
   createWithImage(
     @Req() req: Request,
@@ -90,13 +89,13 @@ export class EventoController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   update(@Param('id') id: string, @Body() updateEventoDto: UpdateEventoDto) {
     return this.eventoService.update(+id, updateEventoDto);
   }
 
   @Put(':id/con-imagen')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
   updateWithImage(
     @Param('id', ParseIntPipe) id: number,
@@ -111,25 +110,25 @@ export class EventoController {
   }
 
   @Patch(':id/publicar')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   publicar(@Param('id', ParseIntPipe) id: number) {
     return this.eventoService.publicar(id);
   }
 
   @Patch(':id/activar')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   activar(@Param('id', ParseIntPipe) id: number) {
     return this.eventoService.activar(id);
   }
 
   @Patch(':id/desactivar')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   desactivar(@Param('id', ParseIntPipe) id: number) {
     return this.eventoService.desactivar(id);
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Permisos('eventos')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.eventoService.remove(+id);
