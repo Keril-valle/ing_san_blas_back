@@ -44,8 +44,11 @@ export class AuthGuard implements CanActivate {
 
       // Si el usuario fue desactivado, los tokens emitidos en sesiones previas
       // dejan de ser válidos para cualquier dispositivo.
-      const activo = await this.usuarioService.estaActivo(payload.sub);
-      if (!activo) {
+      const vigente = await this.usuarioService.credencialesVigentes(
+        payload.sub,
+        payload.iat,
+      );
+      if (!vigente) {
         throw new UnauthorizedException();
       }
 

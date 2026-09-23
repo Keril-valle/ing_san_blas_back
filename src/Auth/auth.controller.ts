@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './DTO/login.dto';
 import { RegisterDto } from './DTO/register.dto';
 import { RecuperarContrasenaDto } from './DTO/recuperar-contrasena.dto';
+import { RestablecerContrasenaDto } from './DTO/restablecer-contrasena.dto';
 import { Auth } from './Decorators/auth.decorators';
 import { Role } from '../Common/Enums/Roles';
 import { AuthGuard } from './Guards/auth.guard';
@@ -57,5 +58,12 @@ export class AuthController {
   @Post('recuperar-contrasena')
   solicitarRecuperacion(@Body() dto: RecuperarContrasenaDto) {
     return this.authService.solicitarRecuperacion(dto.email);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Public()
+  @Post('restablecer-contrasena')
+  restablecerContrasena(@Body() dto: RestablecerContrasenaDto) {
+    return this.authService.restablecerContrasena(dto);
   }
 }
