@@ -32,6 +32,9 @@ export class SolicSacramento {
   @Column()
   Telefono: number;
 
+  @Column({ length: 100, default: '' })
+  Parroquia: string;
+
   @Column()
   Motivo: string;
 
