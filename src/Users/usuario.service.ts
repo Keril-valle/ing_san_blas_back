@@ -165,6 +165,27 @@ export class UsuarioService {
     return this.usuarioRepository.findOneBy({ email, isActive: true });
   }
 
+  findActivoParaRecuperacion(email: string) {
+    return this.usuarioRepository.findOne({
+      where: { email: ILike(email.trim()), isActive: true },
+      select: { id: true, email: true, nombre: true },
+    });
+  }
+
+  async credencialesVigentes(
+    id: number,
+    emitidoEnSegundos?: number,
+  ): Promise<boolean> {
+    const user = await this.usuarioRepository.findOne({
+      where: { id, isActive: true },
+      select: { id: true, passwordChangedAt: true },
+    });
+    if (!user) return false;
+    if (!user.passwordChangedAt) return true;
+    if (emitidoEnSegundos == null) return false;
+    return emitidoEnSegundos * 1000 >= user.passwordChangedAt.getTime() - 1000;
+  }
+
   async estaActivo(id: number): Promise<boolean> {
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
     return user != null;

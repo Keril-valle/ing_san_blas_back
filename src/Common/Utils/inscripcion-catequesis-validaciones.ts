@@ -6,10 +6,22 @@ export const ESTADOS_INSCRIPCION_VALIDOS = [
 
 export const NIVELES_INSCRIPCION_VALIDOS = ['Primero', 'Sétimo'] as const;
 
+export const FILIALES_CATEQUESIS = [
+  'Río Grande',
+  'Tierra Blanca',
+  'Pedernal',
+  'Casitas',
+  'Curime',
+  'San Blas',
+  'Los Ángeles',
+] as const;
+
 export const MENSAJE_NIVEL_INVALIDO =
   'El nivel a inscribirse solo puede ser Primero o Sétimo.';
 export const MENSAJE_ESTADO_INVALIDO =
   'El estado solo puede ser Pendiente, Aprobada o Rechazada.';
+export const MENSAJE_FILIAL_INVALIDA =
+  'La filial no corresponde a un centro de catequesis válido.';
 export const MENSAJE_ID_INVALIDO = 'El id debe ser mayor que 0.';
 export const MENSAJE_NO_ENCONTRADO =
   'No se encontró una inscripción con el id indicado.';
@@ -50,6 +62,26 @@ export function normalizarNivelInscripcion(
   return (
     NIVELES_INSCRIPCION_VALIDOS.find((item) => item.toLowerCase() === valor) ??
     null
+  );
+}
+
+function sinAcentos(valor: string): string {
+  return valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+export function normalizarFilialInscripcion(
+  filial?: string | null,
+): string | null {
+  if (!filial?.trim()) {
+    return null;
+  }
+
+  const valor = sinAcentos(filial.trim());
+  return (
+    FILIALES_CATEQUESIS.find((item) => sinAcentos(item) === valor) ?? null
   );
 }
 

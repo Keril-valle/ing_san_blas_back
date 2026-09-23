@@ -1,20 +1,31 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Role } from '../Common/Enums/Roles';
 import { LoginDto } from './DTO/login.dto';
+import { RestablecerContrasenaDto } from './DTO/restablecer-contrasena.dto';
+import { RecuperacionContrasena } from './Entities/recuperacion-contrasena.entity';
 import { UsuarioService } from '../Users/usuario.service';
 import { RolService } from '../Users/rol.service';
-import { createHash } from 'crypto';
+import { Usuario } from '../Users/Entities/usuario.entity';
+import { AuthMailService } from '../Notifications/Services/auth-mail.service';
+
+const MENSAJE_RECUPERACION =
+  'Si existe una cuenta asociada a este correo, recibirás instrucciones para recuperar tu contraseña.';
+const MINUTOS_EXPIRACION_RECUPERACION = 15;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly refreshSecret: string;
 
   constructor(
@@ -22,6 +33,8 @@ export class AuthService {
     private readonly rolService: RolService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
+    private readonly authMailService: AuthMailService,
   ) {
     this.refreshSecret =
       this.configService.get<string>('JWT_REFRESH_SECRET') ??
@@ -107,11 +120,102 @@ export class AuthService {
     return { message: 'Sesión cerrada' };
   }
 
-  async solicitarRecuperacion(_email: string) {
-    return {
-      message:
-        'Si el correo está registrado, enviamos un enlace para restablecer la contraseña.',
-    };
+  async solicitarRecuperacion(email: string) {
+    const usuario = await this.usuarioService.findActivoParaRecuperacion(email);
+    if (!usuario) {
+      this.hashToken(randomBytes(32).toString('base64url'));
+      return { message: MENSAJE_RECUPERACION };
+    }
+
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(
+      Date.now() + MINUTOS_EXPIRACION_RECUPERACION * 60 * 1000,
+    );
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager
+        .createQueryBuilder()
+        .update(RecuperacionContrasena)
+        .set({ usedAt: new Date() })
+        .where('"usuarioId" = :usuarioId AND "usedAt" IS NULL', {
+          usuarioId: usuario.id,
+        })
+        .execute();
+      await manager.getRepository(RecuperacionContrasena).save({
+        usuarioId: usuario.id,
+        tokenHash,
+        expiresAt,
+        usedAt: null,
+      });
+    });
+
+    const frontend = this.configService
+      .get<string>('FRONTEND_URL')
+      ?.trim()
+      .replace(/\/$/, '');
+    if (!frontend) {
+      this.logger.error(
+        'FRONTEND_URL no configurada. No se envió el enlace de recuperación.',
+      );
+      return { message: MENSAJE_RECUPERACION };
+    }
+
+    try {
+      await this.authMailService.enviarRecuperacionContrasena({
+        correo: usuario.email,
+        nombre: usuario.nombre ?? '',
+        enlace: `${frontend}/reset-password?token=${encodeURIComponent(token)}`,
+        minutos: MINUTOS_EXPIRACION_RECUPERACION,
+      });
+    } catch {
+      this.logger.error(
+        `No se pudo enviar el enlace de recuperación a ${usuario.email}.`,
+      );
+    }
+
+    return { message: MENSAJE_RECUPERACION };
+  }
+
+  async restablecerContrasena(dto: RestablecerContrasenaDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Las contraseñas no coinciden');
+    }
+
+    const tokenHash = this.hashToken(dto.token);
+
+    await this.dataSource.transaction(async (manager) => {
+      const fila = await manager
+        .getRepository(RecuperacionContrasena)
+        .createQueryBuilder('recuperacion')
+        .setLock('pessimistic_write')
+        .where('recuperacion.tokenHash = :tokenHash', { tokenHash })
+        .getOne();
+
+      if (!fila) {
+        throw new BadRequestException('El enlace no es válido.');
+      }
+      if (fila.usedAt) {
+        throw new BadRequestException('Este enlace ya fue utilizado.');
+      }
+      if (fila.expiresAt.getTime() <= Date.now()) {
+        throw new BadRequestException('El enlace expiró. Solicite uno nuevo.');
+      }
+
+      const passwordHash = await bcrypt.hash(dto.password, 12);
+      await manager.update(Usuario, fila.usuarioId, {
+        password: passwordHash,
+        passwordChangedAt: new Date(),
+      });
+      await manager.query(
+        'UPDATE "usuario" SET "refreshTokenHash" = NULL WHERE id = $1',
+        [fila.usuarioId],
+      );
+      fila.usedAt = new Date();
+      await manager.save(fila);
+    });
+
+    return { message: 'La contraseña se actualizó correctamente.' };
   }
 
   prueba(user: any) {
