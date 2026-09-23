@@ -17,6 +17,9 @@ export class UsuarioRespuestaDto {
   @Expose()
   role: string;
 
+  @Expose()
+  roles: string[];
+
   @Expose({ name: 'isActive' })
   state: boolean;
 
