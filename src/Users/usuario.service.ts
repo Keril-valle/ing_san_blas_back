@@ -72,7 +72,7 @@ export class UsuarioService {
       saved.id,
       roles.map((rol) => rol.id),
     );
-    return saved;
+    return { ...saved, roles: roles.map((rol) => rol.clave) };
   }
 
   async obtenerRolesDeUsuario(id: number): Promise<string[]> {
@@ -83,6 +83,17 @@ export class UsuarioService {
       [id],
     );
     return rows.map((row) => row.clave);
+  }
+
+  private async conRoles(
+    usuarios: Usuario[],
+  ): Promise<Array<Usuario & { roles: string[] }>> {
+    return Promise.all(
+      usuarios.map(async (usuario) => ({
+        ...usuario,
+        roles: await this.obtenerRolesDeUsuario(usuario.id),
+      })),
+    );
   }
 
   private rolesSolicitadosDe(dto: RegisterDto | CreateUsuarioDto): string[] {
@@ -114,7 +125,9 @@ export class UsuarioService {
   findAll() {
     return this.usuarioRepository
       .find({ where: { isActive: true } })
-      .then((usuarios) => plainToInstance(UsuarioRespuestaDto, usuarios));
+      .then(async (usuarios) =>
+        plainToInstance(UsuarioRespuestaDto, await this.conRoles(usuarios)),
+      );
   }
 
   // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
@@ -170,7 +183,7 @@ export class UsuarioService {
     const [data, total] = await qb.getManyAndCount();
 
     return {
-      data: plainToInstance(UsuarioRespuestaDto, data),
+      data: plainToInstance(UsuarioRespuestaDto, await this.conRoles(data)),
       total,
       page: pagina,
       pages: Math.ceil(total / limite),
@@ -181,7 +194,8 @@ export class UsuarioService {
   async findOne(id: number) {
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
     if (!user) return null;
-    return plainToInstance(UsuarioRespuestaDto, user);
+    const [conRol] = await this.conRoles([user]);
+    return plainToInstance(UsuarioRespuestaDto, conRol);
   }
 
   findOneByEmail(email: string) {
@@ -308,7 +322,11 @@ export class UsuarioService {
       }
     }
 
-    return await this.usuarioRepository.save(user);
+    const guardado = await this.usuarioRepository.save(user);
+    return {
+      ...guardado,
+      roles: await this.obtenerRolesDeUsuario(guardado.id),
+    };
   }
 
   async remove(id: number, actorId?: number) {
