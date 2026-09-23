@@ -1,5 +1,6 @@
 import {
   normalizarEstadoInscripcion,
+  normalizarFilialInscripcion,
   normalizarNivelInscripcion,
   validarFechaNoFutura,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
@@ -16,6 +17,13 @@ describe('inscripcion-catequesis-validaciones', () => {
     expect(normalizarNivelInscripcion('primero')).toBe('Primero');
     expect(normalizarNivelInscripcion('setimo')).toBe('Sétimo');
     expect(normalizarNivelInscripcion('invalido')).toBeNull();
+  });
+
+  it('normalizes catechesis branches', () => {
+    expect(normalizarFilialInscripcion('san blas')).toBe('San Blas');
+    expect(normalizarFilialInscripcion('los angeles')).toBe('Los Ángeles');
+    expect(normalizarFilialInscripcion('rio grande')).toBe('Río Grande');
+    expect(normalizarFilialInscripcion('otra')).toBeNull();
   });
 
   it('validates non-future dates', () => {

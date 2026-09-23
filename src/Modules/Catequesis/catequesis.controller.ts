@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  HttpException,
   InternalServerErrorException,
   NotFoundException,
   Param,
@@ -36,10 +37,14 @@ import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.in
 import { Role } from '../../Common/Enums/Roles';
 import {
   MENSAJE_ESTADO_INVALIDO,
+  MENSAJE_FILIAL_INVALIDA,
   MENSAJE_ID_INVALIDO,
+  MENSAJE_NIVEL_INVALIDO,
   MENSAJE_NO_ENCONTRADO,
   esIdValido,
   normalizarEstadoInscripcion,
+  normalizarFilialInscripcion,
+  normalizarNivelInscripcion,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
 
 const LIMITE_ARCHIVOS_CATEQUESIS = {
@@ -118,19 +123,36 @@ export class CatequesisController {
 
   @Get('exportar')
   @Roles(Role.ADMIN)
-  async exportar(@Query('estado') estado: string, @Res() response: Response) {
-    if (!estado?.trim()) {
-      throw new BadRequestException({ mensaje: 'El estado es obligatorio.' });
-    }
-
-    const estadoNormalizado = normalizarEstadoInscripcion(estado);
-    if (!estadoNormalizado) {
-      throw new BadRequestException({ mensaje: MENSAJE_ESTADO_INVALIDO });
-    }
+  async exportar(
+    @Query('estado') estado: string | undefined,
+    @Query('nivel') nivel: string | undefined,
+    @Query('filial') filial: string | undefined,
+    @Res() response: Response,
+  ) {
+    const estadoNormalizado = this.filtroExportacion(
+      estado,
+      normalizarEstadoInscripcion,
+      MENSAJE_ESTADO_INVALIDO,
+    );
+    const nivelNormalizado = this.filtroExportacion(
+      nivel,
+      normalizarNivelInscripcion,
+      MENSAJE_NIVEL_INVALIDO,
+    );
+    const filialNormalizada = this.filtroExportacion(
+      filial,
+      normalizarFilialInscripcion,
+      MENSAJE_FILIAL_INVALIDA,
+    );
 
     try {
-      const { buffer, fileName } =
-        await this.catequesisExportService.exportar(estadoNormalizado);
+      const { buffer, fileName } = await this.catequesisExportService.exportar(
+        {
+          estado: estadoNormalizado,
+          nivel: nivelNormalizado,
+          filial: filialNormalizada,
+        },
+      );
 
       response.set({
         'Content-Type':
@@ -138,7 +160,10 @@ export class CatequesisController {
         'Content-Disposition': `attachment; filename="${fileName}"`,
       });
       response.send(buffer);
-    } catch {
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException({
         mensaje: 'No se pudo generar el archivo de exportación.',
       });
@@ -356,5 +381,22 @@ export class CatequesisController {
         ? error.message
         : 'No se pudo procesar la solicitud.';
     throw new BadRequestException({ mensaje: message });
+  }
+
+  private filtroExportacion(
+    valor: string | undefined,
+    normalizar: (texto?: string | null) => string | null,
+    mensajeInvalido: string,
+  ): string | undefined {
+    if (!valor?.trim() || valor.trim().toLowerCase() === 'todos') {
+      return undefined;
+    }
+
+    const normalizado = normalizar(valor);
+    if (!normalizado) {
+      throw new BadRequestException({ mensaje: mensajeInvalido });
+    }
+
+    return normalizado;
   }
 }

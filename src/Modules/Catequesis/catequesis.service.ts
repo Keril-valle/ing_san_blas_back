@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { InscripcionCatequesis } from './Entities/inscripcion-catequesis.entity';
@@ -20,6 +25,10 @@ import {
   unirApellidos,
   validarFechaNoFutura,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
+import {
+  CatequesisMailService,
+  type AvisoInscripcionCatequesis,
+} from '../../Notifications/Services/catequesis-mail.service';
 
 const unirNombreEncargado = (inscripcion: InscripcionCatequesis): string => {
   const personaInscribe = `${inscripcion.personaInscribe?.nombre ?? ''} ${unirApellidos(
@@ -37,11 +46,14 @@ const unirNombreEncargado = (inscripcion: InscripcionCatequesis): string => {
 
 @Injectable()
 export class CatequesisService {
+  private readonly logger = new Logger(CatequesisService.name);
+
   constructor(
     @InjectRepository(InscripcionCatequesis)
     private readonly inscripcionRepository: Repository<InscripcionCatequesis>,
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    @Optional() private readonly catequesisMail?: CatequesisMailService,
   ) {}
 
   async create(
@@ -335,7 +347,11 @@ export class CatequesisService {
     return inscripcion ? this.toDetalleDto(inscripcion) : null;
   }
 
-  async findForExport(estado: string): Promise<
+  async findForExport(filtros: {
+    estado?: string;
+    nivel?: string;
+    filial?: string;
+  } = {}): Promise<
     Array<{
       nombre: string;
       primerApellido: string;
@@ -347,11 +363,32 @@ export class CatequesisService {
       fechaSolicitud: Date;
     }>
   > {
-    const inscripciones = await this.inscripcionRepository.find({
-      where: { estado },
-      relations: { catequizando: true },
-      order: { fechaSolicitud: 'DESC' },
-    });
+    const query = this.inscripcionRepository
+      .createQueryBuilder('inscripcion')
+      .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
+      .orderBy('inscripcion.fechaSolicitud', 'DESC');
+
+    if (filtros.estado) {
+      query.andWhere('inscripcion.estado = :estado', {
+        estado: filtros.estado,
+      });
+    }
+
+    if (filtros.nivel) {
+      query.andWhere(
+        'LOWER(inscripcion.nivelAInscribirse) = LOWER(:nivel)',
+        { nivel: filtros.nivel },
+      );
+    }
+
+    if (filtros.filial) {
+      query.andWhere(
+        'LOWER(inscripcion.centroCatequesis) = LOWER(:filial)',
+        { filial: filtros.filial },
+      );
+    }
+
+    const inscripciones = await query.getMany();
 
     return inscripciones.map((inscripcion) => ({
       nombre: inscripcion.catequizando?.nombre ?? '',
@@ -390,6 +427,7 @@ export class CatequesisService {
   ): Promise<ActualizarEstadoResponseDto | null> {
     const inscripcion = await this.inscripcionRepository.findOne({
       where: { id },
+      relations: { catequizando: true, personaInscribe: true },
     });
     if (!inscripcion) {
       return null;
@@ -406,6 +444,9 @@ export class CatequesisService {
     inscripcion.revisadoPor = revisorId ?? null;
 
     const saved = await this.inscripcionRepository.save(inscripcion);
+    await this.avisarPorCorreo(
+      this.armarAviso(inscripcion, estadoNormalizado, observacion),
+    );
 
     return {
       id: saved.id,
@@ -414,6 +455,41 @@ export class CatequesisService {
       observacionAdministrativa: saved.observacionAdministrativa,
       fechaActualizacionEstado: saved.fechaActualizacionEstado!,
     };
+  }
+
+  private armarAviso(
+    inscripcion: InscripcionCatequesis,
+    estado: string,
+    observacion?: string | null,
+  ): AvisoInscripcionCatequesis {
+    const nombreCatequizando =
+      `${inscripcion.catequizando?.nombre ?? ''} ${unirApellidos(
+        inscripcion.catequizando?.primerApellido,
+        inscripcion.catequizando?.segundoApellido,
+      )}`.trim() || 'el catequizando';
+
+    return {
+      id: inscripcion.id,
+      correo: inscripcion.personaInscribe?.correo ?? null,
+      nombreDestinatario: unirNombreEncargado(inscripcion) || 'encargado',
+      nombreCatequizando,
+      centroCatequesis: inscripcion.centroCatequesis,
+      nivelAInscribirse: inscripcion.nivelAInscribirse,
+      estado,
+      observacion,
+    };
+  }
+
+  private async avisarPorCorreo(
+    aviso: AvisoInscripcionCatequesis,
+  ): Promise<void> {
+    try {
+      await this.catequesisMail?.notificarEstado(aviso);
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo avisar por correo la inscripción ${aviso.id}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
   }
 
   private validarReglasNegocio(dto: CrearInscripcionCatequesisDto): void {
