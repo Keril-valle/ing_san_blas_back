@@ -38,4 +38,17 @@ export class BuscarUsuariosDto {
   @Min(1)
   @Max(100)
   limit?: number;
+
+  // whitelist de columnas ordenables: solo las que el service sabe mapear, nunca un texto libre
+  @IsOptional()
+  @IsIn(['nombre', 'email', 'telefono', 'role', 'state', 'createdAt'], {
+    message: 'El campo de ordenamiento no es válido',
+  })
+  sortBy?: string;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'], {
+    message: 'La dirección de ordenamiento debe ser asc o desc',
+  })
+  sortDirection?: 'asc' | 'desc';
 }

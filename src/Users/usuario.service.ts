@@ -15,11 +15,29 @@ import { Usuario } from './Entities/usuario.entity';
 import { RolService } from './rol.service';
 import { Repository, ILike } from 'typeorm';
 import type { FindOptionsWhere } from 'typeorm';
-import getNombreCedula from '../Common/Helpers/nombreCedula';
 import * as bcrypt from 'bcryptjs';
+
+// whitelist de columnas ordenables: mapea el param del DTO a la propiedad real de la entidad.
+// nunca se concatena un string del cliente dentro de orderBy (evita inyección SQL)
+const COLUMNAS_ORDEN_USUARIO = {
+  nombre: 'usuario.nombre',
+  email: 'usuario.email',
+  telefono: 'usuario.telefono',
+  role: 'usuario.role',
+  state: 'usuario.isActive',
+  createdAt: 'usuario.createdAt',
+} as const;
+
+type ColumnaOrdenUsuario = keyof typeof COLUMNAS_ORDEN_USUARIO;
 
 @Injectable()
 export class UsuarioService {
+  private readonly cedulasCache = new Map<
+    string,
+    { nombre: string | null; venceEn: number }
+  >();
+  private readonly consultasCedula = new Map<string, Promise<string | null>>();
+
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
@@ -40,11 +58,8 @@ export class UsuarioService {
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
-    const roleSolicitado =
-      'role' in registerDto && typeof registerDto.role === 'string'
-        ? registerDto.role.trim()
-        : Role.USER;
-    const rol = await this.rolService.assertExiste(roleSolicitado);
+    const rolesSolicitados = this.rolesSolicitadosDe(registerDto);
+    const roles = await this.rolService.assertExisten(rolesSolicitados);
     const telefono =
       'telefono' in registerDto && typeof registerDto.telefono === 'string'
         ? registerDto.telefono
@@ -53,17 +68,71 @@ export class UsuarioService {
       nombre: registerDto.nombre,
       email: registerDto.email,
       password: hashedPassword,
-      role: rol.clave,
+      role: roles[0].clave,
       telefono,
     });
 
-    return this.usuarioRepository.save(user);
+    const saved = await this.usuarioRepository.save(user);
+    await this.reemplazarRolesUsuario(
+      saved.id,
+      roles.map((rol) => rol.id),
+    );
+    return { ...saved, roles: roles.map((rol) => rol.clave) };
+  }
+
+  async obtenerRolesDeUsuario(id: number): Promise<string[]> {
+    const rows = await this.usuarioRepository.manager.query<
+      Array<{ clave: string }>
+    >(
+      'SELECT r.clave FROM usuario_roles ur JOIN rol r ON r.id = ur.rol_id WHERE ur.usuario_id = $1 ORDER BY r.id ASC',
+      [id],
+    );
+    return rows.map((row) => row.clave);
+  }
+
+  private async conRoles(
+    usuarios: Usuario[],
+  ): Promise<Array<Usuario & { roles: string[] }>> {
+    return Promise.all(
+      usuarios.map(async (usuario) => ({
+        ...usuario,
+        roles: await this.obtenerRolesDeUsuario(usuario.id),
+      })),
+    );
+  }
+
+  private rolesSolicitadosDe(dto: RegisterDto | CreateUsuarioDto): string[] {
+    if ('roles' in dto && Array.isArray(dto.roles) && dto.roles.length > 0) {
+      const limpias = [
+        ...new Set(dto.roles.map((rol) => rol.trim()).filter(Boolean)),
+      ];
+      if (limpias.length > 0) return limpias;
+    }
+    return [Role.USER];
+  }
+
+  private async reemplazarRolesUsuario(
+    usuarioId: number,
+    rolIds: number[],
+  ): Promise<void> {
+    await this.usuarioRepository.manager.query(
+      'DELETE FROM usuario_roles WHERE usuario_id = $1',
+      [usuarioId],
+    );
+    for (const rolId of rolIds) {
+      await this.usuarioRepository.manager.query(
+        'INSERT INTO usuario_roles (usuario_id, rol_id) VALUES ($1, $2)',
+        [usuarioId, rolId],
+      );
+    }
   }
 
   findAll() {
-    return this.usuarioRepository.find({ where: { isActive: true } }).then(
-      (usuarios) => plainToInstance(UsuarioRespuestaDto, usuarios),
-    );
+    return this.usuarioRepository
+      .find({ where: { isActive: true } })
+      .then(async (usuarios) =>
+        plainToInstance(UsuarioRespuestaDto, await this.conRoles(usuarios)),
+      );
   }
 
   // paginación server-side: busca por nombre/email/teléfono con ILike y devuelve
@@ -74,6 +143,8 @@ export class UsuarioService {
     search?: string,
     role?: string,
     state?: string,
+    sortBy?: string,
+    sortDirection?: 'asc' | 'desc',
   ) {
     const pagina = Math.max(1, Math.floor(Number(page)) || 1);
     const limite = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 10));
@@ -81,9 +152,17 @@ export class UsuarioService {
     const rolFiltro = role?.trim();
     const estadoFiltro = state?.trim();
 
+    // orden por columna elegida por el usuario, con fallback al orden por defecto.
+    // el id de desempate evita que al paginar se repitan o salten filas con el mismo valor
+    const columnaOrden =
+      COLUMNAS_ORDEN_USUARIO[sortBy as ColumnaOrdenUsuario] ??
+      'usuario.createdAt';
+    const direccionOrden = sortDirection === 'asc' ? 'ASC' : 'DESC';
+
     const qb = this.usuarioRepository
       .createQueryBuilder('usuario')
-      .orderBy('usuario.createdAt', 'DESC')
+      .orderBy(columnaOrden, direccionOrden)
+      .addOrderBy('usuario.id', 'DESC')
       .take(limite)
       .skip((pagina - 1) * limite);
 
@@ -109,7 +188,7 @@ export class UsuarioService {
     const [data, total] = await qb.getManyAndCount();
 
     return {
-      data: plainToInstance(UsuarioRespuestaDto, data),
+      data: plainToInstance(UsuarioRespuestaDto, await this.conRoles(data)),
       total,
       page: pagina,
       pages: Math.ceil(total / limite),
@@ -120,11 +199,33 @@ export class UsuarioService {
   async findOne(id: number) {
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
     if (!user) return null;
-    return plainToInstance(UsuarioRespuestaDto, user);
+    const [conRol] = await this.conRoles([user]);
+    return plainToInstance(UsuarioRespuestaDto, conRol);
   }
 
   findOneByEmail(email: string) {
     return this.usuarioRepository.findOneBy({ email, isActive: true });
+  }
+
+  findActivoParaRecuperacion(email: string) {
+    return this.usuarioRepository.findOne({
+      where: { email: ILike(email.trim()), isActive: true },
+      select: { id: true, email: true, nombre: true },
+    });
+  }
+
+  async credencialesVigentes(
+    id: number,
+    emitidoEnSegundos?: number,
+  ): Promise<boolean> {
+    const user = await this.usuarioRepository.findOne({
+      where: { id, isActive: true },
+      select: { id: true, passwordChangedAt: true },
+    });
+    if (!user) return false;
+    if (!user.passwordChangedAt) return true;
+    if (emitidoEnSegundos == null) return false;
+    return emitidoEnSegundos * 1000 >= user.passwordChangedAt.getTime() - 1000;
   }
 
   async estaActivo(id: number): Promise<boolean> {
@@ -180,6 +281,9 @@ export class UsuarioService {
       ) {
         throw new BadRequestException('No puede cambiar su propio rol.');
       }
+      if (updateUsuarioDto.roles !== undefined) {
+        throw new BadRequestException('No puede cambiar sus propios roles.');
+      }
       if (updateUsuarioDto.isActive === false) {
         throw new BadRequestException('No puede inactivar su propia cuenta.');
       }
@@ -205,12 +309,29 @@ export class UsuarioService {
         const rol = await this.rolService.assertExiste(updateUsuarioDto.role);
         user.role = rol.clave;
       }
+      if (updateUsuarioDto.roles !== undefined) {
+        if (updateUsuarioDto.roles.length === 0) {
+          throw new BadRequestException('Debe indicar al menos un rol.');
+        }
+        const roles = await this.rolService.assertExisten(
+          updateUsuarioDto.roles,
+        );
+        user.role = roles[0].clave;
+        await this.reemplazarRolesUsuario(
+          user.id,
+          roles.map((rol) => rol.id),
+        );
+      }
       if (updateUsuarioDto.isActive !== undefined) {
         user.isActive = updateUsuarioDto.isActive;
       }
     }
 
-    return await this.usuarioRepository.save(user);
+    const guardado = await this.usuarioRepository.save(user);
+    return {
+      ...guardado,
+      roles: await this.obtenerRolesDeUsuario(guardado.id),
+    };
   }
 
   async remove(id: number, actorId?: number) {
@@ -227,9 +348,57 @@ export class UsuarioService {
     return await this.usuarioRepository.save(user);
   }
 
-  async obtenerNombrePorCedula(cedula: string) {
-    const data = await getNombreCedula(cedula);
-    return data;
+  // Consulta GoMeta una sola vez por cédula mientras la respuesta siga fresca.
+  async obtenerNombrePorCedula(cedula: string): Promise<string | null> {
+    const cedulaNormalizada = cedula.replace(/\D/g, '');
+    if (cedulaNormalizada.length !== 9) return null;
+
+    const cacheada = this.cedulasCache.get(cedulaNormalizada);
+    if (cacheada && cacheada.venceEn > Date.now()) return cacheada.nombre;
+
+    const enCurso = this.consultasCedula.get(cedulaNormalizada);
+    if (enCurso) return enCurso;
+
+    const consulta = this.consultarNombrePorCedula(cedulaNormalizada);
+    this.consultasCedula.set(cedulaNormalizada, consulta);
+
+    try {
+      const nombre = await consulta;
+      this.cedulasCache.set(cedulaNormalizada, {
+        nombre,
+        venceEn: Date.now() + 86_400_000, // la identidad no cambia y así se evita castigar a GoMeta
+      });
+      return nombre;
+    } finally {
+      this.consultasCedula.delete(cedulaNormalizada);
+    }
+  }
+
+  // Protege el endpoint si el proveedor externo queda colgado.
+  private async consultarNombrePorCedula(cedula: string): Promise<string | null> {
+    const abortController = new AbortController();
+    const timeout = setTimeout(() => abortController.abort(), 7_000);
+
+    try {
+      const respuesta = await fetch(`https://apis.gometa.org/cedulas/${cedula}`, {
+        signal: abortController.signal,
+      });
+      if (!respuesta.ok) return null;
+      const data: unknown = await respuesta.json();
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'nombre' in data &&
+        typeof data.nombre === 'string'
+      ) {
+        return data.nombre;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async findByUserName(userName: string) {

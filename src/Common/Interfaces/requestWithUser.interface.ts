@@ -5,6 +5,9 @@ export interface RequestWithUser extends Request {
     sub: number;
     email: string;
     role: string;
+    roles?: string[];
+    permisos?: string[];
+    accesoPanel?: boolean;
   };
   refreshToken?: string;
 }

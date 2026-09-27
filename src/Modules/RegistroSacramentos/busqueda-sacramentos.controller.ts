@@ -9,14 +9,13 @@ import {
 import { BusquedaSacramentosService } from './busqueda-sacramentos.service';
 import { BuscarSacramentosDto } from './DTO/buscar-sacramentos.dto';
 import { PaginadoSacramentosDto } from './DTO/sacramento-unificado.dto';
-import { Roles } from '../../Auth/Decorators/roles.decorator';
-import { Role } from '../../Common/Enums/Roles';
+import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import { fechaISODesdeDDMMAAAA } from './Utils/fechas-sacramentos.util';
 
 const CEDULA_REGEX = /^\d-\d{4}-\d{4}$/;
 
 @Controller('Sacramentos')
-@Roles(Role.ADMIN)
+@Permisos('sacramentos')
 export class BusquedaSacramentosController {
   constructor(
     private readonly busquedaSacramentosService: BusquedaSacramentosService,

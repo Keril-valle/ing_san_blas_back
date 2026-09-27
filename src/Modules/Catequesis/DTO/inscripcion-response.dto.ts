@@ -9,6 +9,7 @@ export class InscripcionResumenDto {
   telefonoEncargada: string;
   nombreEncargado: string;
   correoEncargado: string;
+  observacionAdministrativa: string | null;
   // motivo/observaciones solo se incluyen cuando la inscripción fue rechazada
   motivoRechazo?: string | null;
   observaciones?: string | null;

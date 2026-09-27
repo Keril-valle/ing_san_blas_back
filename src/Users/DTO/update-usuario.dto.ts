@@ -1,8 +1,9 @@
 import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { Transform } from 'class-transformer';
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsBoolean,
-  IsEmail,
   IsIn,
   IsNotEmpty,
   IsOptional,
@@ -35,6 +36,12 @@ export class UpdateUsuarioDto extends PartialType(
   role?: string;
 
   @IsOptional()
+  @IsArray({ message: 'Los roles deben venir como una lista.' })
+  @ArrayNotEmpty({ message: 'Debe indicar al menos un rol.' })
+  @IsString({ each: true, message: 'Cada rol debe ser texto.' })
+  roles?: string[];
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 
@@ -42,7 +49,8 @@ export class UpdateUsuarioDto extends PartialType(
   @Transform(transformarTexto)
   @IsString()
   @Matches(/^[1-9]\d{3}-\d{4}$/, {
-    message: 'El teléfono debe tener el formato 8888-8888 y no comenzar con cero',
+    message:
+      'El teléfono debe tener el formato 8888-8888 y no comenzar con cero',
   })
   telefono?: string;
 }

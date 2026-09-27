@@ -6,13 +6,12 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
-import { Roles } from '../Auth/Decorators/roles.decorator';
-import { Role } from '../Common/Enums/Roles';
+import { Permisos } from '../Auth/Decorators/permisos.decorator';
 import { CreateRolDto } from './DTO/create-rol.dto';
 import { RolService } from './rol.service';
 
 @Controller('roles')
-@Roles(Role.ADMIN)
+@Permisos('usuarios')
 export class RolController {
   constructor(private readonly rolService: RolService) {}
 

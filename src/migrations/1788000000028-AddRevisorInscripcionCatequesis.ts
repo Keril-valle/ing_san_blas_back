@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddRevisorInscripcionCatequesis1788000000028
-  implements MigrationInterface
-{
+export class AddRevisorInscripcionCatequesis1788000000028 implements MigrationInterface {
   name = 'AddRevisorInscripcionCatequesis1788000000028';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

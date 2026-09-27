@@ -34,6 +34,9 @@ export class Usuario {
   @Column({ type: 'varchar', nullable: true })
   telefono: string | null;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  passwordChangedAt: Date | null;
+
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
