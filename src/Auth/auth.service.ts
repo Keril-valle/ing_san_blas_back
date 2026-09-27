@@ -65,7 +65,18 @@ export class AuthService {
       }),
     ]);
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: userId,
+        email,
+        role,
+        roles: rolesEfectivos,
+        permisos,
+        accesoPanel,
+      },
+    };
   }
 
   private hashToken(token: string): string {
@@ -94,7 +105,7 @@ export class AuthService {
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
-    return { ...tokens, email: user.email };
+    return tokens;
   }
 
   async refreshTokens(userId: number, refreshToken: string) {
@@ -113,6 +124,25 @@ export class AuthService {
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
     return tokens;
+  }
+
+  // El frontend usa este perfil para renderizar permisos sin tener que leer el JWT.
+  getSessionUser(user: {
+    sub: number;
+    email: string;
+    role: string;
+    roles?: string[];
+    permisos?: string[];
+    accesoPanel?: boolean;
+  }) {
+    return {
+      id: user.sub,
+      email: user.email,
+      role: user.role,
+      roles: user.roles ?? [user.role],
+      permisos: user.permisos ?? [],
+      accesoPanel: user.accesoPanel ?? false,
+    };
   }
 
   async logout(userId: number) {

@@ -14,6 +14,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Header,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -53,6 +54,7 @@ export class EventoController {
   @Public()
   //ruta para obtener todos los eventos publicos es http://localhost:3000/Evento/publicos
   @Get('publicos')
+  @Header('Cache-Control', 'public, max-age=120, stale-while-revalidate=300')
   findPublicos() {
     return this.eventoService.findPublicos();
   }

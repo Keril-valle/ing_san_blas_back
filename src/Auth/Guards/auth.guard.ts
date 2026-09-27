@@ -4,11 +4,12 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../Decorators/public.decorator';
 import { UsuarioService } from '../../Users/usuario.service';
+import { ACCESS_TOKEN_COOKIE } from '../auth-cookies';
 
 @Injectable()
 //este metodo se ejecuta antes de una peticion y valida que el usuario este autenticado y pueda usar el recurso solictado
@@ -33,7 +34,7 @@ export class AuthGuard implements CanActivate {
     //el request es lo que envia el cliente
     const request = context.switchToHttp().getRequest<Request>();
 
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractToken(request);
 
     if (!token) {
       throw new UnauthorizedException();
@@ -60,10 +61,26 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  private extractTokenFromHeader(request: Request) {
+  // Acepta cookie para la web y header para clientes de API que lo necesiten.
+  private extractToken(request: Request) {
     //aqui separamos el token porque viene con un estandar que es bearer y el token con un espacio
     //asi es como viene Bearer asdkjalksjd entoces lo separamos en un array ["Bearer", "asdkjalksjd"] y cogemos el segundo elemento
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    if (type === 'Bearer' && token) return token;
+
+    return this.readCookie(request, ACCESS_TOKEN_COOKIE);
+  }
+
+  private readCookie(request: Request, name: string): string | undefined {
+    const cookie = request.headers.cookie;
+    if (!cookie) return undefined;
+
+    const value = cookie
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${name}=`))
+      ?.slice(name.length + 1);
+
+    return value ? decodeURIComponent(value) : undefined;
   }
 }

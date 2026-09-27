@@ -14,6 +14,7 @@ import {
   UseInterceptors,
   UsePipes,
   ValidationPipe,
+  Header,
 } from '@nestjs/common';
 import {
   FileFieldsInterceptor,
@@ -58,6 +59,7 @@ export class LandingController {
 
   @Public()
   @Get()
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
   findAll() {
     return this.landingService.findAll();
   }
@@ -234,6 +236,7 @@ export class LandingController {
 
   @Public()
   @Get(':sectionKey')
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
   findOne(@Param('sectionKey') sectionKey: string) {
     return this.landingService.findOne(sectionKey);
   }
