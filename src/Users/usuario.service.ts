@@ -15,7 +15,6 @@ import { Usuario } from './Entities/usuario.entity';
 import { RolService } from './rol.service';
 import { Repository, ILike } from 'typeorm';
 import type { FindOptionsWhere } from 'typeorm';
-import getNombreCedula from '../Common/Helpers/nombreCedula';
 import * as bcrypt from 'bcryptjs';
 
 // whitelist de columnas ordenables: mapea el param del DTO a la propiedad real de la entidad.
@@ -33,6 +32,12 @@ type ColumnaOrdenUsuario = keyof typeof COLUMNAS_ORDEN_USUARIO;
 
 @Injectable()
 export class UsuarioService {
+  private readonly cedulasCache = new Map<
+    string,
+    { nombre: string | null; venceEn: number }
+  >();
+  private readonly consultasCedula = new Map<string, Promise<string | null>>();
+
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
@@ -343,9 +348,57 @@ export class UsuarioService {
     return await this.usuarioRepository.save(user);
   }
 
-  async obtenerNombrePorCedula(cedula: string) {
-    const data = await getNombreCedula(cedula);
-    return data;
+  // Consulta GoMeta una sola vez por cédula mientras la respuesta siga fresca.
+  async obtenerNombrePorCedula(cedula: string): Promise<string | null> {
+    const cedulaNormalizada = cedula.replace(/\D/g, '');
+    if (cedulaNormalizada.length !== 9) return null;
+
+    const cacheada = this.cedulasCache.get(cedulaNormalizada);
+    if (cacheada && cacheada.venceEn > Date.now()) return cacheada.nombre;
+
+    const enCurso = this.consultasCedula.get(cedulaNormalizada);
+    if (enCurso) return enCurso;
+
+    const consulta = this.consultarNombrePorCedula(cedulaNormalizada);
+    this.consultasCedula.set(cedulaNormalizada, consulta);
+
+    try {
+      const nombre = await consulta;
+      this.cedulasCache.set(cedulaNormalizada, {
+        nombre,
+        venceEn: Date.now() + 86_400_000, // la identidad no cambia y así se evita castigar a GoMeta
+      });
+      return nombre;
+    } finally {
+      this.consultasCedula.delete(cedulaNormalizada);
+    }
+  }
+
+  // Protege el endpoint si el proveedor externo queda colgado.
+  private async consultarNombrePorCedula(cedula: string): Promise<string | null> {
+    const abortController = new AbortController();
+    const timeout = setTimeout(() => abortController.abort(), 7_000);
+
+    try {
+      const respuesta = await fetch(`https://apis.gometa.org/cedulas/${cedula}`, {
+        signal: abortController.signal,
+      });
+      if (!respuesta.ok) return null;
+      const data: unknown = await respuesta.json();
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'nombre' in data &&
+        typeof data.nombre === 'string'
+      ) {
+        return data.nombre;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async findByUserName(userName: string) {

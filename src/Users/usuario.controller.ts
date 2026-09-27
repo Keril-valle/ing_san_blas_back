@@ -58,11 +58,8 @@ export class UsuarioController {
 
   @Public()
   @Get('cedula/:cedula')
-  async obtenerNombrePorCedula(@Param('cedula') cedula: string) {
-    const resp = await fetch(`https://apis.gometa.org/cedulas/${cedula}`);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    return data.nombre ?? null;
+  obtenerNombrePorCedula(@Param('cedula') cedula: string) {
+    return this.usuarioService.obtenerNombrePorCedula(cedula);
   }
 
   @Permisos('usuarios')
