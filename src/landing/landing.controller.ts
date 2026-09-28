@@ -59,7 +59,9 @@ export class LandingController {
 
   @Public()
   @Get()
-  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+  // no-cache: el navegador revalida con ETag en cada visita, así un cambio
+  // publicado desde el dashboard se ve de una sin esperar los 5 min de max-age
+  @Header('Cache-Control', 'no-cache')
   findAll() {
     return this.landingService.findAll();
   }
@@ -236,7 +238,8 @@ export class LandingController {
 
   @Public()
   @Get(':sectionKey')
-  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+  // igual que el listado: sin max-age pa que el hero nuevo no quede viejo 5 min
+  @Header('Cache-Control', 'no-cache')
   findOne(@Param('sectionKey') sectionKey: string) {
     return this.landingService.findOne(sectionKey);
   }
