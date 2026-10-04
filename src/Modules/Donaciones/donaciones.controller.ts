@@ -24,6 +24,9 @@ import { RechazarDonacionDto } from './DTO/rechazar-donacion.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
+import { mapValidationErrors } from '../../Common/validation-errors';
+import { rethrowComoBadRequest } from '../../Common/Utils/excepciones-http';
+import { validarRangoFechas } from '../../Common/Utils/validar-rango-fechas';
 
 @Controller('Donacion')
 export class DonacionesController {
@@ -75,48 +78,23 @@ export class DonacionesController {
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
   ) {
-    const regexFecha = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (
-      desde !== undefined &&
-      (!regexFecha.test(desde) || Number.isNaN(new Date(desde).getTime()))
-    ) {
-      throw new BadRequestException({
-        message: 'El formato de fecha no es válido, usá YYYY-MM-DD',
-      });
-    }
-    if (
-      hasta !== undefined &&
-      (!regexFecha.test(hasta) || Number.isNaN(new Date(hasta).getTime()))
-    ) {
-      throw new BadRequestException({
-        message: 'El formato de fecha no es válido, usá YYYY-MM-DD',
-      });
-    }
-    if (desde && hasta) {
-      const fechaDesde = new Date(desde).getTime();
-      const fechaHasta = new Date(hasta).getTime();
-      if (fechaDesde > fechaHasta) {
-        throw new BadRequestException({
-          message: 'La fecha de inicio no puede ser mayor que la fecha de fin',
-        });
-      }
-    }
-    if (
-      estado !== undefined &&
-      estado.trim() !== '' &&
-      !['aprobado', 'rechazado'].includes(estado.trim().toLowerCase())
-    ) {
-      throw new BadRequestException({
-        message: 'El estado ingresado no es válido. Usá aprobado o rechazado',
-      });
-    }
+    validarRangoFechas(desde, hasta);
+    this.validarEstadoHistorial(estado);
 
     return this.donacionesService.historial({
       estado: estado?.trim() || undefined,
       desde,
       hasta,
     });
+  }
+
+  private validarEstadoHistorial(estado?: string): void {
+    const valor = estado?.trim().toLowerCase();
+    if (valor && !['aprobado', 'rechazado'].includes(valor)) {
+      throw new BadRequestException({
+        message: 'El estado ingresado no es válido. Usá aprobado o rechazado',
+      });
+    }
   }
 
   @Get(':id')
@@ -141,23 +119,13 @@ export class DonacionesController {
       forbidNonWhitelisted: false,
     });
     if (validationErrors.length > 0) {
-      const errores: Record<string, string[]> = {};
-      for (const error of validationErrors) {
-        if (error.constraints) {
-          errores[error.property] = Object.values(error.constraints);
-        }
-      }
-      const message =
-        Object.values(errores).flat()[0] ?? 'Errores de validación.';
-      throw new BadRequestException({ message, errores });
+      throw new BadRequestException(mapValidationErrors(validationErrors));
     }
 
     try {
       return await this.donacionesService.create(dto);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'No se pudo crear la donación';
-      throw new BadRequestException({ message });
+      rethrowComoBadRequest(error, 'No se pudo crear la donación');
     }
   }
 

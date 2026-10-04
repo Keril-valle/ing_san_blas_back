@@ -150,21 +150,35 @@ export const formatDateOnly = (value: Date | string): string => {
   return value.toISOString().slice(0, 10);
 };
 
+const textoHora = (valor: unknown): string => {
+  if (typeof valor === 'string') {
+    return valor;
+  }
+  return typeof valor === 'number' ? String(valor) : '';
+};
+
 export const formatHoraNacimiento = (value: unknown): string => {
   if (!value) {
     return '';
   }
 
+  if (value instanceof Date) {
+    return `${String(value.getHours()).padStart(2, '0')}:${String(
+      value.getMinutes(),
+    ).padStart(2, '0')}`;
+  }
+
   if (typeof value === 'object') {
     const obj = value as Record<string, unknown>;
-    const hours = String(obj.hours ?? obj.hours ?? '');
-    const minutes = String(obj.minutes ?? obj.minutes ?? '');
+    const hours = textoHora(obj.hours);
+    const minutes = textoHora(obj.minutes);
     if (hours !== '' || minutes !== '') {
       return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
     }
+    return '';
   }
 
-  const raw = String(value);
+  const raw = textoHora(value);
   const match = raw.match(/(\d{1,2}):(\d{2})/);
   if (!match) {
     return raw;

@@ -65,7 +65,10 @@ export class DonacionesService {
         fechaIngreso: donacion.fecha,
         estado: donacion.estado,
       }));
-    } catch {
+    } catch (error) {
+      this.logger.error(
+        `No se pudieron cargar las solicitudes de donación: ${error instanceof Error ? error.message : error}`,
+      );
       throw new InternalServerErrorException(
         'No se pudieron cargar las solicitudes de donación. Intente de nuevo.',
       );
@@ -189,11 +192,14 @@ export class DonacionesService {
 
     try {
       const saved = await this.donacionesRepository.save(donacion);
-      await this.avisarPorCorreo(() =>
+      void this.avisarPorCorreo(() =>
         this.donacionMail?.notificarEstado(saved),
-      ); // el correo va después de guardar y nunca puede tumbar la respuesta
+      ); // el correo va después de guardar, sin bloquear la respuesta ni tumbarla
       return this.toResponseDto(saved);
-    } catch {
+    } catch (error) {
+      this.logger.error(
+        `No se pudo actualizar el estado del donativo: ${error instanceof Error ? error.message : error}`,
+      );
       throw new InternalServerErrorException(
         'No se pudo actualizar el estado del donativo. Intente de nuevo.',
       );
@@ -240,11 +246,14 @@ export class DonacionesService {
 
     try {
       const saved = await this.donacionesRepository.save(donacion);
-      await this.avisarPorCorreo(() =>
+      void this.avisarPorCorreo(() =>
         this.donacionMail?.notificarRechazo(saved, motivo, detalle),
-      ); // igual que al aprobar: primero se guarda, el correo no puede fallar la operación
+      ); // igual que al aprobar: primero se guarda, el correo no bloquea ni puede fallar la operación
       return this.toResponseDto(saved);
-    } catch {
+    } catch (error) {
+      this.logger.error(
+        `No se pudo rechazar el donativo: ${error instanceof Error ? error.message : error}`,
+      );
       throw new InternalServerErrorException(
         'No se pudo rechazar el donativo. Intente de nuevo.',
       );

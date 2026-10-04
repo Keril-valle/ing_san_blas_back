@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { REFRESH_TOKEN_COOKIE } from '../auth-cookies';
+import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
 
 @Injectable()
 export class RefreshAuthGuard implements CanActivate {
@@ -23,17 +24,19 @@ export class RefreshAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const token = this.extractToken(request);
 
     if (!token) throw new UnauthorizedException();
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<
+        RequestWithUser['user']
+      >(token, {
         secret: this.refreshSecret,
       });
-      request['user'] = payload;
-      request['refreshToken'] = token;
+      request.user = payload;
+      request.refreshToken = token;
       return true;
     } catch {
       throw new UnauthorizedException();

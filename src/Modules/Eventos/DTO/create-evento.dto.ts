@@ -54,4 +54,13 @@ export class CreateEventoDto {
   @IsString()
   @MaxLength(500, { message: 'La URL de la imagen es demasiado larga.' })
   imagenUrl?: string | null;
+
+  /**
+   * El frontend envía este flag informativo; el estado real del evento se
+   * deriva de la columna `estado` (borrador/publicado/desactivado), por lo que
+   * se acepta aquí para no rechazar la petición y se ignora al persistir.
+   */
+  @IsOptional()
+  @IsBoolean()
+  publicado?: boolean;
 }

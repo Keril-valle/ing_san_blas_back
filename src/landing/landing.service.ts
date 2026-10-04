@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import {
   UpdateBautizosDto,
   UpdateContactoDto,
@@ -21,8 +21,6 @@ import {
   type LandingSectionKey,
 } from './landing.defaults';
 import { mapValidationErrors } from '../Common/validation-errors';
-
-export { LANDING_SECTION_KEYS, type LandingSectionKey };
 
 @Injectable()
 export class LandingService {
@@ -54,17 +52,19 @@ export class LandingService {
       sectionKey,
       data: clonarDefault(sectionKey),
       updatedAt: null,
+      createdAt: null,
     };
   }
 
   async update(
     sectionKey: string,
     data: object,
-    archivo?: Express.Multer.File,
-    archivosPorCampo?: Partial<
-      Record<'headerImageUrl' | 'quoteImageUrl', Express.Multer.File>
-    >,
-    archivosServicios?: Record<string, Express.Multer.File | undefined>,
+    archivos: {
+      imagen?: Express.Multer.File;
+      encabezado?: Express.Multer.File;
+      cita?: Express.Multer.File;
+      servicios?: Record<string, Express.Multer.File>;
+    } = {},
   ) {
     this.assertSectionKey(sectionKey);
 
@@ -94,60 +94,62 @@ export class LandingService {
       sectionKey === 'sobre-nosotros' ||
       sectionKey === 'horarios'
     ) {
-      if (archivo) {
-        current.imageUrl = await this.fileStorageService.saveSectionImage(
-          archivo,
-          sectionKey,
-        );
-      } else if (payload.eliminarImagen) {
-        delete current.imageUrl;
-      }
+      await this.aplicarImagen(
+        current,
+        'imageUrl',
+        archivos.imagen,
+        payload.eliminarImagen,
+        sectionKey,
+      );
       delete current.eliminarImagen;
     }
 
     if (sectionKey === 'historia') {
-      if (archivosPorCampo?.headerImageUrl) {
-        current.headerImageUrl = await this.fileStorageService.saveSectionImage(
-          archivosPorCampo.headerImageUrl,
+      await Promise.all([
+        this.aplicarImagen(
+          current,
+          'headerImageUrl',
+          archivos.encabezado,
+          payload.eliminarHeaderImagen,
           'historia',
           'encabezado',
-        );
-      } else if (payload.eliminarHeaderImagen) {
-        delete current.headerImageUrl;
-      }
-
-      if (archivosPorCampo?.quoteImageUrl) {
-        current.quoteImageUrl = await this.fileStorageService.saveSectionImage(
-          archivosPorCampo.quoteImageUrl,
+        ),
+        this.aplicarImagen(
+          current,
+          'quoteImageUrl',
+          archivos.cita,
+          payload.eliminarQuoteImagen,
           'historia',
           'cita',
-        );
-      } else if (payload.eliminarQuoteImagen) {
-        delete current.quoteImageUrl;
-      }
+        ),
+      ]);
 
       delete current.eliminarHeaderImagen;
       delete current.eliminarQuoteImagen;
     }
 
     // cada servicio puede traer su propia imagen (archivoServicio1..N)
-    if (sectionKey === 'servicios' && archivosServicios) {
+    if (sectionKey === 'servicios' && archivos.servicios) {
       const items = Array.isArray(current.items)
         ? (current.items as Array<Record<string, unknown>>)
         : [];
 
-      for (const [campo, file] of Object.entries(archivosServicios)) {
+      const subidas: Array<Promise<void>> = [];
+      for (const [campo, file] of Object.entries(archivos.servicios)) {
         if (!file) continue;
         const match = /^archivoServicio(\d+)$/.exec(campo);
         if (!match) continue;
         const index = Number(match[1]) - 1;
         if (index < 0 || index >= items.length) continue;
-        items[index].imageUrl = await this.fileStorageService.saveSectionImage(
-          file,
-          'servicios',
-          `item-${index + 1}`,
+        subidas.push(
+          this.fileStorageService
+            .saveSectionImage(file, 'servicios', `item-${index + 1}`)
+            .then((url) => {
+              items[index].imageUrl = url;
+            }),
         );
       }
+      await Promise.all(subidas);
 
       current.items = items;
     }
@@ -155,6 +157,26 @@ export class LandingService {
     section.data = current;
     const saved = await this.landingRepository.save(section);
     return this.toResponse(saved);
+  }
+
+  // Sube la imagen nueva o borra la guardada según la bandera del payload.
+  private async aplicarImagen(
+    destino: Record<string, unknown>,
+    campo: string,
+    archivo: Express.Multer.File | undefined,
+    quiereEliminar: unknown,
+    seccion: 'hero' | 'sobre-nosotros' | 'historia' | 'horarios' | 'servicios',
+    variante = 'imagen',
+  ) {
+    if (archivo) {
+      destino[campo] = await this.fileStorageService.saveSectionImage(
+        archivo,
+        seccion,
+        variante,
+      );
+    } else if (quiereEliminar) {
+      delete destino[campo];
+    }
   }
 
   // Restablece una o varias secciones a su configuración por defecto.
@@ -167,27 +189,29 @@ export class LandingService {
     // valida todas antes de tocar la base pa no dejar un reset a medias
     claves.forEach((clave) => this.assertSectionKey(clave));
 
-    const restablecidas: ReturnType<LandingService['toResponse']>[] = [];
+    const existentes = await this.landingRepository.find({
+      where: { sectionKey: In(claves) },
+    });
+    const porClave = new Map(
+      existentes.map((seccion) => [seccion.sectionKey, seccion]),
+    );
 
-    for (const sectionKey of claves) {
+    const restablecidas = claves.map((sectionKey) => {
+      const section =
+        porClave.get(sectionKey) ??
+        this.landingRepository.create({ sectionKey });
       // el default ya trae la imagen original de Cloudinary, así que el reset
       // también restaura la imagen (no solo los textos)
-      const data = clonarDefault(sectionKey) as Record<string, unknown>;
+      section.data = clonarDefault(sectionKey) as Record<string, unknown>;
+      return section;
+    });
 
-      let section = await this.landingRepository.findOne({
-        where: { sectionKey },
-      });
+    // una sola transacción: si algo falla, no queda el reset a medias
+    await this.landingRepository.manager.transaction(async (manager) => {
+      await manager.save(LandingSection, restablecidas);
+    });
 
-      if (!section) {
-        section = this.landingRepository.create({ sectionKey });
-      }
-
-      section.data = data;
-      const saved = await this.landingRepository.save(section);
-      restablecidas.push(this.toResponse(saved));
-    }
-
-    return restablecidas;
+    return restablecidas.map((seccion) => this.toResponse(seccion));
   }
 
   private async normalizarSeccion(

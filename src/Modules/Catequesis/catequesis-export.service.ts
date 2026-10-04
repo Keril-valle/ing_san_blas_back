@@ -45,7 +45,9 @@ type FiltrosExportacion = {
 export class CatequesisExportService {
   constructor(private readonly catequesisService: CatequesisService) {}
 
-  async exportar(filtros: FiltrosExportacion = {}): Promise<{ buffer: Buffer; fileName: string; total: number }> {
+  async exportar(
+    filtros: FiltrosExportacion = {},
+  ): Promise<{ buffer: Buffer; fileName: string; total: number }> {
     const filas = await this.catequesisService.findForExport(filtros);
     if (filas.length === 0) {
       throw new NotFoundException({
@@ -72,7 +74,9 @@ export class CatequesisExportService {
     workbook.created = new Date();
 
     const worksheet = workbook.addWorksheet(this.nombreHoja(filtros), {
-      views: [{ state: 'frozen', ySplit: FILA_ENCABEZADO, showGridLines: false }],
+      views: [
+        { state: 'frozen', ySplit: FILA_ENCABEZADO, showGridLines: false },
+      ],
       properties: { tabColor: { argb: AZUL } },
       pageSetup: {
         orientation: 'landscape',
@@ -185,10 +189,7 @@ export class CatequesisExportService {
     encabezado.height = 26;
   }
 
-  private pintarFilas(
-    worksheet: Worksheet,
-    filas: FilaExportada[],
-  ): void {
+  private pintarFilas(worksheet: Worksheet, filas: FilaExportada[]): void {
     filas.forEach((fila, indice) => {
       const row = worksheet.getRow(FILA_ENCABEZADO + 1 + indice);
       const fondo = indice % 2 === 0 ? BLANCO : FILA_ALTERNA;

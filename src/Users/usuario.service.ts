@@ -14,7 +14,6 @@ import { Role } from '../Common/Enums/Roles';
 import { Usuario } from './Entities/usuario.entity';
 import { RolService } from './rol.service';
 import { Repository, ILike } from 'typeorm';
-import type { FindOptionsWhere } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 // whitelist de columnas ordenables: mapea el param del DTO a la propiedad real de la entidad.
@@ -29,6 +28,9 @@ const COLUMNAS_ORDEN_USUARIO = {
 } as const;
 
 type ColumnaOrdenUsuario = keyof typeof COLUMNAS_ORDEN_USUARIO;
+
+// tope de la caché de consultas a GoMeta: sin límite crecería sin control
+const LIMITE_CACHE_CEDULAS = 5_000;
 
 @Injectable()
 export class UsuarioService {
@@ -77,7 +79,19 @@ export class UsuarioService {
       saved.id,
       roles.map((rol) => rol.id),
     );
-    return { ...saved, roles: roles.map((rol) => rol.clave) };
+    return this.sinSecretos({
+      ...saved,
+      roles: roles.map((rol) => rol.clave),
+    });
+  }
+
+  // La contraseña y el hash del refresh token jamás deben salir en una
+  // respuesta (UsuarioRespuestaDto hace lo mismo, pero renombrando campos).
+  private sinSecretos<T extends object>(usuario: T): T {
+    const copia = { ...usuario };
+    delete (copia as Record<string, unknown>).password;
+    delete (copia as Record<string, unknown>).refreshTokenHash;
+    return copia;
   }
 
   async obtenerRolesDeUsuario(id: number): Promise<string[]> {
@@ -93,12 +107,31 @@ export class UsuarioService {
   private async conRoles(
     usuarios: Usuario[],
   ): Promise<Array<Usuario & { roles: string[] }>> {
-    return Promise.all(
-      usuarios.map(async (usuario) => ({
-        ...usuario,
-        roles: await this.obtenerRolesDeUsuario(usuario.id),
-      })),
+    if (usuarios.length === 0) return [];
+
+    // una sola consulta para toda la página (antes: una consulta por usuario)
+    const filas = await this.usuarioRepository.manager.query<
+      Array<{ usuarioId: number; clave: string }>
+    >(
+      `SELECT ur.usuario_id AS "usuarioId", r.clave
+         FROM usuario_roles ur
+         JOIN rol r ON r.id = ur.rol_id
+        WHERE ur.usuario_id = ANY($1::int[])
+        ORDER BY ur.usuario_id ASC, r.id ASC`,
+      [usuarios.map((usuario) => usuario.id)],
     );
+
+    const porUsuario = new Map<number, string[]>();
+    for (const fila of filas) {
+      const claves = porUsuario.get(fila.usuarioId) ?? [];
+      claves.push(fila.clave);
+      porUsuario.set(fila.usuarioId, claves);
+    }
+
+    return usuarios.map((usuario) => ({
+      ...usuario,
+      roles: porUsuario.get(usuario.id) ?? [],
+    }));
   }
 
   private rolesSolicitadosDe(dto: RegisterDto | CreateUsuarioDto): string[] {
@@ -119,12 +152,13 @@ export class UsuarioService {
       'DELETE FROM usuario_roles WHERE usuario_id = $1',
       [usuarioId],
     );
-    for (const rolId of rolIds) {
-      await this.usuarioRepository.manager.query(
-        'INSERT INTO usuario_roles (usuario_id, rol_id) VALUES ($1, $2)',
-        [usuarioId, rolId],
-      );
-    }
+    const unicos = [...new Set(rolIds)];
+    if (unicos.length === 0) return;
+    // un solo INSERT para todos los roles (antes: uno por rol)
+    await this.usuarioRepository.manager.query(
+      'INSERT INTO usuario_roles (usuario_id, rol_id) SELECT $1::int, t FROM unnest($2::int[]) AS t',
+      [usuarioId, unicos],
+    );
   }
 
   findAll() {
@@ -247,11 +281,11 @@ export class UsuarioService {
   }
 
   async findByIdWithRefreshToken(id: number) {
-    const rows = await this.usuarioRepository.manager.query(
+    const rows = await this.usuarioRepository.manager.query<Usuario[]>(
       'SELECT id, email, role, "refreshTokenHash" FROM usuario WHERE id = $1 AND "isActive" = true',
       [id],
     );
-    return rows.length > 0 ? (rows[0] as Usuario) : null;
+    return rows.length > 0 ? rows[0] : null;
   }
 
   async setRefreshTokenHash(id: number, hash: string | null) {
@@ -294,6 +328,12 @@ export class UsuarioService {
         throw new BadRequestException('Las contraseñas no coinciden');
       }
       user.password = await bcrypt.hash(updateUsuarioDto.password, 12);
+      // al reestablecer la contraseña de OTRO usuario, los JWT emitidos antes
+      // dejan de servir (credencialesVigentes los rechaza). Si se cambia la
+      // propia no se toca, para no cerrarle la sesión al que acaba de hacerlo.
+      if (!esMismoUsuario) {
+        user.passwordChangedAt = new Date();
+      }
     }
 
     if (updateUsuarioDto.nombre !== undefined) {
@@ -328,10 +368,10 @@ export class UsuarioService {
     }
 
     const guardado = await this.usuarioRepository.save(user);
-    return {
+    return this.sinSecretos({
       ...guardado,
       roles: await this.obtenerRolesDeUsuario(guardado.id),
-    };
+    });
   }
 
   async remove(id: number, actorId?: number) {
@@ -345,7 +385,7 @@ export class UsuarioService {
     }
 
     user.isActive = false;
-    return await this.usuarioRepository.save(user);
+    return this.sinSecretos(await this.usuarioRepository.save(user));
   }
 
   // Consulta GoMeta una sola vez por cédula mientras la respuesta siga fresca.
@@ -364,25 +404,48 @@ export class UsuarioService {
 
     try {
       const nombre = await consulta;
-      this.cedulasCache.set(cedulaNormalizada, {
-        nombre,
-        venceEn: Date.now() + 86_400_000, // la identidad no cambia y así se evita castigar a GoMeta
-      });
+      this.guardarEnCacheCedula(cedulaNormalizada, nombre);
       return nombre;
     } finally {
       this.consultasCedula.delete(cedulaNormalizada);
     }
   }
 
+  // Saca las entradas vencidas y, si sigue llena, las más viejas: la caché no
+  // puede crecer sin límite aunque nadie vuelva a repetir una cédula.
+  private guardarEnCacheCedula(cedula: string, nombre: string | null) {
+    if (this.cedulasCache.size >= LIMITE_CACHE_CEDULAS) {
+      const ahora = Date.now();
+      for (const [clave, entrada] of this.cedulasCache) {
+        if (entrada.venceEn <= ahora) this.cedulasCache.delete(clave);
+      }
+      while (this.cedulasCache.size >= LIMITE_CACHE_CEDULAS) {
+        const masVieja = this.cedulasCache.keys().next();
+        if (masVieja.done) break;
+        this.cedulasCache.delete(masVieja.value);
+      }
+    }
+
+    this.cedulasCache.set(cedula, {
+      nombre,
+      venceEn: Date.now() + 86_400_000, // la identidad no cambia y así se evita castigar a GoMeta
+    });
+  }
+
   // Protege el endpoint si el proveedor externo queda colgado.
-  private async consultarNombrePorCedula(cedula: string): Promise<string | null> {
+  private async consultarNombrePorCedula(
+    cedula: string,
+  ): Promise<string | null> {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), 7_000);
 
     try {
-      const respuesta = await fetch(`https://apis.gometa.org/cedulas/${cedula}`, {
-        signal: abortController.signal,
-      });
+      const respuesta = await fetch(
+        `https://apis.gometa.org/cedulas/${cedula}`,
+        {
+          signal: abortController.signal,
+        },
+      );
       if (!respuesta.ok) return null;
       const data: unknown = await respuesta.json();
       if (

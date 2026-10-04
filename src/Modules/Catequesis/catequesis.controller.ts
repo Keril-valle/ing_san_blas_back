@@ -7,6 +7,7 @@ import {
   HttpStatus,
   HttpException,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -19,9 +20,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
-import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
 import type { Response } from 'express';
 import { CatequesisService } from './catequesis.service';
 import { CatequesisExportService } from './catequesis-export.service';
@@ -34,6 +32,13 @@ import { ConsultarInscripcionesDto } from './DTO/consultar-inscripciones.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
+import { SUBIDA_ARCHIVO_MEMORIA } from '../../Common/Storage/subida-archivo.options';
+import {
+  parsearPayloadJson,
+  validarPayloadMultipart,
+} from '../../Common/Utils/multipart-payload';
+import { rethrowComoBadRequest } from '../../Common/Utils/excepciones-http';
+import { validarRangoFechas } from '../../Common/Utils/validar-rango-fechas';
 import {
   MENSAJE_ESTADO_INVALIDO,
   MENSAJE_FILIAL_INVALIDA,
@@ -46,13 +51,16 @@ import {
   normalizarNivelInscripcion,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
 
-const LIMITE_ARCHIVOS_CATEQUESIS = {
-  storage: memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-};
+const ESTADOS_HISTORIAL = ['aprobado', 'aprobada', 'rechazado', 'rechazada'];
+
+// Valor provisional para los campos que el DTO exige y que recién se completan
+// con la URL real después de subir el archivo.
+const MARCADOR_ARCHIVO_PENDIENTE = 'pendiente-de-subida';
 
 @Controller('inscripciones-catequesis')
 export class CatequesisController {
+  private readonly logger = new Logger(CatequesisController.name);
+
   constructor(
     private readonly catequesisService: CatequesisService,
     private readonly catequesisExportService: CatequesisExportService,
@@ -73,44 +81,7 @@ export class CatequesisController {
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
   ) {
-    const regexFecha = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (
-      desde !== undefined &&
-      (!regexFecha.test(desde) || Number.isNaN(new Date(desde).getTime()))
-    ) {
-      throw new BadRequestException({
-        mensaje: 'El formato de fecha no es válido, usá YYYY-MM-DD',
-      });
-    }
-    if (
-      hasta !== undefined &&
-      (!regexFecha.test(hasta) || Number.isNaN(new Date(hasta).getTime()))
-    ) {
-      throw new BadRequestException({
-        mensaje: 'El formato de fecha no es válido, usá YYYY-MM-DD',
-      });
-    }
-    if (desde && hasta) {
-      const fechaDesde = new Date(desde).getTime();
-      const fechaHasta = new Date(hasta).getTime();
-      if (fechaDesde > fechaHasta) {
-        throw new BadRequestException({
-          mensaje: 'La fecha de inicio no puede ser mayor que la fecha de fin',
-        });
-      }
-    }
-    if (
-      estado !== undefined &&
-      estado.trim() !== '' &&
-      !['aprobado', 'aprobada', 'rechazado', 'rechazada'].includes(
-        estado.trim().toLowerCase(),
-      )
-    ) {
-      throw new BadRequestException({
-        mensaje: 'El estado ingresado no es válido. Usá aprobado o rechazado',
-      });
-    }
+    this.validarFiltrosHistorial(desde, hasta, estado);
 
     return this.catequesisService.historial({
       estado: estado?.trim() || undefined,
@@ -118,6 +89,22 @@ export class CatequesisController {
       desde,
       hasta,
     });
+  }
+
+  /** Valida el rango de fechas y el estado usados por el historial. */
+  private validarFiltrosHistorial(
+    desde?: string,
+    hasta?: string,
+    estado?: string,
+  ): void {
+    validarRangoFechas(desde, hasta);
+
+    const estadoNormalizado = estado?.trim().toLowerCase();
+    if (estadoNormalizado && !ESTADOS_HISTORIAL.includes(estadoNormalizado)) {
+      throw new BadRequestException({
+        mensaje: 'El estado ingresado no es válido. Usá aprobado o rechazado',
+      });
+    }
   }
 
   @Get('exportar')
@@ -161,6 +148,10 @@ export class CatequesisController {
       if (error instanceof HttpException) {
         throw error;
       }
+      this.logger.error(
+        'No se pudo generar el archivo de exportación de catequesis',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new InternalServerErrorException({
         mensaje: 'No se pudo generar el archivo de exportación.',
       });
@@ -208,7 +199,7 @@ export class CatequesisController {
     try {
       return await this.catequesisService.create(body);
     } catch (error) {
-      this.rethrowAsBadRequest(error);
+      rethrowComoBadRequest(error);
     }
   }
 
@@ -221,7 +212,7 @@ export class CatequesisController {
         { name: 'FeBautismoArchivo', maxCount: 1 },
         { name: 'ComprobanteArchivo', maxCount: 1 },
       ],
-      LIMITE_ARCHIVOS_CATEQUESIS,
+      SUBIDA_ARCHIVO_MEMORIA,
     ),
   )
   async createWithFiles(
@@ -232,20 +223,10 @@ export class CatequesisController {
       ComprobanteArchivo?: Express.Multer.File[];
     },
   ) {
-    if (!payload?.trim()) {
-      throw new BadRequestException({
-        mensaje: 'Los datos de la inscripción son obligatorios.',
-      });
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(payload);
-    } catch {
-      throw new BadRequestException({
-        mensaje: 'El formato de los datos de inscripción no es válido.',
-      });
-    }
+    const parsed = parsearPayloadJson<CrearInscripcionCatequesisDto>(payload, {
+      vacio: 'Los datos de la inscripción son obligatorios.',
+      invalido: 'El formato de los datos de inscripción no es válido.',
+    });
 
     try {
       const feBautismoArchivo = files.FeBautismoArchivo?.[0];
@@ -263,25 +244,43 @@ export class CatequesisController {
         });
       }
 
-      const requestObject = parsed as CrearInscripcionCatequesisDto;
-      requestObject.datosInscripcion.feBautismoArchivo =
-        await this.fileStorageService.saveCatequesisFile(
+      // Un JSON bien formado puede venir incompleto: si falta una sección,
+      // escribir sobre ella lanzaría un TypeError de JavaScript que llegaría
+      // al usuario como un 400 con mensaje técnico. Se comprueba antes.
+      this.exigirSeccion(
+        parsed,
+        'datosInscripcion',
+        'Faltan los datos de la inscripción.',
+      );
+      this.exigirSeccion(parsed, 'datosPago', 'Faltan los datos del pago.');
+
+      // El DTO exige las dos rutas de archivo: se validan con un marcador para
+      // revisar el resto de los datos ANTES de subir y así no dejar archivos
+      // huérfanos cuando el payload es inválido.
+      parsed.datosInscripcion.feBautismoArchivo = MARCADOR_ARCHIVO_PENDIENTE;
+      parsed.datosPago.comprobanteArchivo = MARCADOR_ARCHIVO_PENDIENTE;
+
+      const dto = await validarPayloadMultipart(
+        parsed,
+        CrearInscripcionCatequesisDto,
+      );
+
+      const [feBautismoUrl, comprobanteUrl] = await Promise.all([
+        this.fileStorageService.saveCatequesisFile(
           feBautismoArchivo,
           'fe-bautismo',
-        );
-      requestObject.datosPago.comprobanteArchivo =
-        await this.fileStorageService.saveCatequesisFile(
+        ),
+        this.fileStorageService.saveCatequesisFile(
           comprobanteArchivo,
           'comprobante',
-        );
+        ),
+      ]);
+      dto.datosInscripcion.feBautismoArchivo = feBautismoUrl;
+      dto.datosPago.comprobanteArchivo = comprobanteUrl;
 
-      const dto = await this.validateDto(
-        CrearInscripcionCatequesisDto,
-        requestObject,
-      );
       return await this.catequesisService.create(dto);
     } catch (error) {
-      this.rethrowAsBadRequest(error);
+      rethrowComoBadRequest(error);
     }
   }
 
@@ -296,8 +295,7 @@ export class CatequesisController {
       throw new BadRequestException({ mensaje: MENSAJE_ID_INVALIDO });
     }
 
-    const dto = await this.validateDto(ActualizarEstadoInscripcionDto, body);
-    const estadoNormalizado = normalizarEstadoInscripcion(dto.estado);
+    const estadoNormalizado = normalizarEstadoInscripcion(body.estado);
 
     if (!estadoNormalizado) {
       throw new BadRequestException({ mensaje: MENSAJE_ESTADO_INVALIDO });
@@ -306,7 +304,7 @@ export class CatequesisController {
     const response = await this.catequesisService.updateEstado(
       id,
       estadoNormalizado,
-      dto.observacion,
+      body.observacion,
       req.user.sub,
     );
 
@@ -317,67 +315,17 @@ export class CatequesisController {
     return response;
   }
 
-  private async validateDto<T extends object>(
-    cls: new () => T,
-    plain: object,
-  ): Promise<T> {
-    const dto = plainToInstance(cls, plain, {
-      enableImplicitConversion: true,
-    });
-    const errors = await validate(dto, {
-      whitelist: true,
-      forbidNonWhitelisted: false,
-    });
-
-    if (errors.length > 0) {
-      throw new BadRequestException(this.buildValidationResponse(errors));
+  /** Garantiza que una sección del payload exista antes de usarla. */
+  private exigirSeccion(
+    parsed: unknown,
+    clave: keyof CrearInscripcionCatequesisDto,
+    mensaje: string,
+  ): void {
+    const raiz = parsed as Partial<CrearInscripcionCatequesisDto> | null;
+    const seccion = raiz?.[clave];
+    if (!seccion || typeof seccion !== 'object') {
+      throw new BadRequestException({ mensaje });
     }
-
-    return dto;
-  }
-
-  private buildValidationResponse(
-    errors: Awaited<ReturnType<typeof validate>>,
-  ): { mensaje: string; errores: Record<string, string[]> } {
-    const errores: Record<string, string[]> = {};
-
-    const collect = (
-      validationErrors: Awaited<ReturnType<typeof validate>>,
-      parent = '',
-    ) => {
-      for (const error of validationErrors) {
-        const property = parent
-          ? `${parent}.${error.property}`
-          : error.property;
-
-        if (error.constraints) {
-          errores[property] = Object.values(error.constraints);
-        }
-
-        if (error.children?.length) {
-          collect(error.children, property);
-        }
-      }
-    };
-
-    collect(errors);
-
-    const mensaje =
-      Object.values(errores).flat()[0] ?? 'Errores de validación.';
-
-    return { mensaje, errores };
-  }
-
-  private rethrowAsBadRequest(error: unknown): never {
-    if (error instanceof BadRequestException) {
-      throw error;
-    }
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'No se pudo procesar la solicitud.';
-    throw new BadRequestException({ mensaje: message });
   }
 
   private filtroExportacion(

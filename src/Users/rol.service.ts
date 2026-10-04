@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import {
   IDS_PERMISOS_ROL,
   claveDesdeNombre,
@@ -36,11 +36,23 @@ export class RolService {
   }
 
   async assertExisten(claves: string[]): Promise<Rol[]> {
-    const roles: Rol[] = [];
-    for (const clave of claves) {
-      roles.push(await this.assertExiste(clave));
-    }
-    return roles;
+    if (claves.length === 0) return [];
+
+    // una sola consulta para todas las claves (antes: una por clave)
+    const existentes = await this.rolRepository.find({
+      where: { clave: In(claves) },
+    });
+    const porClave = new Map(existentes.map((rol) => [rol.clave, rol]));
+
+    return claves.map((clave) => {
+      const rol = porClave.get(clave);
+      if (!rol) {
+        throw new BadRequestException({
+          mensaje: 'El rol indicado no existe.',
+        });
+      }
+      return rol;
+    });
   }
 
   async create(dto: CreateRolDto) {
@@ -84,18 +96,19 @@ export class RolService {
     return this.rolRepository.save(rol);
   }
 
-  tieneAccesoPanel(rol: Rol | null): boolean {
-    if (!rol) return false;
-    return rol.clave === 'secretario' || rol.permisos.includes('panel');
-  }
-
   async permisosDeRoles(claves: string[]): Promise<string[]> {
     const permisos = new Set<string>();
-    for (const clave of claves) {
-      const rol = await this.findByClave(clave);
-      if (!rol) continue;
-      for (const permiso of rol.permisos) permisos.add(permiso);
+
+    if (claves.length > 0) {
+      // una sola consulta en lugar de una por clave (corre en cada login/refresh)
+      const roles = await this.rolRepository.find({
+        where: { clave: In(claves) },
+      });
+      for (const rol of roles) {
+        for (const permiso of rol.permisos) permisos.add(permiso);
+      }
     }
+
     if (claves.includes('secretario')) permisos.add('panel');
     return [...permisos];
   }

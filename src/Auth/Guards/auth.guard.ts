@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -10,10 +11,13 @@ import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../Decorators/public.decorator';
 import { UsuarioService } from '../../Users/usuario.service';
 import { ACCESS_TOKEN_COOKIE } from '../auth-cookies';
+import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
 
 @Injectable()
 //este metodo se ejecuta antes de una peticion y valida que el usuario este autenticado y pueda usar el recurso solictado
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
@@ -32,7 +36,7 @@ export class AuthGuard implements CanActivate {
     }
 
     //el request es lo que envia el cliente
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
 
     const token = this.extractToken(request);
 
@@ -40,8 +44,10 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
     try {
-      const payload = await this.jwtService.verifyAsync(token);
-      request['user'] = payload;
+      const payload = await this.jwtService.verifyAsync<
+        RequestWithUser['user'] & { iat: number }
+      >(token);
+      request.user = payload;
 
       // Si el usuario fue desactivado, los tokens emitidos en sesiones previas
       // dejan de ser válidos para cualquier dispositivo.
@@ -56,7 +62,20 @@ export class AuthGuard implements CanActivate {
       // Si la validación es exitosa, devuelve true, permitiendo el acceso.
       // Si la validación falla, devuelve false, denegando el acceso.
       return true; // o false, dependiendo de la lógica de tu guard.
-    } catch {
+    } catch (error) {
+      // un token vencido o inválido es normal; lo que no hay que tapar es un
+      // fallo real (base de datos, configuración), así que ese sí se loguea
+      const nombre = (error as { name?: string })?.name;
+      const errorDeToken =
+        nombre === 'TokenExpiredError' ||
+        nombre === 'JsonWebTokenError' ||
+        nombre === 'NotBeforeError';
+      if (!errorDeToken) {
+        this.logger.error(
+          `No se pudo validar la sesión: ${String(error)}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
       throw new UnauthorizedException();
     }
   }

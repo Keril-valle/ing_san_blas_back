@@ -8,43 +8,15 @@ import { AppService } from './app.service';
 import { AuthModule } from './Auth/auth.module';
 import { UsuarioModule } from './Users/usuario.module';
 import { LandingModule } from './landing/landing.module';
-import { Usuario } from './Users/Entities/usuario.entity';
-import { RecuperacionContrasena } from './Auth/Entities/recuperacion-contrasena.entity';
-import { Rol } from './Users/Entities/rol.entity';
-import { LandingSection } from './landing/Entities/landing-section.entity';
-import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';
-import { HistorialRechazos } from './Modules/Solicitudes/Entities/historial-rechazos.entity';
 import { SolicSacramentoModule } from './Modules/Solicitudes/solic-sacramento.module';
-import { Evento } from './Modules/Eventos/Entities/evento.entity';
 import { EventosModule } from './Modules/Eventos/evento.module';
-import { Donacion } from './Modules/Donaciones/Entities/donacion.entity';
 import { DonacionesModule } from './Modules/Donaciones/donaciones.module';
-import { Bautismo } from './Modules/RegistroSacramentos/Entities/bautismo.entity';
-import { Comunion } from './Modules/RegistroSacramentos/Entities/comunion.entity';
-import { Confirmacion } from './Modules/RegistroSacramentos/Entities/confirmacion.entity';
-import { Matrimonio } from './Modules/RegistroSacramentos/Entities/matrimonio.entity';
-import { Sacramento } from './Modules/RegistroSacramentos/Entities/sacramento.entity';
-import { PersonaSacramento } from './Modules/RegistroSacramentos/Entities/persona-sacramento.entity';
-import { ParroquiaSacramento } from './Modules/RegistroSacramentos/Entities/parroquia-sacramento.entity';
-import { PresbiteroSacramento } from './Modules/RegistroSacramentos/Entities/presbitero-sacramento.entity';
-import { SacramentoRegistro } from './Modules/RegistroSacramentos/Entities/sacramento-registro.entity';
-import { BautismoRegistro } from './Modules/RegistroSacramentos/Entities/bautismo-registro.entity';
-import { BautismoAbuelo } from './Modules/RegistroSacramentos/Entities/bautismo-abuelo.entity';
-import { ComunionRegistro } from './Modules/RegistroSacramentos/Entities/comunion-registro.entity';
-import { ConfirmacionRegistro } from './Modules/RegistroSacramentos/Entities/confirmacion-registro.entity';
-import { MatrimonioRegistro } from './Modules/RegistroSacramentos/Entities/matrimonio-registro.entity';
 import { RegistroSacramentosModule } from './Modules/RegistroSacramentos/registro-sacramentos.module';
-import { InscripcionCatequesis } from './Modules/Catequesis/Entities/inscripcion-catequesis.entity';
-import { Catequizando } from './Modules/Catequesis/Entities/catequizando.entity';
-import { BautismoCatequizando } from './Modules/Catequesis/Entities/bautismo-catequizando.entity';
-import { AdecuacionCatequizando } from './Modules/Catequesis/Entities/adecuacion-catequizando.entity';
-import { CondicionSaludCatequizando } from './Modules/Catequesis/Entities/condicion-salud-catequizando.entity';
-import { MadreCatequizando } from './Modules/Catequesis/Entities/madre-catequizando.entity';
-import { PagoInscripcionCatequesis } from './Modules/Catequesis/Entities/pago-inscripcion-catequesis.entity';
-import { PersonaInscribeCatequesis } from './Modules/Catequesis/Entities/persona-inscribe-catequesis.entity';
 import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './Notifications/notifications.module';
+import { ENTIDADES } from './entities';
+import { CommonModule } from './Common/common.module';
 
 @Module({
   imports: [
@@ -64,39 +36,8 @@ import { NotificationsModule } from './Notifications/notifications.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [
-          Usuario,
-          RecuperacionContrasena,
-          Rol,
-          LandingSection,
-          SolicSacramento,
-          HistorialRechazos,
-          Evento,
-          Donacion,
-          Bautismo,
-          Comunion,
-          Confirmacion,
-          Matrimonio,
-          Sacramento,
-          PersonaSacramento,
-          ParroquiaSacramento,
-          PresbiteroSacramento,
-          SacramentoRegistro,
-          BautismoRegistro,
-          BautismoAbuelo,
-          ComunionRegistro,
-          ConfirmacionRegistro,
-          MatrimonioRegistro,
-          InscripcionCatequesis,
-          Catequizando,
-          BautismoCatequizando,
-          AdecuacionCatequizando,
-          CondicionSaludCatequizando,
-          MadreCatequizando,
-          PagoInscripcionCatequesis,
-          PersonaInscribeCatequesis,
-        ],
-        synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
+        entities: ENTIDADES,
+        synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automáticamente
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL
         },
@@ -119,6 +60,7 @@ import { NotificationsModule } from './Notifications/notifications.module';
     LandingModule,
     DashboardModule,
     NotificationsModule, // correos (Brevo), global así que queda disponible para todos los módulos
+    CommonModule, // utilidades compartidas (subida a Cloudinary), global
   ],
   controllers: [AppController],
   providers: [

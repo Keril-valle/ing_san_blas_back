@@ -6,15 +6,10 @@ export const DATOS_CONTACTO_PARROQUIA = {
   lugar: LUGAR_PARROQUIA,
 };
 
-// Plantillas de correo de donaciones (mismo diseño que los HTML sueltos de /Template, pero en TS para que viajen en el build de Railway sin pelear con assets)
-function escapeHtml(value: string): string {
-  return value // escapamos lo que escribe el usuario para que nadie meta HTML raro en el correo
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
+import { escapeHtml } from './escape-html';
+
+// Plantillas de correo de donaciones (mismo diseño que las del resto de módulos,
+// pero en TS para que viajen en el build de Railway sin pelear con assets)
 
 // Arma el correo genérico de cambio de estado (lo usa el endpoint PATCH /Donacion/:id/estado)
 export function renderDonacionEstadoHtml(input: {

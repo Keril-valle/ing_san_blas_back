@@ -9,53 +9,18 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
-  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
-  Matches,
   MaxLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { transformarTexto } from '../../Common/Utils/normalizar-texto';
-
-function aYoutubeEmbed({ value }: { value: unknown }) {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  const valor = value.trim();
-  const embed = valor.match(
-    /^https:\/\/(?:www\.)?youtube\.com\/embed\/([A-Za-z0-9_-]+)/i,
-  );
-  if (embed) {
-    return `https://www.youtube.com/embed/${embed[1]}`;
-  }
-
-  const watch = valor.match(/[?&]v=([A-Za-z0-9_-]+)/);
-  if (watch) {
-    return `https://www.youtube.com/embed/${watch[1]}`;
-  }
-
-  const corto = valor.match(/^https:\/\/youtu\.be\/([A-Za-z0-9_-]+)/i);
-  if (corto) {
-    return `https://www.youtube.com/embed/${corto[1]}`;
-  }
-
-  return valor;
-}
-
-function recortarLineas({ value }: { value: unknown }) {
-  if (!Array.isArray(value)) {
-    return value;
-  }
-
-  return value
-    .map((item) => (typeof item === 'string' ? item.trim() : item))
-    .filter((item) => typeof item === 'string' && item.length > 0);
-}
+import {
+  recortarLineas,
+  transformarTexto,
+} from '../../Common/Utils/normalizar-texto';
 
 export class UpdateHeroDto {
   @Transform(transformarTexto)

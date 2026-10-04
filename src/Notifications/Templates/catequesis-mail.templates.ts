@@ -1,13 +1,5 @@
 import { DATOS_CONTACTO_PARROQUIA } from './donacion-mail.templates';
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
+import { escapeHtml } from './escape-html';
 
 export function etiquetaNivelCatequesis(nivel: string): string {
   const valor = nivel.trim().toLowerCase();

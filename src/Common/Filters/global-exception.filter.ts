@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
+import { esMensajeTecnico } from '../Utils/mensajes-error';
 
 interface FriendlyError {
   status: number;
@@ -24,11 +25,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     const { status, mensaje, errores } = this.resolveException(exception);
+    const resumen = `[${request.method}] ${request.url} -> ${status}`;
 
-    this.logger.error(
-      `[${request.method}] ${request.url} -> ${status}`,
-      exception instanceof Error ? exception.stack : String(exception),
-    );
+    // 5xx sí lleva stack; los 4xx son ruido de negocio y no necesitan stack.
+    if (status >= 500) {
+      this.logger.error(
+        resumen,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else {
+      this.logger.warn(resumen);
+    }
 
     response.status(status).json({
       statusCode: status,
@@ -73,6 +80,30 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
+    if (this.isBodyParserError(exception)) {
+      const type = (exception as { type?: unknown }).type;
+      const demasiadoGrande = type === 'entity.too.large';
+      return {
+        status: demasiadoGrande
+          ? HttpStatus.PAYLOAD_TOO_LARGE
+          : HttpStatus.BAD_REQUEST,
+        mensaje: demasiadoGrande
+          ? 'La solicitud es demasiado grande. Verifique el tamaño de los datos enviados.'
+          : 'Los datos enviados no son válidos. Revise e intente de nuevo.',
+      };
+    }
+
+    if (this.isMulterError(exception)) {
+      const code = (exception as Error & { code?: string }).code;
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        mensaje:
+          code === 'LIMIT_FILE_SIZE'
+            ? 'El archivo no puede superar 5 MB.'
+            : 'No se pudo procesar el archivo enviado. Verifique el formato e intente de nuevo.',
+      };
+    }
+
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       mensaje:
@@ -80,13 +111,38 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
   }
 
+  /**
+   * body-parser lanza errores con `type = 'entity.*'` (p. ej.
+   * `entity.too.large` cuando el cuerpo pasa de 100 KB). Sin esta rama
+   * respondían 500 y el usuario veía "error inesperado" en vez del motivo real.
+   */
+  private isBodyParserError(exception: unknown): boolean {
+    if (typeof exception !== 'object' || exception === null) return false;
+    const type = (exception as { type?: unknown }).type;
+    return typeof type === 'string' && type.startsWith('entity.');
+  }
+
+  /** Multer lanza errores con `name = 'MulterError'` y un código `LIMIT_*`. */
+  private isMulterError(exception: unknown): boolean {
+    if (!(exception instanceof Error)) return false;
+    const code = (exception as Error & { code?: unknown }).code;
+    return (
+      exception.name === 'MulterError' ||
+      (typeof code === 'string' && code.startsWith('LIMIT_'))
+    );
+  }
+
   private resolveHttpExceptionMessage(exception: HttpException): string {
     const response = exception.getResponse();
+    const status: HttpStatus = exception.getStatus();
 
     if (typeof response === 'string') {
-      return this.isSafeUserMessage(response)
-        ? response
-        : 'La solicitud no pudo procesarse. Verifique los datos e intente de nuevo.';
+      if (
+        !this.isFrameworkDefaultMessage(response) &&
+        this.isSafeUserMessage(response)
+      ) {
+        return response;
+      }
     }
 
     if (typeof response === 'object' && response !== null) {
@@ -105,29 +161,30 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
       if (
         typeof payload.message === 'string' &&
+        !this.isFrameworkDefaultMessage(payload.message) &&
         this.isSafeUserMessage(payload.message)
       ) {
         return payload.message;
       }
     }
 
-    if (exception.getStatus() === HttpStatus.NOT_FOUND) {
+    if (status === HttpStatus.NOT_FOUND) {
       return 'El recurso solicitado no fue encontrado.';
     }
 
-    if (exception.getStatus() === HttpStatus.BAD_REQUEST) {
+    if (status === HttpStatus.BAD_REQUEST) {
       return 'Los datos enviados no son válidos. Revise e intente de nuevo.';
     }
 
-    if (exception.getStatus() === HttpStatus.UNAUTHORIZED) {
+    if (status === HttpStatus.UNAUTHORIZED) {
       return 'No autorizado, debés iniciar sesión para acceder a esta función';
     }
 
-    if (exception.getStatus() === HttpStatus.FORBIDDEN) {
+    if (status === HttpStatus.FORBIDDEN) {
       return 'No tiene permisos para realizar esta acción.';
     }
 
-    if (exception.getStatus() === HttpStatus.TOO_MANY_REQUESTS) {
+    if (status === HttpStatus.TOO_MANY_REQUESTS) {
       return 'Demasiadas solicitudes. Espere un momento e intente de nuevo.';
     }
 
@@ -160,9 +217,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     );
   }
 
+  /**
+   * Nest/Express devuelven mensajes genéricos en inglés ("Unauthorized",
+   * "Cannot GET /ruta", "Validation failed (numeric string is expected)" de
+   * ParseIntPipe). Al usuario le llega el texto español del estado.
+   */
+  private isFrameworkDefaultMessage(message: string): boolean {
+    const limpio = message.trim().toLowerCase();
+    return (
+      limpio === 'unauthorized' ||
+      limpio === 'forbidden' ||
+      limpio === 'not found' ||
+      limpio === 'bad request' ||
+      limpio === 'internal server error' ||
+      limpio === 'service unavailable' ||
+      limpio.startsWith('throttlerexception') ||
+      limpio.startsWith('validation failed') ||
+      /^cannot (get|post|put|patch|delete|head|options) /.test(limpio)
+    );
+  }
+
   private isSafeUserMessage(message: string): boolean {
-    const technicalPattern =
-      /(query failed|syntax error|typeorm|exception|stack|sql|postgres|ECONN|at \w+\()/i;
-    return message.trim().length > 0 && !technicalPattern.test(message);
+    return message.trim().length > 0 && !esMensajeTecnico(message);
   }
 }

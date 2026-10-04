@@ -346,11 +346,13 @@ export class CatequesisService {
     return inscripcion ? this.toDetalleDto(inscripcion) : null;
   }
 
-  async findForExport(filtros: {
-    estado?: string;
-    nivel?: string;
-    filial?: string;
-  } = {}): Promise<
+  async findForExport(
+    filtros: {
+      estado?: string;
+      nivel?: string;
+      filial?: string;
+    } = {},
+  ): Promise<
     Array<{
       nombre: string;
       primerApellido: string;
@@ -374,17 +376,15 @@ export class CatequesisService {
     }
 
     if (filtros.nivel) {
-      query.andWhere(
-        'LOWER(inscripcion.nivelAInscribirse) = LOWER(:nivel)',
-        { nivel: filtros.nivel },
-      );
+      query.andWhere('LOWER(inscripcion.nivelAInscribirse) = LOWER(:nivel)', {
+        nivel: filtros.nivel,
+      });
     }
 
     if (filtros.filial) {
-      query.andWhere(
-        'LOWER(inscripcion.centroCatequesis) = LOWER(:filial)',
-        { filial: filtros.filial },
-      );
+      query.andWhere('LOWER(inscripcion.centroCatequesis) = LOWER(:filial)', {
+        filial: filtros.filial,
+      });
     }
 
     const inscripciones = await query.getMany();
@@ -443,7 +443,11 @@ export class CatequesisService {
     inscripcion.revisadoPor = revisorId ?? null;
 
     const saved = await this.inscripcionRepository.save(inscripcion);
-    await this.avisarPorCorreo(
+
+    // El correo sale en segundo plano: avisarPorCorreo traga sus propios
+    // errores, así que una caída de Brevo (o su latencia) no puede dejar al
+    // usuario del panel esperando ni hacer fallar la actualización.
+    void this.avisarPorCorreo(
       this.armarAviso(inscripcion, estadoNormalizado, observacion),
     );
 

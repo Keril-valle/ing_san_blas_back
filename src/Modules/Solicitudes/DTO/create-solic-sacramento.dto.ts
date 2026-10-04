@@ -74,14 +74,18 @@ export class CreateSolicSacramentoDto {
   @Max(99999999)
   Telefono: number;
 
+  /**
+   * La columna nace con `DEFAULT ''` en BD y el formulario público todavía no
+   * la envía, así que es opcional: si no llega, se guarda vacía.
+   */
+  @IsOptional()
   @Transform(normalizarTexto)
   @IsString()
-  @IsNotEmpty({ message: 'La parroquia es obligatoria.' })
   @Length(1, 100)
   @Matches(nombreValido, {
     message: 'La parroquia solo puede contener letras, espacios o guiones',
   })
-  Parroquia: string;
+  Parroquia?: string;
 
   @Transform(normalizarTexto)
   @IsString()
@@ -91,10 +95,4 @@ export class CreateSolicSacramentoDto {
     message: 'Motivo contiene caracteres no permitidos',
   })
   Motivo: string;
-}
-
-export class CreateSolicSacramentoWithFileDto {
-  @IsString()
-  @IsNotEmpty()
-  Payload: string;
 }

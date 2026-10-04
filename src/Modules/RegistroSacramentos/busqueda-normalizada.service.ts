@@ -26,13 +26,37 @@ import { PersonaSacramento } from './Entities/persona-sacramento.entity';
 import { SacramentoRegistro } from './Entities/sacramento-registro.entity';
 import { FILIALES_CELEBRACION_SACRAMENTAL } from './constants/filiales-celebracion';
 
-interface SacramentoNormalizadoItem {
+export interface SacramentoNormalizadoItem {
   id: number;
   tipo: TipoSacramentoRegistro;
   nombre: string;
   cedula: string | null;
   fecha: string;
+  fechaRegistro: string;
   parroquia: string;
+}
+
+export interface PersonaBuscada {
+  id: number;
+  cedula: string | null;
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
+  nacionalidad: string | null;
+}
+
+export interface ParroquiaCatalogo {
+  id: number;
+  nombre: string;
+  canton: string | null;
+  provincia: string | null;
+}
+
+export interface PresbiteroCatalogo {
+  id: number;
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
 }
 
 export interface ResultadoSacramentosNormalizados {
@@ -126,6 +150,26 @@ export class BusquedaNormalizadaService {
       return where;
     };
 
+    // Cada rama del UNION repite el mismo SELECT: cambian únicamente la tabla
+    // de detalle, las uniones hacia persona y los alias de nombre/cédula.
+    const ramaUnir = (
+      tipo: TipoSacramentoRegistro,
+      joinsDetalle: string,
+      aliasPersona: string,
+      personas: string[],
+      aliasCedula = `${aliasPersona}.cedula`,
+    ): string => `
+        SELECT s.id_sacramento AS id, s.tipo_sacramento AS tipo,
+          concat_ws(' ', ${aliasPersona}.nombre, ${aliasPersona}.primer_apellido, ${aliasPersona}.segundo_apellido) AS nombre,
+          ${aliasCedula} AS cedula, s.fecha_sacramento AS fecha,
+          to_char(s.creado_en AT TIME ZONE 'America/Costa_Rica', 'YYYY-MM-DD') AS "fechaRegistro",
+          pa.nombre AS parroquia
+        FROM sacramento s
+        ${joinsDetalle}
+        JOIN parroquia pa ON pa.id_parroquia = s.id_parroquia
+        WHERE ${conditions(personas, tipo).join(' AND ')}
+      `;
+
     // Por defecto el listado trae solo bautismos: así una persona con varios
     // sacramentos (bautismo + comunión + ...) aparece una sola vez en la tabla.
     // El resto se consulta desde el detalle o la edición. Con filtro de tipo
@@ -136,65 +180,54 @@ export class BusquedaNormalizadaService {
     const unions: string[] = [];
 
     if (requestedTypes.includes(TipoSacramentoRegistro.Bautismo)) {
-      unions.push(`
-        SELECT s.id_sacramento AS id, s.tipo_sacramento AS tipo,
-          concat_ws(' ', p.nombre, p.primer_apellido, p.segundo_apellido) AS nombre,
-          p.cedula, s.fecha_sacramento AS fecha,
-          to_char(s.creado_en AT TIME ZONE 'America/Costa_Rica', 'YYYY-MM-DD') AS "fechaRegistro",
-          pa.nombre AS parroquia
-        FROM sacramento s
-        JOIN bautismo b ON b.id_sacramento = s.id_sacramento
-        JOIN persona p ON p.id_persona = b.id_bautizado
-        JOIN parroquia pa ON pa.id_parroquia = s.id_parroquia
-        WHERE ${conditions(['p'], TipoSacramentoRegistro.Bautismo).join(' AND ')}
-      `);
+      unions.push(
+        ramaUnir(
+          TipoSacramentoRegistro.Bautismo,
+          `JOIN bautismo b ON b.id_sacramento = s.id_sacramento
+         JOIN persona p ON p.id_persona = b.id_bautizado`,
+          'p',
+          ['p'],
+        ),
+      );
     }
     if (requestedTypes.includes(TipoSacramentoRegistro.Comunion)) {
-      unions.push(`
-        SELECT s.id_sacramento AS id, s.tipo_sacramento AS tipo,
-          concat_ws(' ', p.nombre, p.primer_apellido, p.segundo_apellido) AS nombre,
-          p.cedula, s.fecha_sacramento AS fecha,
-          to_char(s.creado_en AT TIME ZONE 'America/Costa_Rica', 'YYYY-MM-DD') AS "fechaRegistro",
-          pa.nombre AS parroquia
-        FROM sacramento s
-        JOIN comunion c ON c.id_sacramento = s.id_sacramento
-        JOIN persona p ON p.id_persona = c.id_persona
-        JOIN parroquia pa ON pa.id_parroquia = s.id_parroquia
-        WHERE ${conditions(['p'], TipoSacramentoRegistro.Comunion).join(' AND ')}
-      `);
+      unions.push(
+        ramaUnir(
+          TipoSacramentoRegistro.Comunion,
+          `JOIN comunion c ON c.id_sacramento = s.id_sacramento
+         JOIN persona p ON p.id_persona = c.id_persona`,
+          'p',
+          ['p'],
+        ),
+      );
     }
     if (requestedTypes.includes(TipoSacramentoRegistro.Confirmacion)) {
-      unions.push(`
-        SELECT s.id_sacramento AS id, s.tipo_sacramento AS tipo,
-          concat_ws(' ', p.nombre, p.primer_apellido, p.segundo_apellido) AS nombre,
-          p.cedula, s.fecha_sacramento AS fecha,
-          to_char(s.creado_en AT TIME ZONE 'America/Costa_Rica', 'YYYY-MM-DD') AS "fechaRegistro",
-          pa.nombre AS parroquia
-        FROM sacramento s
-        JOIN confirmacion c ON c.id_sacramento = s.id_sacramento
-        JOIN persona p ON p.id_persona = c.id_persona
-        JOIN parroquia pa ON pa.id_parroquia = s.id_parroquia
-        WHERE ${conditions(['p'], TipoSacramentoRegistro.Confirmacion).join(' AND ')}
-      `);
+      unions.push(
+        ramaUnir(
+          TipoSacramentoRegistro.Confirmacion,
+          `JOIN confirmacion c ON c.id_sacramento = s.id_sacramento
+         JOIN persona p ON p.id_persona = c.id_persona`,
+          'p',
+          ['p'],
+        ),
+      );
     }
     if (requestedTypes.includes(TipoSacramentoRegistro.Matrimonio)) {
-      unions.push(`
-        SELECT s.id_sacramento AS id, s.tipo_sacramento AS tipo,
-          concat_ws(' ', p1.nombre, p1.primer_apellido, p1.segundo_apellido) AS nombre,
-          coalesce(p1.cedula, p2.cedula) AS cedula, s.fecha_sacramento AS fecha,
-          to_char(s.creado_en AT TIME ZONE 'America/Costa_Rica', 'YYYY-MM-DD') AS "fechaRegistro",
-          pa.nombre AS parroquia
-        FROM sacramento s
-        JOIN matrimonio m ON m.id_sacramento = s.id_sacramento
-        JOIN persona p1 ON p1.id_persona = m.id_contrayente1
-        JOIN persona p2 ON p2.id_persona = m.id_contrayente2
-        JOIN parroquia pa ON pa.id_parroquia = s.id_parroquia
-        WHERE ${conditions(['p1', 'p2'], TipoSacramentoRegistro.Matrimonio).join(' AND ')}
-      `);
+      unions.push(
+        ramaUnir(
+          TipoSacramentoRegistro.Matrimonio,
+          `JOIN matrimonio m ON m.id_sacramento = s.id_sacramento
+         JOIN persona p1 ON p1.id_persona = m.id_contrayente1
+         JOIN persona p2 ON p2.id_persona = m.id_contrayente2`,
+          'p1',
+          ['p1', 'p2'],
+          'coalesce(p1.cedula, p2.cedula)',
+        ),
+      );
     }
 
     const unionQuery = unions.join(' UNION ALL ');
-    const countResult = await this.dataSource.query(
+    const countResult = await this.dataSource.query<{ total: number }[]>(
       `SELECT count(*)::int AS total FROM (${unionQuery}) AS resultados`,
       parameters,
     );
@@ -211,7 +244,7 @@ export class BusquedaNormalizadaService {
     const sortDirection = filtros.sortDirection === 'asc' ? 'ASC' : 'DESC';
     const offsetParam = addParameter((page - 1) * pageSize);
     const limitParam = addParameter(pageSize);
-    const items = await this.dataSource.query(
+    const items = await this.dataSource.query<SacramentoNormalizadoItem[]>(
       `SELECT id, tipo, nombre, cedula, fecha, "fechaRegistro", parroquia
        FROM (${unionQuery}) AS resultados
        ORDER BY ${sortColumn} ${sortDirection}, id DESC
@@ -258,17 +291,19 @@ export class BusquedaNormalizadaService {
     );
   }
 
-  // Devuelve todos los sacramentos de una persona (por cédula exacta) agrupados.
+  // Devuelve todos los sacramentos de una persona por cédula. Los guiones y
+  // espacios se ignoran a ambos lados, igual que en el listado, para que
+  // "5-0463-0675" y "504630675" encuentren a la misma persona.
   async obtenerSacramentosPorCedula(cedula: string) {
     return this.dataSource
       .transaction(async (manager) => {
-        const personas = await manager.query(
+        const personas = await manager.query<PersonaBuscada[]>(
           `SELECT id_persona AS id, cedula, nombre,
                 primer_apellido AS "primerApellido",
                 segundo_apellido AS "segundoApellido",
                 nacionalidad
          FROM persona
-         WHERE lower(trim(cedula)) = lower(trim($1))`,
+         WHERE replace(lower(trim(cedula)), '-', '') = replace(lower(trim($1)), '-', '')`,
           [cedula],
         );
         const persona = personas[0];
@@ -311,7 +346,7 @@ export class BusquedaNormalizadaService {
       [FILIALES_CELEBRACION_SACRAMENTAL],
     );
 
-    return this.dataSource.query(
+    return this.dataSource.query<ParroquiaCatalogo[]>(
       `
       SELECT p.id_parroquia AS id, p.nombre, p.canton, p.provincia
       FROM parroquia p
@@ -325,7 +360,7 @@ export class BusquedaNormalizadaService {
 
   // Catálogo de presbíteros para el selector del formulario.
   async listarPresbiteros() {
-    return this.dataSource.query(
+    return this.dataSource.query<PresbiteroCatalogo[]>(
       `SELECT id_presbitero AS id, nombre,
               primer_apellido AS "primerApellido",
               segundo_apellido AS "segundoApellido"
@@ -837,7 +872,7 @@ export class BusquedaNormalizadaService {
     where: string,
     params: unknown[],
   ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
+    const rows = await manager.query<Record<string, unknown>[]>(
       `
       SELECT
         s.id_sacramento AS id,
@@ -892,7 +927,7 @@ export class BusquedaNormalizadaService {
     where: string,
     params: unknown[],
   ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
+    const rows = await manager.query<Record<string, unknown>[]>(
       `
       SELECT
         s.id_sacramento AS id,
@@ -924,7 +959,7 @@ export class BusquedaNormalizadaService {
     where: string,
     params: unknown[],
   ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
+    const rows = await manager.query<Record<string, unknown>[]>(
       `
       SELECT
         s.id_sacramento AS id,
@@ -956,7 +991,7 @@ export class BusquedaNormalizadaService {
     where: string,
     params: unknown[],
   ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
+    const rows = await manager.query<Record<string, unknown>[]>(
       `
       SELECT
         s.id_sacramento AS id,

@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  ParseIntPipe,
   Delete,
   HttpCode,
   HttpStatus,
@@ -12,7 +13,6 @@ import {
   Req,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -28,6 +28,8 @@ import { Public } from '../../Auth/Decorators/public.decorator';
 import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import type { Request } from 'express';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
+import { leerPayloadMultipart } from '../../Common/Utils/multipart-payload';
+import { SUBIDA_ARCHIVO_MEMORIA } from '../../Common/Storage/subida-archivo.options';
 
 @Controller('solic-sacramento')
 export class SolicSacramentoController {
@@ -43,31 +45,17 @@ export class SolicSacramentoController {
   @Public()
   @Post('con-imagen')
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FileInterceptor('archivo'))
+  @UseInterceptors(FileInterceptor('archivo', SUBIDA_ARCHIVO_MEMORIA))
   async createWithImage(
     @Req() req: Request,
     @UploadedFile() archivo?: Express.Multer.File,
   ) {
-    const payload = (req.body as { Payload?: string } | undefined)?.Payload;
-    if (!payload?.trim()) {
-      throw new BadRequestException({
-        mensaje: 'Los datos de la solicitud son obligatorios.',
-      });
-    }
+    const payload = await leerPayloadMultipart(req, CreateSolicSacramentoDto, {
+      vacio: 'Los datos de la solicitud son obligatorios.',
+      invalido: 'El formato de los datos de la solicitud no es válido.',
+    });
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(payload);
-    } catch {
-      throw new BadRequestException({
-        mensaje: 'El formato de los datos de la solicitud no es válido.',
-      });
-    }
-
-    return this.solicSacraService.createWithImage(
-      parsed as CreateSolicSacramentoDto,
-      archivo,
-    );
+    return this.solicSacraService.createWithImage(payload, archivo);
   }
 
   @SkipThrottle()
@@ -97,8 +85,8 @@ export class SolicSacramentoController {
 
   @Permisos('constancias')
   @Get('buscar/cedula/:cedula')
-  async BuscarSolicPorCedula(@Param('cedula') cedula: string) {
-    return this.solicSacraService.BuscarSolicPorCedula(+cedula);
+  async BuscarSolicPorCedula(@Param('cedula', ParseIntPipe) cedula: number) {
+    return this.solicSacraService.BuscarSolicPorCedula(cedula);
   }
 
   @Permisos('constancias')
@@ -107,9 +95,10 @@ export class SolicSacramentoController {
     return this.solicSacraService.BuscarPorEstado(estado);
   }
 
+  @Permisos('constancias')
   @Get('estado/:id')
-  async verEstadoSolicitud(@Param('id') id: string) {
-    return this.solicSacraService.verEstadoSolicitud(+id);
+  async verEstadoSolicitud(@Param('id', ParseIntPipe) id: number) {
+    return this.solicSacraService.verEstadoSolicitud(id);
   }
 
   @Permisos('constancias')
@@ -120,27 +109,27 @@ export class SolicSacramentoController {
 
   @Permisos('constancias')
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.solicSacraService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.solicSacraService.findOne(id);
   }
 
   @Permisos('constancias')
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateSolicSacramentoDto: UpdateSolicSacramentoDto,
   ) {
-    return this.solicSacraService.update(+id, updateSolicSacramentoDto);
+    return this.solicSacraService.update(id, updateSolicSacramentoDto);
   }
 
   @Permisos('constancias')
   @Patch('cambiar-estado/:id')
   async CambiarEstadoSolicitud(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() cambiarEstadoDto: CambiarEstadoSolicitudDto,
   ) {
     return this.solicSacraService.CambiarEstadoSolicitud(
-      +id,
+      id,
       cambiarEstadoDto.nuevoEstado,
     );
   }
@@ -148,19 +137,19 @@ export class SolicSacramentoController {
   @Permisos('constancias')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    await this.solicSacraService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.solicSacraService.remove(id);
   }
 
   @Permisos('constancias')
   @Patch(':id/rechazar')
   async rechazarSolicitud(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() rechazarSolicitudDto: RechazarSolicitudDto,
     @Req() req: RequestWithUser,
   ) {
     return this.solicSacraService.rechazarSolicitud(
-      +id,
+      id,
       rechazarSolicitudDto.motivoRechazo,
       rechazarSolicitudDto.detalleRechazo,
       req.user.sub,

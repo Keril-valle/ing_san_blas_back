@@ -34,22 +34,6 @@ export class BautismoController {
     }
     return record;
   }
-  // la ruta es http://localhost:3000/Bautismo
-  /**
-{
-  
-  "nombre": "Juan",
-  "apellido": "Perez",
-  "fechaNacimiento": "2000-01-01",
-  "lugarNacimiento": "Ciudad",
-  "nombrePadre": "Carlos",
-  "nombreMadre": "Maria",
-  "fechaBautismo": "2020-01-01",
-  "lugarBautismo": "Iglesia",
-  "nombrePadrino": "Jose",
-  "nombreMadrina": "Ana"
-}
- */
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

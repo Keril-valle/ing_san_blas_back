@@ -19,8 +19,10 @@ import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 export class UpdateUsuarioDto extends PartialType(
   OmitType(RegisterDto, ['email'] as const),
 ) {
-  @ValidateIf((object) => object.password !== undefined)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @ValidateIf((objeto: UpdateUsuarioDto) => objeto.password !== undefined)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty({ message: 'La confirmación de contraseña es obligatoria' })
   @MaxLength(64)

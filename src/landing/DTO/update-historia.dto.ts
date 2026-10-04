@@ -8,32 +8,10 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
-import { transformarTexto } from '../../Common/Utils/normalizar-texto';
-
-function aYoutubeEmbed({ value }: { value: unknown }) {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  const trimmed = value.trim();
-
-  const watchMatch =
-    /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([A-Za-z0-9_-]+)(?:&.*)?$/.exec(
-      trimmed,
-    );
-  if (watchMatch?.[1]) {
-    return `https://www.youtube.com/embed/${watchMatch[1]}`;
-  }
-
-  const shortMatch = /^https?:\/\/youtu\.be\/([A-Za-z0-9_-]+)(?:\?.*)?$/.exec(
-    trimmed,
-  );
-  if (shortMatch?.[1]) {
-    return `https://www.youtube.com/embed/${shortMatch[1]}`;
-  }
-
-  return trimmed;
-}
+import {
+  convertirAEmbedYoutube,
+  transformarTexto,
+} from '../../Common/Utils/normalizar-texto';
 
 export class UpdateHistoriaDto {
   @Transform(transformarTexto)
@@ -86,7 +64,7 @@ export class UpdateHistoriaDto {
   })
   invitacion: string;
 
-  @Transform(aYoutubeEmbed)
+  @Transform(convertirAEmbedYoutube)
   @IsString({ message: 'El enlace del video debe ser texto.' })
   @IsNotEmpty({ message: 'El enlace del video es obligatorio.' })
   @MaxLength(200, {

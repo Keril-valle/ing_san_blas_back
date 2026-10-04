@@ -5,7 +5,9 @@ import {
   Body,
   Patch,
   Param,
+  ParseIntPipe,
   Delete,
+  NotFoundException,
   Req,
   Query,
 } from '@nestjs/common';
@@ -64,8 +66,12 @@ export class UsuarioController {
 
   @Permisos('usuarios')
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usuarioService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const usuario = await this.usuarioService.findOne(id);
+    if (!usuario) {
+      throw new NotFoundException('No existe un usuario activo con ese ID.');
+    }
+    return usuario;
   }
 
   @Permisos('usuarios')
@@ -77,12 +83,12 @@ export class UsuarioController {
   @Permisos('usuarios')
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateUsuarioDto: UpdateUsuarioDto,
     @Req() req: RequestWithUser,
   ) {
     return this.usuarioService.update(
-      +id,
+      id,
       updateUsuarioDto,
       Number(req.user.sub),
     );
@@ -90,13 +96,19 @@ export class UsuarioController {
 
   @Permisos('usuarios')
   @Get('email/:email')
-  findOneByEmail(@Param('email') email: string) {
-    return this.usuarioService.findOneByEmail(email);
+  async findOneByEmail(@Param('email') email: string) {
+    const usuario = await this.usuarioService.findOneByEmail(email);
+    if (!usuario) {
+      throw new NotFoundException(
+        'No existe un usuario activo con ese correo.',
+      );
+    }
+    return usuario;
   }
 
   @Permisos('usuarios')
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
-    return this.usuarioService.remove(+id, Number(req.user.sub));
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithUser) {
+    return this.usuarioService.remove(id, Number(req.user.sub));
   }
 }

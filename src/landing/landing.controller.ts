@@ -21,11 +21,11 @@ import {
   FileInterceptor,
 } from '@nestjs/platform-express';
 import { ValidationError } from 'class-validator';
-import { memoryStorage } from 'multer';
 import type { Request } from 'express';
 import { Public } from '../Auth/Decorators/public.decorator';
 import { Permisos } from '../Auth/Decorators/permisos.decorator';
 import { mapValidationErrors } from '../Common/validation-errors';
+import { SUBIDA_ARCHIVO_MEMORIA } from '../Common/Storage/subida-archivo.options';
 import {
   UpdateBautizosDto,
   UpdateHeroDto,
@@ -38,11 +38,6 @@ import { UpdateHistoriaDto } from './DTO/update-historia.dto';
 import { UpdateHorariosDto } from './DTO/update-horarios.dto';
 import { RestablecerLandingDto } from './DTO/restablecer-landing.dto';
 import { LandingService } from './landing.service';
-
-const LIMITE_IMAGEN = {
-  storage: memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-};
 
 const landingValidationPipe = new ValidationPipe({
   whitelist: true,
@@ -76,12 +71,14 @@ export class LandingController {
   @Put('hero/con-imagen')
   @Permisos('landing')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
+  @UseInterceptors(FileInterceptor('archivo', SUBIDA_ARCHIVO_MEMORIA))
   updateHeroWithImage(
     @Req() req: Request,
     @UploadedFile() archivo?: Express.Multer.File,
   ) {
-    return this.landingService.update('hero', this.leerPayload(req), archivo);
+    return this.landingService.update('hero', this.leerPayload(req), {
+      imagen: archivo,
+    });
   }
 
   @Put('sobre-nosotros')
@@ -94,16 +91,14 @@ export class LandingController {
   @Put('sobre-nosotros/con-imagen')
   @Permisos('landing')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
+  @UseInterceptors(FileInterceptor('archivo', SUBIDA_ARCHIVO_MEMORIA))
   updateSobreNosotrosWithImage(
     @Req() req: Request,
     @UploadedFile() archivo?: Express.Multer.File,
   ) {
-    return this.landingService.update(
-      'sobre-nosotros',
-      this.leerPayload(req),
-      archivo,
-    );
+    return this.landingService.update('sobre-nosotros', this.leerPayload(req), {
+      imagen: archivo,
+    });
   }
 
   @Put('historia')
@@ -122,7 +117,7 @@ export class LandingController {
         { name: 'archivoEncabezado', maxCount: 1 },
         { name: 'archivoCita', maxCount: 1 },
       ],
-      LIMITE_IMAGEN,
+      SUBIDA_ARCHIVO_MEMORIA,
     ),
   )
   updateHistoriaWithImage(
@@ -133,15 +128,10 @@ export class LandingController {
       archivoCita?: Express.Multer.File[];
     },
   ) {
-    return this.landingService.update(
-      'historia',
-      this.leerPayload(req),
-      undefined,
-      {
-        headerImageUrl: archivos?.archivoEncabezado?.[0],
-        quoteImageUrl: archivos?.archivoCita?.[0],
-      },
-    );
+    return this.landingService.update('historia', this.leerPayload(req), {
+      encabezado: archivos?.archivoEncabezado?.[0],
+      cita: archivos?.archivoCita?.[0],
+    });
   }
 
   @Put('contacto')
@@ -161,16 +151,14 @@ export class LandingController {
   @Put('horarios/con-imagen')
   @Permisos('landing')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
+  @UseInterceptors(FileInterceptor('archivo', SUBIDA_ARCHIVO_MEMORIA))
   updateHorariosWithImage(
     @Req() req: Request,
     @UploadedFile() archivo?: Express.Multer.File,
   ) {
-    return this.landingService.update(
-      'horarios',
-      this.leerPayload(req),
-      archivo,
-    );
+    return this.landingService.update('horarios', this.leerPayload(req), {
+      imagen: archivo,
+    });
   }
 
   @Put('bautizos')
@@ -199,7 +187,7 @@ export class LandingController {
         { name: 'archivoServicio4', maxCount: 1 },
         { name: 'archivoServicio5', maxCount: 1 },
       ],
-      LIMITE_IMAGEN,
+      SUBIDA_ARCHIVO_MEMORIA,
     ),
   )
   updateServiciosWithImage(
@@ -211,13 +199,9 @@ export class LandingController {
     for (const [campo, lista] of Object.entries(archivos ?? {})) {
       if (lista?.[0]) archivosServicios[campo] = lista[0];
     }
-    return this.landingService.update(
-      'servicios',
-      this.leerPayload(req),
-      undefined,
-      undefined,
-      archivosServicios,
-    );
+    return this.landingService.update('servicios', this.leerPayload(req), {
+      servicios: archivosServicios,
+    });
   }
 
   @Put('donaciones')
@@ -253,14 +237,22 @@ export class LandingController {
     }
 
     try {
-      const parsed = JSON.parse(payload) as { data?: Record<string, unknown> };
-      if (parsed && typeof parsed.data === 'object' && parsed.data) {
-        return parsed.data;
+      const parsed: unknown = JSON.parse(payload);
+      // solo objetos: un array en la raíz o en `data` corrompería la sección
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        throw new Error('invalid');
       }
-      if (parsed && typeof parsed === 'object') {
-        return parsed;
+
+      const data = (parsed as { data?: unknown }).data;
+      if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+        return data as Record<string, unknown>;
       }
-      throw new Error('invalid');
+
+      return parsed as Record<string, unknown>;
     } catch {
       throw new BadRequestException({
         mensaje: 'El formato de los datos de la sección no es válido.',

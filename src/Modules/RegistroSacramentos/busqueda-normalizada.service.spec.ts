@@ -33,7 +33,7 @@ const personaRepo = (
 describe('BusquedaNormalizadaService', () => {
   it('applies filters and pagination in the database query', async () => {
     const query = jest
-      .fn()
+      .fn<Promise<unknown[]>, [string, unknown[]]>()
       .mockResolvedValueOnce([{ total: 21 }])
       .mockResolvedValueOnce([
         {
@@ -142,7 +142,9 @@ describe('BusquedaNormalizadaService', () => {
         },
       ]),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -214,7 +216,9 @@ describe('BusquedaNormalizadaService', () => {
         },
       ]),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -254,7 +258,9 @@ describe('BusquedaNormalizadaService', () => {
         return parentRepository;
       }),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -315,7 +321,9 @@ describe('BusquedaNormalizadaService', () => {
         },
       ]),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -384,7 +392,9 @@ describe('BusquedaNormalizadaService', () => {
         },
       ]),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -420,7 +430,9 @@ describe('BusquedaNormalizadaService', () => {
         entity === PersonaSacramento ? personas : parentRepository,
       ),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -451,7 +463,9 @@ describe('BusquedaNormalizadaService', () => {
         return parentRepository;
       }),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -493,7 +507,9 @@ describe('BusquedaNormalizadaService', () => {
         entity === PersonaSacramento ? personas : parentRepository,
       ),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -550,7 +566,9 @@ describe('BusquedaNormalizadaService', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]),
     };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -558,7 +576,10 @@ describe('BusquedaNormalizadaService', () => {
     const result = await service.obtenerSacramentosPorCedula('1-2345-6789');
 
     expect(result.persona.id).toBe(15);
-    expect(result.bautismo.detalle.bautizado.id).toBe(15);
+    const detalleBautismo = result.bautismo?.detalle as {
+      bautizado: { id: number };
+    };
+    expect(detalleBautismo.bautizado.id).toBe(15);
     expect(result.comunion).toBeNull();
     expect(result.confirmacion).toBeNull();
     expect(result.matrimonio).toBeNull();
@@ -566,7 +587,9 @@ describe('BusquedaNormalizadaService', () => {
 
   it('throws 404 when the cedula does not match any person', async () => {
     const manager = { query: jest.fn().mockResolvedValueOnce([]) };
-    const transaction = jest.fn((callback) => callback(manager));
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
     const service = new BusquedaNormalizadaService({
       transaction,
     } as unknown as DataSource);
@@ -574,6 +597,28 @@ describe('BusquedaNormalizadaService', () => {
     await expect(
       service.obtenerSacramentosPorCedula('9-9999-9999'),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('compares the cedula ignoring dashes on both sides', async () => {
+    const manager = {
+      query: jest
+        .fn<Promise<unknown[]>, [string, unknown[]]>()
+        .mockResolvedValueOnce([]),
+    };
+    const transaction = jest.fn<unknown, [(m: unknown) => unknown]>(
+      (callback) => callback(manager),
+    );
+    const service = new BusquedaNormalizadaService({
+      transaction,
+    } as unknown as DataSource);
+
+    await expect(
+      service.obtenerSacramentosPorCedula('123456789'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    const [sql] = manager.query.mock.calls[0];
+    expect(sql).toContain("replace(lower(trim(cedula)), '-', '')");
+    expect(sql).toContain("replace(lower(trim($1)), '-', '')");
   });
 
   it('lists parroquias and presbiteros catalogs', async () => {

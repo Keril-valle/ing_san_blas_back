@@ -12,13 +12,9 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './DTO/login.dto';
 import { RecuperarContrasenaDto } from './DTO/recuperar-contrasena.dto';
 import { RestablecerContrasenaDto } from './DTO/restablecer-contrasena.dto';
-import { Auth } from './Decorators/auth.decorators';
-import { Role } from '../Common/Enums/Roles';
-import { AuthGuard } from './Guards/auth.guard';
 import { RefreshAuthGuard } from './Guards/refresh-auth.guard';
 import type { RequestWithUser } from '../Common/Interfaces/requestWithUser.interface';
 import { Public } from './Decorators/public.decorator';
-import { Roles } from './Decorators/roles.decorator';
 import {
   ACCESS_TOKEN_COOKIE,
   accessCookieOptions,
@@ -44,12 +40,6 @@ export class AuthController {
       await this.authService.login(loginDto);
     this.setSessionCookies(res, accessToken, refreshToken);
     return { user };
-  }
-
-  @Get('prueba')
-  @Roles(Role.USER) // ya no hace falta @Auth() combinado, el guard global ya corre siempre
-  prueba(@Req() req: RequestWithUser) {
-    return this.authService.prueba(req.user);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })

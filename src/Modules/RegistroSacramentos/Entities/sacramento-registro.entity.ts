@@ -1,7 +1,12 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { TipoSacramentoRegistro } from '../../../Common/Enums/TipoSacramentoRegistro';
 
+// Los índices están declarados con el nombre exacto que ya tienen en la BD
+// (migraciones hechas a mano): si no estuvieran acá, `migration:generate`
+// los propondría borrar.
 @Entity({ name: 'sacramento' })
+@Index('IDX_sacramento_tipo_fecha', ['tipo', 'fechaSacramento'])
+@Index('IDX_sacramento_fecha', ['fechaSacramento'])
 export class SacramentoRegistro {
   @PrimaryGeneratedColumn({ name: 'id_sacramento' })
   id: number;

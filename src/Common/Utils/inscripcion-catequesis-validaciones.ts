@@ -80,9 +80,7 @@ export function normalizarFilialInscripcion(
   }
 
   const valor = sinAcentos(filial.trim());
-  return (
-    FILIALES_CATEQUESIS.find((item) => sinAcentos(item) === valor) ?? null
-  );
+  return FILIALES_CATEQUESIS.find((item) => sinAcentos(item) === valor) ?? null;
 }
 
 export function validarFechaNoFutura(fecha?: string | null): boolean {

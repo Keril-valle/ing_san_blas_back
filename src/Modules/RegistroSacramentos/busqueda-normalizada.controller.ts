@@ -17,7 +17,6 @@ import {
 } from './DTO/create-sacramento-normalizado.dto';
 import { BusquedaNormalizadaService } from './busqueda-normalizada.service';
 
-//http://localhost:3000/Sacramentos-nuevos/buscar?tipoSacramento=1
 @Controller('Sacramentos-nuevos')
 @Permisos('sacramentos')
 export class BusquedaNormalizadaController {

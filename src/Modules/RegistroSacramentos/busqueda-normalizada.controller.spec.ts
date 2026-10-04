@@ -21,7 +21,7 @@ describe('BusquedaNormalizadaController', () => {
   });
 
   it('delegates create, update, detail and delete operations', async () => {
-    const service = {
+    const servicio = {
       buscar: jest.fn(),
       crear: jest.fn().mockResolvedValue({ id: 1 }),
       obtener: jest.fn().mockResolvedValue({ id: 1 }),
@@ -30,8 +30,10 @@ describe('BusquedaNormalizadaController', () => {
       listarParroquias: jest.fn().mockResolvedValue([{ id: 1 }]),
       listarPresbiteros: jest.fn().mockResolvedValue([{ id: 2 }]),
       obtenerSacramentosPorCedula: jest.fn().mockResolvedValue({ persona: {} }),
-    } as unknown as BusquedaNormalizadaService;
-    const controller = new BusquedaNormalizadaController(service);
+    };
+    const controller = new BusquedaNormalizadaController(
+      servicio as unknown as BusquedaNormalizadaService,
+    );
     const createDto = { tipo: 'bautismo' };
     const updateDto = { observaciones: 'actualizado' };
 
@@ -50,11 +52,11 @@ describe('BusquedaNormalizadaController', () => {
     ).resolves.toEqual({
       persona: {},
     });
-    expect(service.crear).toHaveBeenCalledWith(createDto);
-    expect(service.obtener).toHaveBeenCalledWith(1);
-    expect(service.actualizar).toHaveBeenCalledWith(1, updateDto);
-    expect(service.eliminar).toHaveBeenCalledWith(1);
-    expect(service.obtenerSacramentosPorCedula).toHaveBeenCalledWith(
+    expect(servicio.crear).toHaveBeenCalledWith(createDto);
+    expect(servicio.obtener).toHaveBeenCalledWith(1);
+    expect(servicio.actualizar).toHaveBeenCalledWith(1, updateDto);
+    expect(servicio.eliminar).toHaveBeenCalledWith(1);
+    expect(servicio.obtenerSacramentosPorCedula).toHaveBeenCalledWith(
       '1-2345-6789',
     );
   });

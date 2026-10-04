@@ -9,12 +9,17 @@ import {
 } from 'typeorm';
 import { Usuario } from '../../Users/Entities/usuario.entity';
 
+// Índices con el nombre real que usan en la BD (ver comentario en
+// sacramento-registro.entity.ts).
 @Entity('recuperacion_contrasena')
+@Index('IDX_recuperacion_contrasena_usuarioId', ['usuarioId'])
+@Index('UQ_recuperacion_contrasena_tokenHash', ['tokenHash'], {
+  unique: true,
+})
 export class RecuperacionContrasena {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index()
   @Column()
   usuarioId: number;
 
@@ -22,7 +27,6 @@ export class RecuperacionContrasena {
   @JoinColumn({ name: 'usuarioId' })
   usuario: Usuario;
 
-  @Index({ unique: true })
   @Column({ type: 'varchar', length: 64 })
   tokenHash: string;
 

@@ -9,7 +9,6 @@ import { BuscarSacramentosDto } from './DTO/buscar-sacramentos.dto';
 import {
   PaginadoSacramentosDto,
   SacramentoUnificadoDto,
-  TipoSacramento,
 } from './DTO/sacramento-unificado.dto';
 import {
   fechaISODesdeDDMMAAAA,

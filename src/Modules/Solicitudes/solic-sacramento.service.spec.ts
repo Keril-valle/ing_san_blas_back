@@ -55,9 +55,11 @@ describe('SolicSacramentoService.rechazarSolicitud', () => {
 
   it('rechaza una solicitud pendiente y guarda motivo, detalle y auditoría', async () => {
     queryRunner.manager.findOne.mockResolvedValue({ ...solicitudPendiente });
-    queryRunner.manager.save.mockImplementation(
-      async (entidad: unknown) => entidad,
-    );
+    const guardadas: unknown[] = [];
+    queryRunner.manager.save.mockImplementation((entidad: unknown) => {
+      guardadas.push(entidad);
+      return Promise.resolve(entidad);
+    });
 
     const result = await service.rechazarSolicitud(
       3,
@@ -71,8 +73,7 @@ describe('SolicSacramentoService.rechazarSolicitud', () => {
       estado: 'Rechazado',
     });
 
-    const guardada = queryRunner.manager.save.mock
-      .calls[0][0] as SolicSacramento;
+    const guardada = guardadas[0] as SolicSacramento;
     expect(guardada.Estado).toBe('Rechazado');
     expect(guardada.MotivoRechazo).toBe('Datos incorrectos');
     expect(guardada.DetalleRechazo).toBe('La cédula no coincide');

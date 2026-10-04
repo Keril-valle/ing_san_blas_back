@@ -9,8 +9,6 @@ import {
 } from 'typeorm';
 import { EstadoEvento } from '../../../Common/Enums/EstadoEvento';
 
-export type EstadoEventoDb = 'borrador' | 'publicado' | 'desactivado';
-
 @Entity()
 export class Evento {
   @PrimaryGeneratedColumn()
@@ -58,7 +56,7 @@ export class Evento {
   @AfterInsert()
   @AfterUpdate()
   hidratarFlags() {
-    this.publicado = this.estado !== 'borrador';
-    this.activo = this.estado !== 'desactivado';
+    this.publicado = this.estado !== EstadoEvento.BORRADOR;
+    this.activo = this.estado !== EstadoEvento.DESACTIVADO;
   }
 }

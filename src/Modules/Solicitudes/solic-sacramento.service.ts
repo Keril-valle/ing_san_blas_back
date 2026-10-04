@@ -14,9 +14,37 @@ import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { SolicSacramento } from './Entities/solic-sacramento.entity';
 import { HistorialRechazos } from './Entities/historial-rechazos.entity';
 import { EstadoSolicitud } from '../../Common/Enums/EstadoSolicitud';
-import { isEstadoPendiente } from '../../Common/Utils/estado-solicitud';
-import { isEstadoArchivado } from '../../Common/Utils/estado-solicitud';
+import {
+  isEstadoArchivado,
+  isEstadoPendiente,
+} from '../../Common/Utils/estado-solicitud';
 import { SolicSacramentoFileStorageService } from './solic-sacramento-file-storage.service';
+
+/** Campos que se devuelven en los listados: evita cargar columnas de auditoría. */
+const COLUMNAS_LISTADO = [
+  'solic.id',
+  'solic.PrimerNombre',
+  'solic.SegundoNombre',
+  'solic.PrimerApellido',
+  'solic.SegundoApellido',
+  'solic.Cedula',
+  'solic.Correo',
+  'solic.Telefono',
+  'solic.Parroquia',
+  'solic.Motivo',
+  'solic.Estado',
+  'solic.comprobanteUrl',
+  'solic.FechaSolicitud',
+  'solic.FechaArchivo',
+];
+
+/** El filtro del listado usa las variantes femeninas de los estados. */
+const ESTADOS_DE_BUSQUEDA: Record<string, EstadoSolicitud> = {
+  Pendiente: EstadoSolicitud.PENDIENTE,
+  Aprobada: EstadoSolicitud.APROBADA,
+  Rechazada: EstadoSolicitud.RECHAZADA,
+  Archivada: EstadoSolicitud.ARCHIVADA,
+};
 
 @Injectable()
 export class SolicSacramentoService {
@@ -30,28 +58,28 @@ export class SolicSacramentoService {
     private readonly fileStorageService: SolicSacramentoFileStorageService,
   ) {}
 
-  create(createSolicSacramentoDto: CreateSolicSacramentoDto) {
-    const solicitud = this.solicSacraRepository.create({
-      ...createSolicSacramentoDto,
-      Estado: EstadoSolicitud.PENDIENTE,
-      FechaSolicitud: new Date(),
-    });
-    return this.solicSacraRepository.save(solicitud);
+  async create(createSolicSacramentoDto: CreateSolicSacramentoDto) {
+    return this.guardarSolicitud(createSolicSacramentoDto);
   }
 
   async createWithImage(
     createSolicSacramentoDto: CreateSolicSacramentoDto,
     archivo?: Express.Multer.File,
   ) {
-    let comprobanteUrl: string | undefined;
+    const comprobanteUrl = archivo
+      ? await this.fileStorageService.saveSolicSacramentoImage(archivo)
+      : undefined;
 
-    if (archivo) {
-      comprobanteUrl =
-        await this.fileStorageService.saveSolicSacramentoImage(archivo);
-    }
+    return this.guardarSolicitud(createSolicSacramentoDto, comprobanteUrl);
+  }
 
+  private guardarSolicitud(
+    dto: CreateSolicSacramentoDto,
+    comprobanteUrl?: string,
+  ) {
     const solicitud = this.solicSacraRepository.create({
-      ...createSolicSacramentoDto,
+      ...dto,
+      Parroquia: dto.Parroquia ?? '',
       Estado: EstadoSolicitud.PENDIENTE,
       FechaSolicitud: new Date(),
       comprobanteUrl,
@@ -69,22 +97,7 @@ export class SolicSacramentoService {
       const pageSize = filters.pageSize ?? 10;
       const skip = (page - 1) * pageSize;
 
-      query.select([
-        'solic.id',
-        'solic.PrimerNombre',
-        'solic.SegundoNombre',
-        'solic.PrimerApellido',
-        'solic.SegundoApellido',
-        'solic.Cedula',
-        'solic.Correo',
-        'solic.Telefono',
-        'solic.Parroquia',
-        'solic.Motivo',
-        'solic.Estado',
-        'solic.comprobanteUrl',
-        'solic.FechaSolicitud',
-        'solic.FechaArchivo',
-      ]);
+      query.select(COLUMNAS_LISTADO);
 
       if (nombre) {
         query.andWhere(
@@ -123,22 +136,7 @@ export class SolicSacramentoService {
     try {
       const query = this.solicSacraRepository.createQueryBuilder('solic');
 
-      query.select([
-        'solic.id',
-        'solic.PrimerNombre',
-        'solic.SegundoNombre',
-        'solic.PrimerApellido',
-        'solic.SegundoApellido',
-        'solic.Cedula',
-        'solic.Correo',
-        'solic.Telefono',
-        'solic.Parroquia',
-        'solic.Motivo',
-        'solic.Estado',
-        'solic.comprobanteUrl',
-        'solic.FechaSolicitud',
-        'solic.FechaArchivo',
-      ]);
+      query.select(COLUMNAS_LISTADO);
 
       if (filters.nombre) {
         query.andWhere(
@@ -154,15 +152,9 @@ export class SolicSacramentoService {
       }
 
       if (filters.estado) {
-        const estado =
-          filters.estado === 'Aprobada'
-            ? EstadoSolicitud.APROBADA
-            : filters.estado === 'Rechazada'
-              ? EstadoSolicitud.RECHAZADA
-              : filters.estado === 'Archivada'
-                ? EstadoSolicitud.ARCHIVADA
-                : EstadoSolicitud.PENDIENTE;
-        query.andWhere('solic."Estado" = :estado', { estado });
+        query.andWhere('solic."Estado" = :estado', {
+          estado: ESTADOS_DE_BUSQUEDA[filters.estado],
+        });
       }
 
       return await query.orderBy('solic.id', 'DESC').getMany();
@@ -301,7 +293,9 @@ export class SolicSacramentoService {
       detalle: registro.detalle,
       creado_en: registro.creadoEn,
       nombre_solicitante: registro.solicitud
-        ? `${registro.solicitud.PrimerNombre} ${registro.solicitud.SegundoNombre ?? ''} ${registro.solicitud.PrimerApellido ?? ''} ${registro.solicitud.SegundoApellido ?? ''}`.trim()
+        ? `${registro.solicitud.PrimerNombre} ${registro.solicitud.SegundoNombre ?? ''} ${registro.solicitud.PrimerApellido ?? ''} ${registro.solicitud.SegundoApellido ?? ''}`
+            .replace(/\s+/g, ' ')
+            .trim()
         : null,
       nombre_usuario_rechazo: registro.usuario?.nombre ?? null,
     }));
@@ -337,10 +331,15 @@ export class SolicSacramentoService {
   ) {
     const queryRunner =
       this.solicSacraRepository.manager.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    // connect/startTransaction viven dentro del try: si alguno falla, el
+    // finally igual suelta el queryRunner (antes se quedaba una conexión colgada)
+    let transaccionIniciada = false;
 
     try {
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      transaccionIniciada = true;
+
       const solicitud = await queryRunner.manager.findOne(SolicSacramento, {
         where: { id },
       });
@@ -366,7 +365,7 @@ export class SolicSacramentoService {
         );
       }
 
-      solicitud.Estado = 'Rechazado';
+      solicitud.Estado = EstadoSolicitud.RECHAZADA;
       solicitud.MotivoRechazo = motivoRechazo;
       solicitud.DetalleRechazo = detalleRechazo;
       solicitud.RechazadoPor = rechazadoPor;
@@ -388,13 +387,33 @@ export class SolicSacramentoService {
 
       return {
         mensaje: 'Solicitud rechazada exitosamente',
-        estado: 'Rechazado',
+        estado: EstadoSolicitud.RECHAZADA,
       };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      if (transaccionIniciada) {
+        try {
+          await queryRunner.rollbackTransaction();
+        } catch (rollbackError) {
+          this.logger.error(
+            `No se pudo revertir la transacción del rechazo de la solicitud ${id}: ${
+              rollbackError instanceof Error
+                ? rollbackError.message
+                : rollbackError
+            }`,
+          );
+        }
+      }
       throw error;
     } finally {
-      await queryRunner.release();
+      try {
+        await queryRunner.release();
+      } catch (releaseError) {
+        this.logger.error(
+          `No se pudo liberar la conexión de la solicitud ${id}: ${
+            releaseError instanceof Error ? releaseError.message : releaseError
+          }`,
+        );
+      }
     }
   }
 }

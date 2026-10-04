@@ -45,8 +45,13 @@ export class EventoService {
 
   create(createEventoDto: CreateEventoDto) {
     this.validarFechas(createEventoDto.fechaInicio, createEventoDto.fechaFin);
+    // `publicado` viene del frontend pero no es una columna: el estado real
+    // se deriva de `estado`, que arranca siempre en borrador.
+    const campos = { ...createEventoDto };
+    delete campos.publicado;
+
     const evento = this.eventoRepository.create({
-      ...createEventoDto,
+      ...campos,
       fechaInicio:
         this.soloFecha(createEventoDto.fechaInicio) ??
         createEventoDto.fechaInicio,
@@ -78,30 +83,31 @@ export class EventoService {
 
   async update(id: number, updateEventoDto: UpdateEventoDto) {
     const evento = await this.findOne(id);
-    const { eliminarImagen, ...datos } = updateEventoDto;
+    const { eliminarImagen, ...resto } = updateEventoDto;
+    delete resto.publicado;
     this.validarFechas(
-      datos.fechaInicio ?? evento.fechaInicio,
-      datos.fechaFin === undefined ? evento.fechaFin : datos.fechaFin,
+      resto.fechaInicio ?? evento.fechaInicio,
+      resto.fechaFin === undefined ? evento.fechaFin : resto.fechaFin,
       {
         inicioOriginal: evento.fechaInicio,
         finOriginal: evento.fechaFin,
       },
     );
-    Object.assign(evento, datos, {
+    Object.assign(evento, resto, {
       fechaInicio:
-        datos.fechaInicio === undefined
+        resto.fechaInicio === undefined
           ? evento.fechaInicio
-          : (this.soloFecha(datos.fechaInicio) ?? evento.fechaInicio),
+          : (this.soloFecha(resto.fechaInicio) ?? evento.fechaInicio),
       fechaFin:
-        datos.fechaFin === undefined
+        resto.fechaFin === undefined
           ? evento.fechaFin
-          : this.soloFecha(datos.fechaFin),
-      hora: datos.hora === undefined ? evento.hora : this.soloHora(datos.hora),
+          : this.soloFecha(resto.fechaFin),
+      hora: resto.hora === undefined ? evento.hora : this.soloHora(resto.hora),
       imagenUrl: eliminarImagen
         ? null
-        : datos.imagenUrl === undefined
+        : resto.imagenUrl === undefined
           ? evento.imagenUrl
-          : this.soloTexto(datos.imagenUrl),
+          : this.soloTexto(resto.imagenUrl),
     });
     return this.eventoRepository.save(evento);
   }

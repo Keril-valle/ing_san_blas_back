@@ -8,7 +8,17 @@ import { AuthMailService } from './Services/auth-mail.service';
 @Global() // global para no andar importándolo en cada módulo (donaciones hoy, sacramentos después)
 @Module({
   imports: [ConfigModule],
-  providers: [MailService, DonacionMailService, CatequesisMailService, AuthMailService],
-  exports: [MailService, DonacionMailService, CatequesisMailService, AuthMailService],
+  providers: [
+    MailService,
+    DonacionMailService,
+    CatequesisMailService,
+    AuthMailService,
+  ],
+  exports: [
+    MailService,
+    DonacionMailService,
+    CatequesisMailService,
+    AuthMailService,
+  ],
 })
 export class NotificationsModule {}

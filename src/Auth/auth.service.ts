@@ -9,7 +9,12 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from 'node:crypto';
 import { Role } from '../Common/Enums/Roles';
 import { LoginDto } from './DTO/login.dto';
 import { RestablecerContrasenaDto } from './DTO/restablecer-contrasena.dto';
@@ -83,6 +88,23 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
+  // comparación en tiempo constante de dos hex sha256 de la misma longitud
+  private hashCoincide(hashA: string, hashB: string): boolean {
+    const bufferA = Buffer.from(hashA);
+    const bufferB = Buffer.from(hashB);
+    if (bufferA.length !== bufferB.length) return false;
+    return timingSafeEqual(bufferA, bufferB);
+  }
+
+  // para que un login con email inexistente tarde lo mismo que uno real y no
+  // se pueda adivinar qué correos tiene la cuenta (canal de timing)
+  private hashFantasma?: Promise<string>;
+
+  private async comparacionFantasma(password: string): Promise<void> {
+    this.hashFantasma ??= bcrypt.hash(randomBytes(16).toString('hex'), 12);
+    await bcrypt.compare(password, await this.hashFantasma);
+  }
+
   private async updateRefreshTokenHash(userId: number, refreshToken: string) {
     const hash = this.hashToken(refreshToken);
     await this.usuarioService.setRefreshTokenHash(userId, hash);
@@ -93,6 +115,7 @@ export class AuthService {
       loginDto.email,
     );
     if (!user) {
+      await this.comparacionFantasma(loginDto.password);
       throw new UnauthorizedException('Email o contraseña incorrecta');
     }
     const isPasswordValid = await bcrypt.compare(
@@ -114,7 +137,7 @@ export class AuthService {
       throw new ForbiddenException('Acceso denegado');
 
     const incomingHash = this.hashToken(refreshToken);
-    const matches = incomingHash === user.refreshTokenHash;
+    const matches = this.hashCoincide(incomingHash, user.refreshTokenHash);
     if (!matches) {
       await this.usuarioService.setRefreshTokenHash(userId, null);
       throw new ForbiddenException('Acceso denegado');
@@ -153,7 +176,6 @@ export class AuthService {
   async solicitarRecuperacion(email: string) {
     const usuario = await this.usuarioService.findActivoParaRecuperacion(email);
     if (!usuario) {
-      this.hashToken(randomBytes(32).toString('base64url'));
       return { message: MENSAJE_RECUPERACION };
     }
 
@@ -246,9 +268,5 @@ export class AuthService {
     });
 
     return { message: 'La contraseña se actualizó correctamente.' };
-  }
-
-  prueba(user: any) {
-    return user;
   }
 }

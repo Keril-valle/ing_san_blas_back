@@ -1,4 +1,9 @@
+import type { INestApplication } from '@nestjs/common';
+import type { Server } from 'node:http';
+import { Test } from '@nestjs/testing';
+import request from 'supertest';
 import { UsuarioController } from './usuario.controller';
+import { UsuarioService } from './usuario.service';
 import { BuscarUsuariosDto } from './DTO/buscar-usuarios.dto';
 
 const crearServiceMock = () => ({
@@ -119,5 +124,50 @@ describe('UsuarioController.findAll — rutas de ordenamiento', () => {
       'state',
       undefined,
     );
+  });
+});
+
+describe('UsuarioController — el :id de la ruta usa ParseIntPipe', () => {
+  let app: INestApplication;
+  let servidor: Server;
+  const findOne = jest.fn();
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [UsuarioController],
+      providers: [{ provide: UsuarioService, useValue: { findOne } }],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    await app.init();
+    const crudo: unknown = app.getHttpServer();
+    servidor = crudo as Server;
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findOne.mockResolvedValue({ id: 5 });
+  });
+
+  it('rechaza un id no numérico con 400 sin llegar al service', async () => {
+    await request(servidor).get('/usuario/abc').expect(400);
+
+    expect(findOne).not.toHaveBeenCalled();
+  });
+
+  it('acepta un id numérico y se lo pasa como número', async () => {
+    await request(servidor).get('/usuario/5').expect(200);
+
+    expect(findOne).toHaveBeenCalledWith(5);
+  });
+
+  it('devuelve 404 cuando no existe un usuario activo con ese id', async () => {
+    findOne.mockResolvedValue(null);
+
+    await request(servidor).get('/usuario/5').expect(404);
   });
 });

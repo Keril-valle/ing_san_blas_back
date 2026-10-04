@@ -2,6 +2,7 @@ import type { Repository } from 'typeorm';
 import { UsuarioService } from './usuario.service';
 import { Usuario } from './Entities/usuario.entity';
 import type { RolService } from './rol.service';
+import type { UpdateUsuarioDto } from './DTO/update-usuario.dto';
 
 // query builder de mentira que solo registra cómo se armó la consulta.
 // el 2º genérico de jest.fn() es la tupla de argumentos: sin eso .mock.calls queda any
@@ -305,5 +306,51 @@ describe('UsuarioService.findAllPaginado — filtros', () => {
       columna: 'usuario.nombre',
       direccion: 'ASC',
     });
+  });
+});
+
+describe('UsuarioService.update — roles repetidos', () => {
+  it('deduplica los ids antes del INSERT en usuario_roles', async () => {
+    const usuario = {
+      id: 7,
+      nombre: 'Ana',
+      email: 'ana@example.com',
+      role: 'user',
+      isActive: true,
+      telefono: null,
+      passwordChangedAt: null,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    } as Usuario;
+
+    const query = jest
+      .fn<Promise<unknown[]>, [string, unknown[]]>()
+      .mockResolvedValue([]);
+
+    const repository = {
+      findOneBy: jest.fn().mockResolvedValue(usuario),
+      save: jest
+        .fn()
+        .mockImplementation((fila: Usuario) => Promise.resolve(fila)),
+      manager: { query },
+    } as unknown as Repository<Usuario>;
+
+    // el DTO no prohíbe repetir el mismo rol: sin dedupe el INSERT chocaría
+    // con la clave primaria (usuario_id, rol_id) y respondería 503
+    const rolService = {
+      assertExisten: jest.fn().mockResolvedValue([
+        { id: 3, clave: 'admin' },
+        { id: 3, clave: 'admin' },
+      ]),
+    } as unknown as RolService;
+
+    const service = new UsuarioService(repository, rolService);
+
+    await service.update(7, { roles: ['admin', 'admin'] } as UpdateUsuarioDto);
+
+    const insercion = query.mock.calls.find(([sql]) =>
+      String(sql).startsWith('INSERT INTO usuario_roles'),
+    );
+    expect(insercion).toBeDefined();
+    expect(insercion?.[1]).toEqual([7, [3]]);
   });
 });

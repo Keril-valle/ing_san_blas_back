@@ -10,17 +10,10 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
-import { transformarTexto } from '../../Common/Utils/normalizar-texto';
-
-function recortarLineas({ value }: { value: unknown }) {
-  if (!Array.isArray(value)) {
-    return value;
-  }
-
-  return value
-    .map((item) => (typeof item === 'string' ? item.trim() : item))
-    .filter((item) => typeof item === 'string' && item.length > 0);
-}
+import {
+  recortarLineas,
+  transformarTexto,
+} from '../../Common/Utils/normalizar-texto';
 
 export class UpdateContactoDto {
   @Transform(transformarTexto)

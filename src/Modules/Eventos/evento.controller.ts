@@ -13,46 +13,33 @@ import {
   Req,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
   Header,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
 import type { Request } from 'express';
 import { EventoService } from './evento.service';
 import { CreateEventoDto } from './DTO/create-evento.dto';
 import { UpdateEventoDto } from './DTO/update-evento.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Permisos } from '../../Auth/Decorators/permisos.decorator';
-
-const LIMITE_IMAGEN = {
-  storage: memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-};
+import { leerPayloadMultipart } from '../../Common/Utils/multipart-payload';
+import { SUBIDA_ARCHIVO_MEMORIA } from '../../Common/Storage/subida-archivo.options';
 
 @Controller('Evento')
 export class EventoController {
   constructor(private readonly eventoService: EventoService) {}
 
-  private leerPayload<T>(req: Request): T {
-    const payload = (req.body as { Payload?: string } | undefined)?.Payload;
-    if (!payload?.trim()) {
-      throw new BadRequestException({
-        mensaje: 'Los datos del evento son obligatorios.',
-      });
-    }
-
-    try {
-      return JSON.parse(payload) as T;
-    } catch {
-      throw new BadRequestException({
-        mensaje: 'El formato de los datos del evento no es válido.',
-      });
-    }
+  private leerPayload<T extends object>(
+    req: Request,
+    clase: new () => T,
+  ): Promise<T> {
+    return leerPayloadMultipart(req, clase, {
+      vacio: 'Los datos del evento son obligatorios.',
+      invalido: 'El formato de los datos del evento no es válido.',
+    });
   }
 
   @Public()
-  //ruta para obtener todos los eventos publicos es http://localhost:3000/Evento/publicos
   @Get('publicos')
   @Header('Cache-Control', 'public, max-age=120, stale-while-revalidate=300')
   findPublicos() {
@@ -67,10 +54,10 @@ export class EventoController {
 
   @Get(':id')
   @Permisos('eventos')
-  findOne(@Param('id') id: string) {
-    return this.eventoService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.eventoService.findOne(id);
   }
-  //la ruta para el post es http://localhost:3000/api/Eventos
+
   @Post()
   @Permisos('eventos')
   create(@Body() createEventoDto: CreateEventoDto) {
@@ -79,36 +66,34 @@ export class EventoController {
 
   @Post('con-imagen')
   @Permisos('eventos')
-  @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
-  createWithImage(
+  @UseInterceptors(FileInterceptor('archivo', SUBIDA_ARCHIVO_MEMORIA))
+  async createWithImage(
     @Req() req: Request,
     @UploadedFile() archivo?: Express.Multer.File,
   ) {
-    return this.eventoService.createWithImage(
-      this.leerPayload<CreateEventoDto>(req),
-      archivo,
-    );
+    const payload = await this.leerPayload(req, CreateEventoDto);
+    return this.eventoService.createWithImage(payload, archivo);
   }
 
   @Put(':id')
   @Permisos('eventos')
-  update(@Param('id') id: string, @Body() updateEventoDto: UpdateEventoDto) {
-    return this.eventoService.update(+id, updateEventoDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateEventoDto: UpdateEventoDto,
+  ) {
+    return this.eventoService.update(id, updateEventoDto);
   }
 
   @Put(':id/con-imagen')
   @Permisos('eventos')
-  @UseInterceptors(FileInterceptor('archivo', LIMITE_IMAGEN))
-  updateWithImage(
+  @UseInterceptors(FileInterceptor('archivo', SUBIDA_ARCHIVO_MEMORIA))
+  async updateWithImage(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request,
     @UploadedFile() archivo?: Express.Multer.File,
   ) {
-    return this.eventoService.updateWithImage(
-      id,
-      this.leerPayload<UpdateEventoDto>(req),
-      archivo,
-    );
+    const payload = await this.leerPayload(req, UpdateEventoDto);
+    return this.eventoService.updateWithImage(id, payload, archivo);
   }
 
   @Patch(':id/publicar')
@@ -132,7 +117,7 @@ export class EventoController {
   @Delete(':id')
   @Permisos('eventos')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    await this.eventoService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.eventoService.remove(id);
   }
 }

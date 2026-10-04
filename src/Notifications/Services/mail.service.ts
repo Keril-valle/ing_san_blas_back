@@ -29,7 +29,12 @@ export class MailService {
       process.env.BREVO_API_KEY?.trim() ||
       '';
 
-    this.client = apiKey ? new BrevoClient({ apiKey }) : null;
+    // el SDK espera hasta 60 s por defecto y el navegador abandona a los 30 s
+    // (timeout del axios del frontend): con 15 s la respuesta, o el fallo,
+    // siempre llega antes que la del cliente
+    this.client = apiKey
+      ? new BrevoClient({ apiKey, timeoutInSeconds: 15 })
+      : null;
     if (!this.client && !this.warnedMissingKey) {
       this.warnedMissingKey = true;
       this.logger.warn(
@@ -37,10 +42,6 @@ export class MailService {
       );
     }
     return this.client;
-  }
-
-  isEnabled(): boolean {
-    return this.obtenerCliente() !== null;
   }
 
   async sendMail(options: SendMailOptions): Promise<void> {
@@ -75,7 +76,10 @@ export class MailService {
           ? `${error.cause.name}: ${error.cause.message}`
           : undefined;
       const detalle = error instanceof Error ? error.message : String(error);
-      throw new Error(causa ? `${detalle} (${causa})` : detalle);
+      // `cause` conserva el error original (stack real de Brevo) para depurar
+      throw new Error(causa ? `${detalle} (${causa})` : detalle, {
+        cause: error,
+      });
     }
   }
 }
