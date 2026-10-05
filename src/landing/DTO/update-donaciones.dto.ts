@@ -23,6 +23,9 @@ export class UpdateDonacionesDto {
   @MaxLength(40, {
     message: 'El SINPE móvil no puede superar 40 caracteres.',
   })
+  @Matches(/^(?!0)/, {
+    message: 'El número no puede empezar con 0.',
+  })
   @Matches(/^[\d\s-]{8,40}$/, {
     message: 'El SINPE móvil no tiene un formato válido.',
   })

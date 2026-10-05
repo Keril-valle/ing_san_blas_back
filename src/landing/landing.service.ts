@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -40,9 +44,22 @@ export class LandingService {
   }
 
   async findOne(sectionKey: string) {
-    this.assertSectionKey(sectionKey);
+    const clave = (sectionKey ?? '').trim().toLowerCase();
+
+    if (!clave) {
+      throw new BadRequestException({
+        mensaje: 'La sección indicada no es válida.',
+      });
+    }
+
+    if (!LANDING_SECTION_KEYS.includes(clave as LandingSectionKey)) {
+      throw new NotFoundException({
+        mensaje: `No existe una sección con la clave "${clave}".`,
+      });
+    }
+
     const section = await this.landingRepository.findOne({
-      where: { sectionKey },
+      where: { sectionKey: clave },
     });
 
     if (section) {
@@ -51,8 +68,8 @@ export class LandingService {
 
     // todavía no hay fila guardada: se devuelve el default de código
     return {
-      sectionKey,
-      data: clonarDefault(sectionKey),
+      sectionKey: clave,
+      data: clonarDefault(clave as LandingSectionKey),
       updatedAt: null,
     };
   }
