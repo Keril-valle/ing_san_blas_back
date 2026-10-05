@@ -47,6 +47,9 @@ export class UpdateContactoDto {
   @IsString({ message: 'El teléfono debe ser texto.' })
   @IsNotEmpty({ message: 'El teléfono es obligatorio.' })
   @MaxLength(40, { message: 'El teléfono no puede superar 40 caracteres.' })
+  @Matches(/^(?!0)/, {
+    message: 'El número no puede empezar con 0.',
+  })
   @Matches(/^[\d+\s()-]{7,40}$/, {
     message: 'El teléfono no tiene un formato válido.',
   })
