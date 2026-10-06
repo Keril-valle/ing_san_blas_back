@@ -77,7 +77,11 @@ export class UsuarioService {
       saved.id,
       roles.map((rol) => rol.id),
     );
-    return { ...saved, roles: roles.map((rol) => rol.clave) };
+    // saved trae el hash en memoria: sin el DTO la respuesta lo filtra al frontend
+    return plainToInstance(UsuarioRespuestaDto, {
+      ...saved,
+      roles: roles.map((rol) => rol.clave),
+    });
   }
 
   async obtenerRolesDeUsuario(id: number): Promise<string[]> {
@@ -203,8 +207,14 @@ export class UsuarioService {
     return plainToInstance(UsuarioRespuestaDto, conRol);
   }
 
-  findOneByEmail(email: string) {
-    return this.usuarioRepository.findOneBy({ email, isActive: true });
+  async findOneByEmail(email: string) {
+    const user = await this.usuarioRepository.findOneBy({
+      email,
+      isActive: true,
+    });
+    if (!user) return null;
+    const [conRol] = await this.conRoles([user]);
+    return plainToInstance(UsuarioRespuestaDto, conRol);
   }
 
   findActivoParaRecuperacion(email: string) {
@@ -328,10 +338,11 @@ export class UsuarioService {
     }
 
     const guardado = await this.usuarioRepository.save(user);
-    return {
+    // al cambiar la contraseña el hash queda en el objeto guardado: el DTO lo descarta
+    return plainToInstance(UsuarioRespuestaDto, {
       ...guardado,
       roles: await this.obtenerRolesDeUsuario(guardado.id),
-    };
+    });
   }
 
   async remove(id: number, actorId?: number) {
@@ -345,7 +356,9 @@ export class UsuarioService {
     }
 
     user.isActive = false;
-    return await this.usuarioRepository.save(user);
+    const guardado = await this.usuarioRepository.save(user);
+    const [conRol] = await this.conRoles([guardado]);
+    return plainToInstance(UsuarioRespuestaDto, conRol);
   }
 
   // Consulta GoMeta una sola vez por cédula mientras la respuesta siga fresca.
@@ -375,14 +388,19 @@ export class UsuarioService {
   }
 
   // Protege el endpoint si el proveedor externo queda colgado.
-  private async consultarNombrePorCedula(cedula: string): Promise<string | null> {
+  private async consultarNombrePorCedula(
+    cedula: string,
+  ): Promise<string | null> {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), 7_000);
 
     try {
-      const respuesta = await fetch(`https://apis.gometa.org/cedulas/${cedula}`, {
-        signal: abortController.signal,
-      });
+      const respuesta = await fetch(
+        `https://apis.gometa.org/cedulas/${cedula}`,
+        {
+          signal: abortController.signal,
+        },
+      );
       if (!respuesta.ok) return null;
       const data: unknown = await respuesta.json();
       if (
