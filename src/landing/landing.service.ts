@@ -9,6 +9,7 @@ import { validate } from 'class-validator';
 import { Repository } from 'typeorm';
 import {
   UpdateBautizosDto,
+  UpdateCatequesisDto,
   UpdateContactoDto,
   UpdateDonacionesDto,
   UpdateHeroDto,
@@ -169,6 +170,17 @@ export class LandingService {
       current.items = items;
     }
 
+    // el PDF de lineamientos de catequesis se sube como archivo (Cloudinary raw)
+    // y pisa la URL guardada: el payload solo trae la URL anterior de referencia
+    if (sectionKey === 'catequesis' && archivo) {
+      current.lineamientosUrl =
+        await this.fileStorageService.saveSectionDocument(
+          archivo,
+          'catequesis',
+          'lineamientos',
+        );
+    }
+
     section.data = current;
     const saved = await this.landingRepository.save(section);
     return this.toResponse(saved);
@@ -228,6 +240,8 @@ export class LandingService {
         return this.validarDto(UpdateServiciosDto, data);
       case 'donaciones':
         return this.validarDto(UpdateDonacionesDto, data);
+      case 'catequesis':
+        return this.validarDto(UpdateCatequesisDto, data);
       default: {
         const exhaustivo: never = sectionKey;
         throw new BadRequestException({

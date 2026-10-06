@@ -11,9 +11,11 @@ const COLUMNAS_EXPORTADAS = [
   'Nivel a inscribirse',
   'Estado de inscripción',
   'Fecha de inscripción',
+  'Teléfono',
+  'Dirección exacta',
 ] as const;
 
-const ANCHOS_COLUMNA = [22, 20, 20, 22, 26, 20, 22, 22];
+const ANCHOS_COLUMNA = [22, 20, 20, 22, 26, 20, 22, 22, 18, 34];
 const FILA_ENCABEZADO = 5;
 const AZUL = 'FF003366';
 const DORADO = 'FFD4AF37';
@@ -33,6 +35,8 @@ type FilaExportada = {
   nivelAInscribirse: string;
   estado: string;
   fechaSolicitud: Date;
+  telefono: string;
+  direccionExacta: string;
 };
 
 type FiltrosExportacion = {
@@ -201,6 +205,8 @@ export class CatequesisExportService {
         this.etiquetaNivel(fila.nivelAInscribirse),
         fila.estado,
         this.formatearFechaHora(fila.fechaSolicitud),
+        fila.telefono,
+        fila.direccionExacta,
       ];
 
       valores.forEach((valor, columna) => {
@@ -210,7 +216,10 @@ export class CatequesisExportService {
         celda.fill = this.relleno(fondo);
         celda.alignment = {
           vertical: 'middle',
-          horizontal: columna === 3 || columna >= 5 ? 'center' : 'left',
+          // el teléfono va centrado como los demás datos cortos, pero la
+          // dirección exacta se queda a la izquierda pa que se lea sin saltos raros
+          horizontal:
+            columna === 3 || (columna >= 5 && columna <= 8) ? 'center' : 'left',
         };
         celda.border = this.borde(BORDE);
       });
