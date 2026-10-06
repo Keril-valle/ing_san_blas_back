@@ -99,6 +99,18 @@ export class BusquedaNormalizadaService {
     const hastaParam = filtros.fechaHasta
       ? addParameter(filtros.fechaHasta)
       : null;
+    // Libro/folio/asiento identifican UN acta exacta (Libro X, Folio Y,
+    // Asiento Z): se comparan por igualdad exacta insensible a mayúsculas
+    // para devolver ese único registro en vez de una lista parcial.
+    // Solo aplican al UNION de bautismo (alias `b`): el bautismo es la
+    // raíz y por inercia ubica a los demás sacramentos. Con otro `tipo`
+    // explícito estos tres filtros se ignoran.
+    const libro = filtros.libro?.trim();
+    const folio = filtros.folio?.trim();
+    const asiento = filtros.asiento?.trim();
+    const libroParam = libro ? addParameter(libro) : null;
+    const folioParam = folio ? addParameter(folio) : null;
+    const asientoParam = asiento ? addParameter(asiento) : null;
 
     const conditions = (
       personAliases: string[],
@@ -136,6 +148,19 @@ export class BusquedaNormalizadaService {
     const unions: string[] = [];
 
     if (requestedTypes.includes(TipoSacramentoRegistro.Bautismo)) {
+      const whereBautismo = conditions(
+        ['p'],
+        TipoSacramentoRegistro.Bautismo,
+      );
+      if (libroParam) {
+        whereBautismo.push(`lower(b.libro) = lower(${libroParam})`);
+      }
+      if (folioParam) {
+        whereBautismo.push(`lower(b.folio) = lower(${folioParam})`);
+      }
+      if (asientoParam) {
+        whereBautismo.push(`lower(b.asiento) = lower(${asientoParam})`);
+      }
       unions.push(`
         SELECT s.id_sacramento AS id, s.tipo_sacramento AS tipo,
           concat_ws(' ', p.nombre, p.primer_apellido, p.segundo_apellido) AS nombre,
@@ -146,7 +171,7 @@ export class BusquedaNormalizadaService {
         JOIN bautismo b ON b.id_sacramento = s.id_sacramento
         JOIN persona p ON p.id_persona = b.id_bautizado
         JOIN parroquia pa ON pa.id_parroquia = s.id_parroquia
-        WHERE ${conditions(['p'], TipoSacramentoRegistro.Bautismo).join(' AND ')}
+        WHERE ${whereBautismo.join(' AND ')}
       `);
     }
     if (requestedTypes.includes(TipoSacramentoRegistro.Comunion)) {

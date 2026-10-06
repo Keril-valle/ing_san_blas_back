@@ -87,6 +87,52 @@ describe('BusquedaNormalizadaService', () => {
     ]);
   });
 
+  it('filtra libro, folio y asiento por igualdad exacta solo en bautismo', async () => {
+    const query = jest
+      .fn()
+      .mockResolvedValueOnce([{ total: 1 }])
+      .mockResolvedValueOnce([
+        {
+          id: 5,
+          tipo: 'bautismo',
+          nombre: 'Juan Pérez',
+          cedula: '2-3456-7890',
+          fecha: '2023-03-15',
+          parroquia: 'San Blas',
+        },
+      ]);
+    const service = new BusquedaNormalizadaService({
+      query,
+    } as unknown as DataSource);
+    const filters: BuscarSacramentosNormalizadosDto = {
+      libro: '1',
+      folio: '2',
+      asiento: '3',
+      page: 1,
+      pageSize: 10,
+      sortDirection: 'desc',
+    };
+
+    await expect(service.buscar(filters)).resolves.toMatchObject({
+      items: [
+        {
+          id: 5,
+          tipo: 'bautismo',
+          nombre: 'Juan Pérez',
+        },
+      ],
+      total: 1,
+      totalPages: 1,
+    });
+
+    expect(query).toHaveBeenCalledTimes(2);
+    const sql: string = query.mock.calls[1][0];
+    expect(sql).toContain('lower(b.libro) = lower($1)');
+    expect(sql).toContain('lower(b.folio) = lower($2)');
+    expect(sql).toContain('lower(b.asiento) = lower($3)');
+    expect(query.mock.calls[1][1]).toEqual(['1', '2', '3', 0, 10]);
+  });
+
   it('returns an empty paginated result without records', async () => {
     const query = jest
       .fn()
