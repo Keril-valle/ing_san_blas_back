@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
   Post,
 } from '@nestjs/common';
 import { Permisos } from '../Auth/Decorators/permisos.decorator';
@@ -24,5 +27,11 @@ export class RolController {
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateRolDto) {
     return this.rolService.create(dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.rolService.eliminar(id);
   }
 }

@@ -85,6 +85,9 @@ export class UpdateContactoDto {
     { require_protocol: true },
     { message: 'La URL del mapa no es válida.' },
   )
+  @Matches(/[?&]output=embed([&#]|$)/, {
+    message: 'La URL del mapa debe ser embebible (incluir output=embed).',
+  })
   mapaUrl?: string;
 
   @IsOptional()

@@ -12,7 +12,7 @@ const contactoValido = {
   correo: 'parroquia@example.com',
   ubicacion: 'San Ramón',
   horariosAtencion: ['Lunes :: 8:00 - 12:00'],
-  mapaUrl: 'https://maps.google.com/maps?q=San+Blas',
+  mapaUrl: 'https://maps.google.com/maps?q=San+Blas&output=embed',
 };
 
 const donacionesValido = {
