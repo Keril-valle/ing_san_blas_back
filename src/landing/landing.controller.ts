@@ -34,12 +34,20 @@ import {
 } from './DTO/update-landing-section.dto';
 import { UpdateContactoDto } from './DTO/update-contacto.dto';
 import { UpdateDonacionesDto } from './DTO/update-donaciones.dto';
+import { UpdateCatequesisDto } from './DTO/update-catequesis.dto';
 import { UpdateHistoriaDto } from './DTO/update-historia.dto';
 import { UpdateHorariosDto } from './DTO/update-horarios.dto';
 import { RestablecerLandingDto } from './DTO/restablecer-landing.dto';
 import { LandingService } from './landing.service';
 
 const LIMITE_IMAGEN = {
+  storage: memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+};
+
+// límite aparte pa los documentos (PDF): mismo peso que las imágenes,
+// pero el servicio de storage valida la extensión .pdf
+const LIMITE_PDF = {
   storage: memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
 };
@@ -225,6 +233,30 @@ export class LandingController {
   @HttpCode(HttpStatus.OK)
   updateDonaciones(@Body() dto: UpdateDonacionesDto) {
     return this.landingService.update('donaciones', dto);
+  }
+
+  @Put('catequesis')
+  @Permisos('landing')
+  @HttpCode(HttpStatus.OK)
+  updateCatequesis(@Body() dto: UpdateCatequesisDto) {
+    return this.landingService.update('catequesis', dto);
+  }
+
+  // el PDF de lineamientos va por multipart: el payload trae el JSON
+  // (sinpe + URL actual) y el archivo reemplaza la URL al subirse
+  @Put('catequesis/con-archivo')
+  @Permisos('landing')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('archivo', LIMITE_PDF))
+  updateCatequesisWithFile(
+    @Req() req: Request,
+    @UploadedFile() archivo?: Express.Multer.File,
+  ) {
+    return this.landingService.update(
+      'catequesis',
+      this.leerPayload(req),
+      archivo,
+    );
   }
 
   // Restablece una o varias secciones (sin body = todas). Sirve pa el botón

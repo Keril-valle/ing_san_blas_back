@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   Optional,
@@ -20,6 +21,7 @@ import {
   MENSAJE_ESTADO_INVALIDO,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
   MENSAJE_NIVEL_INVALIDO,
+  esEstadoFinalInscripcion,
   normalizarEstadoInscripcion,
   normalizarNivelInscripcion,
   unirApellidos,
@@ -118,7 +120,10 @@ export class CatequesisService {
       },
       pago: {
         metodoPago: dto.datosPago.metodoPago.trim(),
-        numeroComprobanteSinpe: dto.datosPago.numeroComprobanteSinpe.trim(),
+        // la columna es NOT NULL y el formulario ya no pide el número,
+        // así que sin dato se guarda vacío en vez de tronar la inserción
+        numeroComprobanteSinpe:
+          dto.datosPago.numeroComprobanteSinpe?.trim() || '',
         comprobanteArchivo: dto.datosPago.comprobanteArchivo.trim(),
       },
     });
@@ -360,11 +365,16 @@ export class CatequesisService {
       nivelAInscribirse: string;
       estado: string;
       fechaSolicitud: Date;
+      telefono: string;
+      direccionExacta: string;
     }>
   > {
+    // madre y personaInscribe se traen pa poder exportar el teléfono de contacto
     const query = this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
+      .leftJoinAndSelect('inscripcion.madre', 'madre')
+      .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
       .orderBy('inscripcion.fechaSolicitud', 'DESC');
 
     if (filtros.estado) {
@@ -398,6 +408,14 @@ export class CatequesisService {
       nivelAInscribirse: inscripcion.nivelAInscribirse,
       estado: inscripcion.estado,
       fechaSolicitud: inscripcion.fechaSolicitud,
+      // el teléfono lo pide la parroquia pa poder llamar al encargado:
+      // sale de la madre/encargada (obligatoria en el form) y si acaso
+      // no existiera se respalda con el de la persona que inscribe
+      telefono:
+        inscripcion.madre?.telefono ||
+        inscripcion.personaInscribe?.telefono ||
+        '',
+      direccionExacta: inscripcion.catequizando?.direccionExacta ?? '',
     }));
   }
 
@@ -430,6 +448,14 @@ export class CatequesisService {
     });
     if (!inscripcion) {
       return null;
+    }
+
+    // una solicitud aprobada o rechazada es definitiva: se responde 409
+    // en vez de pisar la decisión anterior (criterio de aceptación de la task)
+    if (esEstadoFinalInscripcion(inscripcion.estado)) {
+      throw new ConflictException({
+        mensaje: `La solicitud ya fue ${inscripcion.estado.trim().toLowerCase()} y no puede modificarse.`,
+      });
     }
 
     const estadoNormalizado = normalizarEstadoInscripcion(estado);
