@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { UsuarioController } from './usuario.controller';
 import { BuscarUsuariosDto } from './DTO/buscar-usuarios.dto';
 
@@ -119,5 +120,49 @@ describe('UsuarioController.findAll — rutas de ordenamiento', () => {
       'state',
       undefined,
     );
+  });
+});
+
+describe('UsuarioController.findOne — lectura propia', () => {
+  const serviceConFindOne = () => ({
+    findOne: jest.fn((id: number) => `usuario-${id}`),
+  });
+  const req = (user: unknown) => ({ user }) as never;
+
+  it('permite ver el propio perfil sin el permiso usuarios', () => {
+    const service = serviceConFindOne();
+    const controller = new UsuarioController(service as never);
+
+    const respuesta = controller.findOne(
+      '7',
+      req({ sub: 7, roles: ['catequista'], permisos: [] }),
+    );
+
+    expect(respuesta).toBe('usuario-7');
+  });
+
+  it('permite ver otro perfil con el permiso usuarios', () => {
+    const service = serviceConFindOne();
+    const controller = new UsuarioController(service as never);
+
+    const respuesta = controller.findOne(
+      '9',
+      req({ sub: 7, roles: ['gestor-eventos'], permisos: ['usuarios'] }),
+    );
+
+    expect(respuesta).toBe('usuario-9');
+  });
+
+  it('rechaza ver perfil ajeno sin el permiso usuarios', () => {
+    const service = serviceConFindOne();
+    const controller = new UsuarioController(service as never);
+
+    expect(() =>
+      controller.findOne(
+        '9',
+        req({ sub: 7, roles: ['catequista'], permisos: [] }),
+      ),
+    ).toThrow(ForbiddenException);
+    expect(service.findOne).not.toHaveBeenCalled();
   });
 });
