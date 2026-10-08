@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -68,6 +69,10 @@ export class DatosCatequizandoDto {
   @IsString()
   @IsNotEmpty({
     message: 'La dirección exacta del catequizando es obligatoria.',
+  })
+  // el formulario corta en 150, así que el server no se fía del cliente y valida igual
+  @MaxLength(150, {
+    message: 'La dirección exacta no puede superar 150 caracteres.',
   })
   direccionExacta: string;
 }
@@ -129,6 +134,9 @@ export class DatosMadreDto {
   @IsString()
   @IsNotEmpty({
     message: 'La dirección exacta de la madre o encargada es obligatoria.',
+  })
+  @MaxLength(150, {
+    message: 'La dirección exacta no puede superar 150 caracteres.',
   })
   direccionExacta: string;
 

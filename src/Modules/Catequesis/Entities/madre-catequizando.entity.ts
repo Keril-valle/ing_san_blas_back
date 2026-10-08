@@ -24,7 +24,12 @@ export class MadreCatequizando {
   @Column({ name: 'SegundoApellido', type: 'varchar', nullable: true })
   segundoApellido: string | null;
 
-  @Column({ name: 'DireccionExacta', type: 'text', nullable: true })
+  @Column({
+    name: 'DireccionExacta',
+    type: 'varchar',
+    length: 150,
+    nullable: true,
+  })
   direccionExacta: string | null;
 
   @Column({ name: 'Ciudad', type: 'varchar', nullable: true })
