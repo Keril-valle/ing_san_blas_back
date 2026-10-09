@@ -32,6 +32,8 @@ import { CondicionSaludCatequizando } from './Modules/Catequesis/Entities/condic
 import { MadreCatequizando } from './Modules/Catequesis/Entities/madre-catequizando.entity';
 import { PagoInscripcionCatequesis } from './Modules/Catequesis/Entities/pago-inscripcion-catequesis.entity';
 import { PersonaInscribeCatequesis } from './Modules/Catequesis/Entities/persona-inscribe-catequesis.entity';
+import { InscripcionCica } from './Modules/Cica/Entities/inscripcion-cica.entity';
+import { InscripcionCatequesisBautismo } from './Modules/CatequesisBautismo/Entities/inscripcion-catequesis-bautismo.entity';
 
 config();
 
@@ -70,6 +72,8 @@ export default new DataSource({
     MadreCatequizando,
     PagoInscripcionCatequesis,
     PersonaInscribeCatequesis,
+    InscripcionCica,
+    InscripcionCatequesisBautismo,
   ],
   migrations: ['src/migrations/*.ts'],
   ssl: { rejectUnauthorized: false },

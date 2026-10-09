@@ -43,6 +43,10 @@ import { MadreCatequizando } from './Modules/Catequesis/Entities/madre-catequiza
 import { PagoInscripcionCatequesis } from './Modules/Catequesis/Entities/pago-inscripcion-catequesis.entity';
 import { PersonaInscribeCatequesis } from './Modules/Catequesis/Entities/persona-inscribe-catequesis.entity';
 import { CatequesisModule } from './Modules/Catequesis/catequesis.module';
+import { CicaModule } from './Modules/Cica/cica.module';
+import { InscripcionCica } from './Modules/Cica/Entities/inscripcion-cica.entity';
+import { CatequesisBautismoModule } from './Modules/CatequesisBautismo/catequesis-bautismo.module';
+import { InscripcionCatequesisBautismo } from './Modules/CatequesisBautismo/Entities/inscripcion-catequesis-bautismo.entity';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './Notifications/notifications.module';
 
@@ -95,6 +99,8 @@ import { NotificationsModule } from './Notifications/notifications.module';
           MadreCatequizando,
           PagoInscripcionCatequesis,
           PersonaInscribeCatequesis,
+          InscripcionCica,
+          InscripcionCatequesisBautismo,
         ],
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
         ssl: {
@@ -116,6 +122,8 @@ import { NotificationsModule } from './Notifications/notifications.module';
     DonacionesModule,
     RegistroSacramentosModule,
     CatequesisModule,
+    CicaModule,
+    CatequesisBautismoModule,
     LandingModule,
     DashboardModule,
     NotificationsModule, // correos (Brevo), global así que queda disponible para todos los módulos
