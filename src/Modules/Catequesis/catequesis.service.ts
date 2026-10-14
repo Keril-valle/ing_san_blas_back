@@ -482,6 +482,31 @@ export class CatequesisService {
     };
   }
 
+  async remove(id: number): Promise<boolean> {
+    const inscripcion = await this.inscripcionRepository.findOne({
+      where: { id },
+      relations: {
+        catequizando: true,
+        bautismo: true,
+        adecuacion: true,
+        condicionSalud: true,
+        madre: true,
+        pago: true,
+        personaInscribe: true,
+      },
+    });
+    if (!inscripcion) {
+      return false;
+    }
+    if (!esEstadoFinalInscripcion(inscripcion.estado)) {
+      throw new BadRequestException({
+        mensaje: 'Solo se pueden eliminar solicitudes aprobadas o rechazadas.',
+      });
+    }
+    await this.inscripcionRepository.remove(inscripcion);
+    return true;
+  }
+
   private armarAviso(
     inscripcion: InscripcionCatequesis,
     estado: string,
