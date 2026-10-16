@@ -1,4 +1,5 @@
 import { Transform } from 'class-transformer';
+import { IdentificacionCatequesisDto } from '../../../Common/DTO/identificacion-catequesis.dto';
 import {
   IsBoolean,
   IsIn,
@@ -61,7 +62,7 @@ class AdultoCicaConstraint implements ValidatorConstraintInterface {
   }
 }
 
-export class CrearInscripcionCicaDto {
+export class CrearInscripcionCicaDto extends IdentificacionCatequesisDto {
   @Transform(recortar)
   @IsString()
   @IsNotEmpty({ message: 'El nombre es obligatorio.' })
@@ -99,12 +100,6 @@ export class CrearInscripcionCicaDto {
   @IsNotEmpty({ message: 'La fecha de nacimiento es obligatoria.' })
   @Validate(AdultoCicaConstraint)
   fechaNacimiento: string;
-
-  @Transform(recortar)
-  @IsString()
-  @IsNotEmpty({ message: 'La cédula es obligatoria.' })
-  @Matches(/^\d{9}$/, { message: 'La cédula debe tener 9 dígitos.' })
-  cedula: string;
 
   @Transform(recortar)
   @IsString()

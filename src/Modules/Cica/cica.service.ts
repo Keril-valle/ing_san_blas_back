@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PATRON_CEDULA_CATEQUESIS } from '../../Common/DTO/identificacion-catequesis.dto';
 import { InscripcionCica } from './Entities/inscripcion-cica.entity';
 import {
   ActualizarEstadoCicaDto,
@@ -123,9 +124,9 @@ export class CicaService {
 
   consultarPorCedula(cedula: string) {
     const limpia = cedula?.trim() ?? '';
-    if (!/^\d{9}$/.test(limpia)) {
+    if (!PATRON_CEDULA_CATEQUESIS.test(limpia)) {
       throw new BadRequestException({
-        mensaje: 'La cédula debe tener 9 dígitos.',
+        mensaje: 'La cédula debe tener 9 dígitos (nacional) o 12 (extranjera).',
       });
     }
 
