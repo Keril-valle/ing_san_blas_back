@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Workbook, Worksheet } from 'exceljs';
 import { CatequesisService } from './catequesis.service';
+import { fechaCostaRica } from '../../Common/Utils/fecha-costa-rica';
 
 const COLUMNAS_EXPORTADAS = [
   'Nombre',
@@ -36,7 +37,7 @@ type FilaExportada = {
   centroCatequesis: string;
   nivelAInscribirse: string;
   estado: string;
-  fechaSolicitud: Date;
+  fechaSolicitud: string;
   telefono: string;
   direccionExacta: string;
 };
@@ -162,7 +163,7 @@ export class CatequesisExportService {
 
     const solicitudes = total === 1 ? 'solicitud' : 'solicitudes';
     const resumen = worksheet.getCell(3, 1);
-    resumen.value = `Filial: ${filtros.filial?.trim() || 'Todas'}    Nivel: ${this.etiquetaNivelFiltro(filtros.nivel)}    Estado: ${this.etiquetaEstadoFiltro(filtros.estado)}    Generado: ${this.formatearFechaHora(new Date())}    Total: ${total} ${solicitudes}`;
+    resumen.value = `Filial: ${filtros.filial?.trim() || 'Todas'}    Nivel: ${this.etiquetaNivelFiltro(filtros.nivel)}    Estado: ${this.etiquetaEstadoFiltro(filtros.estado)}    Generado: ${this.formatearFecha(fechaCostaRica())}    Total: ${total} ${solicitudes}`;
     resumen.font = { name: 'Calibri', size: 10, color: { argb: GRIS } };
     resumen.fill = this.relleno(CREMA);
     resumen.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -208,7 +209,7 @@ export class CatequesisExportService {
         fila.centroCatequesis,
         this.etiquetaNivel(fila.nivelAInscribirse),
         fila.estado,
-        this.formatearFechaHora(fila.fechaSolicitud),
+        this.fechaComoExcel(fila.fechaSolicitud),
         fila.telefono,
         direccionRecortada ?? fila.direccionExacta,
       ];
@@ -216,6 +217,7 @@ export class CatequesisExportService {
       valores.forEach((valor, columna) => {
         const celda = row.getCell(columna + 1);
         celda.value = valor || '';
+        if (valor instanceof Date) celda.numFmt = 'dd/mm/yyyy';
         celda.font = { name: 'Calibri', size: 11, color: { argb: TEXTO } };
         celda.fill = this.relleno(fondo);
         celda.alignment = {
@@ -318,18 +320,10 @@ export class CatequesisExportService {
     return `${dia}/${mes}/${anio}`;
   }
 
-  private formatearFechaHora(fecha: Date): string {
-    return new Intl.DateTimeFormat('es-CR', {
-      timeZone: 'America/Costa_Rica',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
-      .format(fecha)
-      .replace(',', '');
+  // ExcelJS convierte el Date tomando el instante UTC; medianoche UTC deja el día exacto sin importar la zona del servidor
+  private fechaComoExcel(fecha: string): Date {
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    return new Date(Date.UTC(anio, mes - 1, dia));
   }
 
   private nombreHoja(filtros: FiltrosExportacion): string {
@@ -345,7 +339,7 @@ export class CatequesisExportService {
     if (filtros.filial) piezas.push(this.slug(filtros.filial));
     if (filtros.nivel) piezas.push(this.slug(filtros.nivel));
     if (filtros.estado) piezas.push(this.slug(filtros.estado));
-    piezas.push(new Date().toISOString().slice(0, 10));
+    piezas.push(fechaCostaRica());
     return `${piezas.join('_')}.xlsx`;
   }
 
