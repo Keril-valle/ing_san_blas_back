@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -7,6 +12,16 @@ import {
 } from '../Common/Constants/permisos-rol';
 import { CreateRolDto } from './DTO/create-rol.dto';
 import { Rol } from './Entities/rol.entity';
+
+// Claves que nunca se pueden crear ni eliminar desde el panel.
+const CLAVES_RESERVADAS = [
+  'admin',
+  'user',
+  'secretario',
+  'catequista',
+  'gestor-eventos',
+  'gestor-donaciones',
+];
 
 @Injectable()
 export class RolService {
@@ -50,14 +65,6 @@ export class RolService {
     const claveBase = claveDesdeNombre(nombre);
     const clave = await this.claveUnica(claveBase);
 
-    const CLAVES_RESERVADAS = [
-      'admin',
-      'user',
-      'secretario',
-      'catequista',
-      'gestor-eventos',
-      'gestor-donaciones',
-    ];
     if (CLAVES_RESERVADAS.includes(clave)) {
       throw new BadRequestException({
         mensaje: 'Ese nombre está reservado para un rol del sistema.',
@@ -82,6 +89,40 @@ export class RolService {
     });
 
     return this.rolRepository.save(rol);
+  }
+
+  async eliminar(id: number): Promise<void> {
+    const rol = await this.rolRepository.findOne({ where: { id } });
+    if (!rol) {
+      throw new NotFoundException({
+        mensaje: 'El rol indicado no existe.',
+      });
+    }
+    if (rol.esSistema || CLAVES_RESERVADAS.includes(rol.clave)) {
+      throw new BadRequestException({
+        mensaje: 'Este rol no se puede eliminar.',
+      });
+    }
+    // Cuentas con el rol en la columna singular o en la tabla intermedia.
+    const enSingular: Array<{ total: string }> =
+      await this.rolRepository.query(
+        `SELECT COUNT(*) AS total FROM usuario WHERE role = $1`,
+        [rol.clave],
+      );
+    const enIntermedia: Array<{ total: string }> =
+      await this.rolRepository.query(
+        `SELECT COUNT(*) AS total FROM usuario_roles ur JOIN rol r ON r.id = ur.rol_id WHERE r.clave = $1`,
+        [rol.clave],
+      );
+    const asignados =
+      Number(enSingular[0]?.total ?? 0) + Number(enIntermedia[0]?.total ?? 0);
+    if (asignados > 0) {
+      throw new ConflictException({
+        mensaje:
+          'Este rol tiene cuentas asignadas. Reasigne esas cuentas antes de eliminarlo.',
+      });
+    }
+    await this.rolRepository.remove(rol);
   }
 
   tieneAccesoPanel(rol: Rol | null): boolean {

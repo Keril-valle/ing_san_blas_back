@@ -23,6 +23,9 @@ export class UpdateDonacionesDto {
   @MaxLength(40, {
     message: 'El SINPE móvil no puede superar 40 caracteres.',
   })
+  @Matches(/^(?!0)/, {
+    message: 'El número no puede empezar con 0.',
+  })
   @Matches(/^[\d\s-]{8,40}$/, {
     message: 'El SINPE móvil no tiene un formato válido.',
   })
@@ -31,11 +34,12 @@ export class UpdateDonacionesDto {
   @Transform(transformarTexto)
   @IsString({ message: 'La cuenta bancaria debe ser texto.' })
   @IsNotEmpty({ message: 'La cuenta bancaria es obligatoria.' })
-  @MaxLength(60, {
-    message: 'La cuenta bancaria no puede superar 60 caracteres.',
+  @MaxLength(22, {
+    message: 'La cuenta bancaria no puede superar 22 caracteres.',
   })
-  @Matches(/^[A-Za-z]{2}[\dA-Za-z]{6,40}$/, {
-    message: 'La cuenta bancaria no tiene un formato válido (IBAN).',
+  @Matches(/^CR\d{20}$/i, {
+    message:
+      'La cuenta bancaria debe ser un IBAN de Costa Rica. Ejemplo: CR67015100012345678901',
   })
   cuentaBancaria: string;
 

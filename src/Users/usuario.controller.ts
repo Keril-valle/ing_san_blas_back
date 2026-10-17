@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
@@ -62,9 +63,26 @@ export class UsuarioController {
     return this.usuarioService.obtenerNombrePorCedula(cedula);
   }
 
-  @Permisos('usuarios')
+  // Lectura propia: cualquier cuenta autenticada puede ver SU perfil
+  // (Mi perfil) aunque no tenga el permiso 'usuarios'. El resto sigue
+  // exigiendo el permiso. El JWT válido lo sigue exigiendo el AuthGuard.
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string, @Req() req: RequestWithUser) {
+    const solicitante = req.user;
+    const misRoles: string[] = Array.isArray(solicitante?.roles)
+      ? solicitante.roles
+      : solicitante?.role
+        ? [solicitante.role]
+        : [];
+    const misPermisos: string[] = Array.isArray(solicitante?.permisos)
+      ? solicitante.permisos
+      : [];
+    const esPropio = Number(solicitante?.sub) === +id;
+    const puedeVer =
+      misRoles.includes('secretario') || misPermisos.includes('usuarios');
+    if (!esPropio && !puedeVer) {
+      throw new ForbiddenException();
+    }
     return this.usuarioService.findOne(+id);
   }
 

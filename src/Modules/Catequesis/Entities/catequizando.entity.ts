@@ -27,7 +27,12 @@ export class Catequizando {
   @Column({ name: 'FechaNacimiento', type: 'date' })
   fechaNacimiento: string;
 
-  @Column({ name: 'DireccionExacta', type: 'text', nullable: true })
+  @Column({
+    name: 'DireccionExacta',
+    type: 'varchar',
+    length: 150,
+    nullable: true,
+  })
   direccionExacta: string | null;
 
   @OneToOne(

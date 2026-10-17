@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Workbook, Worksheet } from 'exceljs';
 import { CatequesisService } from './catequesis.service';
+import { fechaCostaRica } from '../../Common/Utils/fecha-costa-rica';
 
 const COLUMNAS_EXPORTADAS = [
   'Nombre',
@@ -11,9 +12,13 @@ const COLUMNAS_EXPORTADAS = [
   'Nivel a inscribirse',
   'Estado de inscripción',
   'Fecha de inscripción',
+  'Teléfono',
+  'Dirección exacta',
 ] as const;
 
-const ANCHOS_COLUMNA = [22, 20, 20, 22, 26, 20, 22, 22];
+// la dirección va más ancha pa que se lea más texto antes de cortarse
+const ANCHOS_COLUMNA = [22, 20, 20, 22, 26, 20, 22, 22, 18, 50];
+const LIMITE_DIRECCION = 50; // igual al ancho de la columna pa que quepa en una línea
 const FILA_ENCABEZADO = 5;
 const AZUL = 'FF003366';
 const DORADO = 'FFD4AF37';
@@ -32,7 +37,9 @@ type FilaExportada = {
   centroCatequesis: string;
   nivelAInscribirse: string;
   estado: string;
-  fechaSolicitud: Date;
+  fechaSolicitud: string;
+  telefono: string;
+  direccionExacta: string;
 };
 
 type FiltrosExportacion = {
@@ -45,7 +52,9 @@ type FiltrosExportacion = {
 export class CatequesisExportService {
   constructor(private readonly catequesisService: CatequesisService) {}
 
-  async exportar(filtros: FiltrosExportacion = {}): Promise<{ buffer: Buffer; fileName: string; total: number }> {
+  async exportar(
+    filtros: FiltrosExportacion = {},
+  ): Promise<{ buffer: Buffer; fileName: string; total: number }> {
     const filas = await this.catequesisService.findForExport(filtros);
     if (filas.length === 0) {
       throw new NotFoundException({
@@ -72,7 +81,9 @@ export class CatequesisExportService {
     workbook.created = new Date();
 
     const worksheet = workbook.addWorksheet(this.nombreHoja(filtros), {
-      views: [{ state: 'frozen', ySplit: FILA_ENCABEZADO, showGridLines: false }],
+      views: [
+        { state: 'frozen', ySplit: FILA_ENCABEZADO, showGridLines: false },
+      ],
       properties: { tabColor: { argb: AZUL } },
       pageSetup: {
         orientation: 'landscape',
@@ -152,7 +163,7 @@ export class CatequesisExportService {
 
     const solicitudes = total === 1 ? 'solicitud' : 'solicitudes';
     const resumen = worksheet.getCell(3, 1);
-    resumen.value = `Filial: ${filtros.filial?.trim() || 'Todas'}    Nivel: ${this.etiquetaNivelFiltro(filtros.nivel)}    Estado: ${this.etiquetaEstadoFiltro(filtros.estado)}    Generado: ${this.formatearFechaHora(new Date())}    Total: ${total} ${solicitudes}`;
+    resumen.value = `Filial: ${filtros.filial?.trim() || 'Todas'}    Nivel: ${this.etiquetaNivelFiltro(filtros.nivel)}    Estado: ${this.etiquetaEstadoFiltro(filtros.estado)}    Generado: ${this.formatearFecha(fechaCostaRica())}    Total: ${total} ${solicitudes}`;
     resumen.font = { name: 'Calibri', size: 10, color: { argb: GRIS } };
     resumen.fill = this.relleno(CREMA);
     resumen.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -185,13 +196,11 @@ export class CatequesisExportService {
     encabezado.height = 26;
   }
 
-  private pintarFilas(
-    worksheet: Worksheet,
-    filas: FilaExportada[],
-  ): void {
+  private pintarFilas(worksheet: Worksheet, filas: FilaExportada[]): void {
     filas.forEach((fila, indice) => {
       const row = worksheet.getRow(FILA_ENCABEZADO + 1 + indice);
       const fondo = indice % 2 === 0 ? BLANCO : FILA_ALTERNA;
+      const direccionRecortada = this.truncarDireccion(fila.direccionExacta);
       const valores = [
         fila.nombre,
         fila.primerApellido,
@@ -200,20 +209,35 @@ export class CatequesisExportService {
         fila.centroCatequesis,
         this.etiquetaNivel(fila.nivelAInscribirse),
         fila.estado,
-        this.formatearFechaHora(fila.fechaSolicitud),
+        this.fechaComoExcel(fila.fechaSolicitud),
+        fila.telefono,
+        direccionRecortada ?? fila.direccionExacta,
       ];
 
       valores.forEach((valor, columna) => {
         const celda = row.getCell(columna + 1);
         celda.value = valor || '';
+        if (valor instanceof Date) celda.numFmt = 'dd/mm/yyyy';
         celda.font = { name: 'Calibri', size: 11, color: { argb: TEXTO } };
         celda.fill = this.relleno(fondo);
         celda.alignment = {
           vertical: 'middle',
-          horizontal: columna === 3 || columna >= 5 ? 'center' : 'left',
+          // el teléfono va centrado como los demás datos cortos, pero la
+          // dirección exacta se queda a la izquierda pa que se lea sin saltos raros
+          horizontal:
+            columna === 3 || (columna >= 5 && columna <= 8) ? 'center' : 'left',
+          // la dirección ya viene cortada con "...", pero el wrapText evita que
+          // en pantallas con fuente distinta se desborde sobre la columna siguiente
+          wrapText: columna === 9,
         };
         celda.border = this.borde(BORDE);
       });
+
+      // la dirección completa vive en la nota: al hacer click en el indicador de la
+      // celda (esquinacita) se despliega el texto entero aunque la celda se vea cortada
+      if (direccionRecortada) {
+        row.getCell(10).note = fila.direccionExacta;
+      }
 
       const estado = row.getCell(7);
       const colores = this.coloresEstado(fila.estado);
@@ -226,6 +250,22 @@ export class CatequesisExportService {
       estado.fill = this.relleno(colores.fondo);
       row.height = 22;
     });
+  }
+
+  // Corta la dirección con "..." cuando no cabe en la columna. Devuelve null si entra
+  // completa (así no se agregan puntos de más) y corta en espacio pa no partir palabras.
+  private truncarDireccion(direccion: string): string | null {
+    const texto = direccion.trim();
+    if (texto.length <= LIMITE_DIRECCION) return null;
+
+    const cortada = texto.slice(0, LIMITE_DIRECCION - 3);
+    const ultimoEspacio = cortada.lastIndexOf(' ');
+    // si el corte en espacio queda demasiado corto, se corta donde da
+    const base =
+      ultimoEspacio > LIMITE_DIRECCION / 2
+        ? cortada.slice(0, ultimoEspacio)
+        : cortada;
+    return `${base.trimEnd()}...`;
   }
 
   private relleno(argb: string) {
@@ -280,18 +320,10 @@ export class CatequesisExportService {
     return `${dia}/${mes}/${anio}`;
   }
 
-  private formatearFechaHora(fecha: Date): string {
-    return new Intl.DateTimeFormat('es-CR', {
-      timeZone: 'America/Costa_Rica',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
-      .format(fecha)
-      .replace(',', '');
+  // ExcelJS convierte el Date tomando el instante UTC; medianoche UTC deja el día exacto sin importar la zona del servidor
+  private fechaComoExcel(fecha: string): Date {
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    return new Date(Date.UTC(anio, mes - 1, dia));
   }
 
   private nombreHoja(filtros: FiltrosExportacion): string {
@@ -307,7 +339,7 @@ export class CatequesisExportService {
     if (filtros.filial) piezas.push(this.slug(filtros.filial));
     if (filtros.nivel) piezas.push(this.slug(filtros.nivel));
     if (filtros.estado) piezas.push(this.slug(filtros.estado));
-    piezas.push(new Date().toISOString().slice(0, 10));
+    piezas.push(fechaCostaRica());
     return `${piezas.join('_')}.xlsx`;
   }
 

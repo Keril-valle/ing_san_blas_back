@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   Optional,
@@ -20,11 +21,13 @@ import {
   MENSAJE_ESTADO_INVALIDO,
   MENSAJE_FECHA_NACIMIENTO_FUTURA,
   MENSAJE_NIVEL_INVALIDO,
+  esEstadoFinalInscripcion,
   normalizarEstadoInscripcion,
   normalizarNivelInscripcion,
   unirApellidos,
   validarFechaNoFutura,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
+import { fechaCostaRica } from '../../Common/Utils/fecha-costa-rica';
 import {
   CatequesisMailService,
   type AvisoInscripcionCatequesis,
@@ -73,7 +76,7 @@ export class CatequesisService {
       centroCatequesis: dto.datosInscripcion.centroCatequesis.trim(),
       nivelAInscribirse: nivel,
       estado: 'Pendiente',
-      fechaSolicitud: new Date(),
+      fechaSolicitud: fechaCostaRica(),
       feBautismoArchivo: dto.datosInscripcion.feBautismoArchivo.trim(),
       catequizando: {
         nombre: dto.datosCatequizando.nombre.trim(),
@@ -118,7 +121,10 @@ export class CatequesisService {
       },
       pago: {
         metodoPago: dto.datosPago.metodoPago.trim(),
-        numeroComprobanteSinpe: dto.datosPago.numeroComprobanteSinpe.trim(),
+        // la columna es NOT NULL y el formulario ya no pide el número,
+        // así que sin dato se guarda vacío en vez de tronar la inserción
+        numeroComprobanteSinpe:
+          dto.datosPago.numeroComprobanteSinpe?.trim() || '',
         comprobanteArchivo: dto.datosPago.comprobanteArchivo.trim(),
       },
     });
@@ -154,7 +160,8 @@ export class CatequesisService {
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
       .leftJoinAndSelect('inscripcion.madre', 'madre')
       .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
-      .orderBy('inscripcion.fechaSolicitud', 'DESC');
+      .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .addOrderBy('inscripcion.id', 'DESC');
 
     if (opciones.estado) {
       query.andWhere('inscripcion.estado = :estado', {
@@ -265,14 +272,14 @@ export class CatequesisService {
 
     if (opciones.desde) {
       qb.andWhere('inscripcion.fechaSolicitud >= :desde', {
-        desde: new Date(`${opciones.desde}T00:00:00`),
+        desde: opciones.desde,
       });
     }
 
     if (opciones.hasta) {
-      const hasta = new Date(`${opciones.hasta}T00:00:00`);
-      hasta.setDate(hasta.getDate() + 1);
-      qb.andWhere('inscripcion.fechaSolicitud < :hasta', { hasta });
+      qb.andWhere('inscripcion.fechaSolicitud <= :hasta', {
+        hasta: opciones.hasta,
+      });
     }
 
     qb.orderBy('inscripcion.fechaActualizacionEstado', 'DESC');
@@ -359,13 +366,19 @@ export class CatequesisService {
       centroCatequesis: string;
       nivelAInscribirse: string;
       estado: string;
-      fechaSolicitud: Date;
+      fechaSolicitud: string;
+      telefono: string;
+      direccionExacta: string;
     }>
   > {
+    // madre y personaInscribe se traen pa poder exportar el teléfono de contacto
     const query = this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
-      .orderBy('inscripcion.fechaSolicitud', 'DESC');
+      .leftJoinAndSelect('inscripcion.madre', 'madre')
+      .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
+      .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .addOrderBy('inscripcion.id', 'DESC');
 
     if (filtros.estado) {
       query.andWhere('inscripcion.estado = :estado', {
@@ -398,6 +411,14 @@ export class CatequesisService {
       nivelAInscribirse: inscripcion.nivelAInscribirse,
       estado: inscripcion.estado,
       fechaSolicitud: inscripcion.fechaSolicitud,
+      // el teléfono lo pide la parroquia pa poder llamar al encargado:
+      // sale de la madre/encargada (obligatoria en el form) y si acaso
+      // no existiera se respalda con el de la persona que inscribe
+      telefono:
+        inscripcion.madre?.telefono ||
+        inscripcion.personaInscribe?.telefono ||
+        '',
+      direccionExacta: inscripcion.catequizando?.direccionExacta ?? '',
     }));
   }
 
@@ -413,6 +434,7 @@ export class CatequesisService {
         correo: correo.trim(),
       })
       .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .addOrderBy('inscripcion.id', 'DESC')
       .getMany();
 
     return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));
@@ -430,6 +452,14 @@ export class CatequesisService {
     });
     if (!inscripcion) {
       return null;
+    }
+
+    // una solicitud aprobada o rechazada es definitiva: se responde 409
+    // en vez de pisar la decisión anterior (criterio de aceptación de la task)
+    if (esEstadoFinalInscripcion(inscripcion.estado)) {
+      throw new ConflictException({
+        mensaje: `La solicitud ya fue ${inscripcion.estado.trim().toLowerCase()} y no puede modificarse.`,
+      });
     }
 
     const estadoNormalizado = normalizarEstadoInscripcion(estado);

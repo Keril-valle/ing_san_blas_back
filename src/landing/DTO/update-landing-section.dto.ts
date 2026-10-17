@@ -347,3 +347,5 @@ export class UpdateServiciosDto {
 }
 
 export { UpdateDonacionesDto } from './update-donaciones.dto';
+
+export { UpdateCatequesisDto } from './update-catequesis.dto';

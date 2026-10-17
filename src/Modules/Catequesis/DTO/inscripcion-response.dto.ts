@@ -4,7 +4,7 @@ export class InscripcionResumenDto {
   centroCatequesis: string;
   nivelAInscribirse: string;
   estado: string;
-  fechaEnvio: Date;
+  fechaEnvio: string;
   fechaRevision: Date | null;
   telefonoEncargada: string;
   nombreEncargado: string;
@@ -74,7 +74,7 @@ export class InscripcionDetalleDto {
   centroCatequesis: string;
   nivelAInscribirse: string;
   estado: string;
-  fechaSolicitud: Date;
+  fechaSolicitud: string;
   fechaActualizacionEstado: Date | null;
   feBautismoArchivo: string;
   observacionAdministrativa: string | null;
@@ -94,7 +94,7 @@ export class CrearInscripcionResponseDto {
   id: number;
   mensaje: string;
   estado: string;
-  fechaSolicitud: Date;
+  fechaSolicitud: string;
 }
 
 export class ActualizarEstadoResponseDto {

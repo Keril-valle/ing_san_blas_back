@@ -34,12 +34,20 @@ import {
 } from './DTO/update-landing-section.dto';
 import { UpdateContactoDto } from './DTO/update-contacto.dto';
 import { UpdateDonacionesDto } from './DTO/update-donaciones.dto';
+import { UpdateCatequesisDto } from './DTO/update-catequesis.dto';
 import { UpdateHistoriaDto } from './DTO/update-historia.dto';
 import { UpdateHorariosDto } from './DTO/update-horarios.dto';
 import { RestablecerLandingDto } from './DTO/restablecer-landing.dto';
 import { LandingService } from './landing.service';
 
 const LIMITE_IMAGEN = {
+  storage: memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+};
+
+// límite aparte pa los documentos (PDF): mismo peso que las imágenes,
+// pero el servicio de storage valida la extensión .pdf
+const LIMITE_PDF = {
   storage: memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
 };
@@ -59,7 +67,9 @@ export class LandingController {
 
   @Public()
   @Get()
-  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+  // no-cache: el navegador revalida con ETag en cada visita, así un cambio
+  // publicado desde el dashboard se ve de una sin esperar los 5 min de max-age
+  @Header('Cache-Control', 'no-cache')
   findAll() {
     return this.landingService.findAll();
   }
@@ -225,6 +235,30 @@ export class LandingController {
     return this.landingService.update('donaciones', dto);
   }
 
+  @Put('catequesis')
+  @Permisos('landing')
+  @HttpCode(HttpStatus.OK)
+  updateCatequesis(@Body() dto: UpdateCatequesisDto) {
+    return this.landingService.update('catequesis', dto);
+  }
+
+  // el PDF de lineamientos va por multipart: el payload trae el JSON
+  // (sinpe + URL actual) y el archivo reemplaza la URL al subirse
+  @Put('catequesis/con-archivo')
+  @Permisos('landing')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('archivo', LIMITE_PDF))
+  updateCatequesisWithFile(
+    @Req() req: Request,
+    @UploadedFile() archivo?: Express.Multer.File,
+  ) {
+    return this.landingService.update(
+      'catequesis',
+      this.leerPayload(req),
+      archivo,
+    );
+  }
+
   // Restablece una o varias secciones (sin body = todas). Sirve pa el botón
   // por card y pa el "Restablecer todo" del menú global.
   @Post('restablecer')
@@ -236,7 +270,8 @@ export class LandingController {
 
   @Public()
   @Get(':sectionKey')
-  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+  // igual que el listado: sin max-age pa que el hero nuevo no quede viejo 5 min
+  @Header('Cache-Control', 'no-cache')
   findOne(@Param('sectionKey') sectionKey: string) {
     return this.landingService.findOne(sectionKey);
   }

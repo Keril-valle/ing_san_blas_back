@@ -12,6 +12,7 @@
  */
 import type {
   UpdateBautizosDto,
+  UpdateCatequesisDto,
   UpdateContactoDto,
   UpdateDonacionesDto,
   UpdateHeroDto,
@@ -30,6 +31,7 @@ export const LANDING_SECTION_KEYS = [
   'bautizos',
   'servicios',
   'donaciones',
+  'catequesis',
 ] as const;
 
 export type LandingSectionKey = (typeof LANDING_SECTION_KEYS)[number];
@@ -278,6 +280,13 @@ export const DONACIONES_DEFAULT: UpdateDonacionesDto = {
   banco: 'Banco Nacional',
 };
 
+// lo que se muestra en el formulario de inscripción de catequesis:
+// el SINPE de pago (paso 6) y el PDF de lineamientos del último paso
+export const CATEQUESIS_DEFAULT: UpdateCatequesisDto = {
+  sinpe: '8878-3025',
+  lineamientosUrl: '/lineamientos-catequesis-24-25.pdf',
+};
+
 export const LANDING_DEFAULTS: Record<LandingSectionKey, object> = {
   hero: HERO_DEFAULT,
   'sobre-nosotros': SOBRE_NOSOTROS_DEFAULT,
@@ -287,6 +296,7 @@ export const LANDING_DEFAULTS: Record<LandingSectionKey, object> = {
   bautizos: BAUTIZOS_DEFAULT,
   servicios: SERVICIOS_DEFAULT,
   donaciones: DONACIONES_DEFAULT,
+  catequesis: CATEQUESIS_DEFAULT,
 };
 
 // clon profundo del default pa que el reset nunca mute la constante original

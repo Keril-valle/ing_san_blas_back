@@ -47,6 +47,14 @@ export function normalizarEstadoInscripcion(
   return encontrado ?? null;
 }
 
+// Un estado final es terminal: una vez aprobada o rechazada la solicitud ya no
+// se vuelve a cambiar (el backend responde 409 en lugar de pisar la decisión).
+// Solo existen 3 estados: Pendiente, Aprobada y Rechazada.
+export function esEstadoFinalInscripcion(estado?: string | null): boolean {
+  const normalizado = normalizarEstadoInscripcion(estado);
+  return normalizado === 'Aprobada' || normalizado === 'Rechazada';
+}
+
 export function normalizarNivelInscripcion(
   nivel?: string | null,
 ): string | null {

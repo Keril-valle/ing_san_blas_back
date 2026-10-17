@@ -28,6 +28,23 @@ export class BuscarSacramentosNormalizadosDto {
   @MaxLength(30)
   cedula?: string;
 
+  // Libro/folio/asiento solo filtran bautismos: el bautismo es la raíz de
+  // todos los sacramentos y por inercia ubica a los demás vía la cédula.
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  libro?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  folio?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  asiento?: string;
+
   @IsOptional()
   @IsEnum(TipoSacramentoRegistro)
   tipo?: TipoSacramentoRegistro;

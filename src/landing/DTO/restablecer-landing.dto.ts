@@ -10,6 +10,7 @@ const LANDING_KEYS = [
   'bautizos',
   'servicios',
   'donaciones',
+  'catequesis',
 ] as const;
 
 export class RestablecerLandingDto {

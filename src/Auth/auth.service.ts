@@ -13,6 +13,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Role } from '../Common/Enums/Roles';
 import { LoginDto } from './DTO/login.dto';
 import { RestablecerContrasenaDto } from './DTO/restablecer-contrasena.dto';
+import { ValidarEnlaceRecuperacionDto } from './DTO/validar-enlace-recuperacion.dto';
 import { RecuperacionContrasena } from './Entities/recuperacion-contrasena.entity';
 import { UsuarioService } from '../Users/usuario.service';
 import { RolService } from '../Users/rol.service';
@@ -81,6 +82,21 @@ export class AuthService {
 
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private mensajeSiEnlaceNoSirve(
+    fila: Pick<RecuperacionContrasena, 'usedAt' | 'expiresAt'> | null,
+  ): string | null {
+    if (!fila) {
+      return 'El enlace no es válido.';
+    }
+    if (fila.usedAt) {
+      return 'Este enlace ya fue utilizado.';
+    }
+    if (fila.expiresAt.getTime() <= Date.now()) {
+      return 'El enlace expiró. Solicite uno nuevo.';
+    }
+    return null;
   }
 
   private async updateRefreshTokenHash(userId: number, refreshToken: string) {
@@ -207,6 +223,20 @@ export class AuthService {
     return { message: MENSAJE_RECUPERACION };
   }
 
+  async validarEnlaceRecuperacion(dto: ValidarEnlaceRecuperacionDto) {
+    const fila = await this.dataSource
+      .getRepository(RecuperacionContrasena)
+      .findOne({
+        where: { tokenHash: this.hashToken(dto.token) },
+        select: { id: true, usedAt: true, expiresAt: true },
+      });
+    const mensaje = this.mensajeSiEnlaceNoSirve(fila);
+    if (mensaje) {
+      throw new BadRequestException(mensaje);
+    }
+    return { valido: true };
+  }
+
   async restablecerContrasena(dto: RestablecerContrasenaDto) {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Las contraseñas no coinciden');
@@ -222,14 +252,9 @@ export class AuthService {
         .where('recuperacion.tokenHash = :tokenHash', { tokenHash })
         .getOne();
 
-      if (!fila) {
-        throw new BadRequestException('El enlace no es válido.');
-      }
-      if (fila.usedAt) {
-        throw new BadRequestException('Este enlace ya fue utilizado.');
-      }
-      if (fila.expiresAt.getTime() <= Date.now()) {
-        throw new BadRequestException('El enlace expiró. Solicite uno nuevo.');
+      const mensaje = this.mensajeSiEnlaceNoSirve(fila);
+      if (!fila || mensaje) {
+        throw new BadRequestException(mensaje ?? 'El enlace no es válido.');
       }
 
       const passwordHash = await bcrypt.hash(dto.password, 12);

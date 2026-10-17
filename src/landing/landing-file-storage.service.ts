@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto';
 const cloudinaryAgent = new Agent({ rejectUnauthorized: false });
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set(['.pdf']);
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 @Injectable()
@@ -73,6 +74,58 @@ export class LandingFileStorageService {
       );
       throw new BadRequestException({
         mensaje: 'No se pudo subir la imagen, intente de nuevo.',
+      });
+    }
+  }
+
+  // Sube un documento (PDF) a Cloudinary como recurso "raw": los PDF no son
+  // imágenes, así que no pueden pasar por saveSectionImage.
+  async saveSectionDocument(
+    file: Express.Multer.File,
+    sectionKey: string,
+    variante = 'documento',
+  ): Promise<string> {
+    if (!file || file.size <= 0) {
+      throw new BadRequestException({ mensaje: 'El archivo está vacío.' });
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      throw new BadRequestException({
+        mensaje: 'El archivo no puede superar 5 MB.',
+      });
+    }
+
+    const extension = this.resolveExtension(file.originalname);
+    if (!extension || !ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
+      throw new BadRequestException({
+        mensaje: 'Formato no permitido. Use PDF.',
+      });
+    }
+
+    const buffer = this.obtenerBuffer(file);
+    if (!buffer.length) {
+      throw new BadRequestException({ mensaje: 'El archivo está vacío.' });
+    }
+
+    try {
+      const uploadResult = await cloudinary.uploader.upload(
+        `data:application/pdf;base64,${buffer.toString('base64')}`,
+        {
+          // el .pdf en el public_id hace que la URL devuelta termine en .pdf
+          public_id: `landing/${sectionKey}/${variante}/${randomBytes(12).toString('hex')}.pdf`,
+          resource_type: 'raw',
+          agent: cloudinaryAgent,
+        },
+      );
+
+      return uploadResult.secure_url ?? uploadResult.url;
+    } catch (error) {
+      const detalle = this.detalleError(error);
+      this.logger.error(
+        `Error subiendo documento de ${sectionKey} a Cloudinary: ${detalle}`,
+      );
+      throw new BadRequestException({
+        mensaje: 'No se pudo subir el PDF, intente de nuevo.',
       });
     }
   }

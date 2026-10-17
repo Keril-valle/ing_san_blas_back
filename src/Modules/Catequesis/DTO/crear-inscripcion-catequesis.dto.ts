@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -68,6 +69,10 @@ export class DatosCatequizandoDto {
   @IsString()
   @IsNotEmpty({
     message: 'La dirección exacta del catequizando es obligatoria.',
+  })
+  // el formulario corta en 150, así que el server no se fía del cliente y valida igual
+  @MaxLength(150, {
+    message: 'La dirección exacta no puede superar 150 caracteres.',
   })
   direccionExacta: string;
 }
@@ -129,6 +134,9 @@ export class DatosMadreDto {
   @IsString()
   @IsNotEmpty({
     message: 'La dirección exacta de la madre o encargada es obligatoria.',
+  })
+  @MaxLength(150, {
+    message: 'La dirección exacta no puede superar 150 caracteres.',
   })
   direccionExacta: string;
 
@@ -215,7 +223,10 @@ export class DatosPersonaInscribeDto {
   @IsNotEmpty({
     message: 'El teléfono de la persona que inscribe es obligatorio.',
   })
-  @Matches(/^\d{8}$/, {
+  // el formulario formatea el teléfono con guion (8888-1234) igual que en el
+  // resto del sistema, así que aceptamos ambas formas; si exigíamos solo
+  // 8 dígitos corridos el envío moría aquí con un 400 engañoso
+  @Matches(/^\d{4}-?\d{4}$/, {
     message: 'El teléfono de la persona que inscribe debe tener 8 dígitos.',
   })
   telefono: string;
@@ -227,10 +238,12 @@ export class DatosPagoDto {
   @IsNotEmpty({ message: 'El método de pago es obligatorio.' })
   metodoPago: string;
 
+  // el número de comprobante SINPE ya no se pide en el formulario:
+  // la prueba de pago es la imagen, así que el campo queda opcional
+  @IsOptional()
   @Transform(recortarTexto)
   @IsString()
-  @IsNotEmpty({ message: 'El número de comprobante SINPE es obligatorio.' })
-  numeroComprobanteSinpe: string;
+  numeroComprobanteSinpe?: string;
 
   @Transform(recortarTexto)
   @IsString()
