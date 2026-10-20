@@ -11,6 +11,7 @@ import { InscripcionCica } from './Entities/inscripcion-cica.entity';
 import {
   ActualizarEstadoCicaDto,
   CrearInscripcionCicaDto,
+  requiereConyugeCica,
 } from './DTO/inscripcion-cica.dto';
 
 @Injectable()
@@ -31,6 +32,8 @@ export class CicaService {
       });
     }
 
+    const conyuge = requiereConyugeCica(dto.estadoCivil);
+
     const guardada = await this.repositorio.save(
       this.repositorio.create({
         nombre: dto.nombre,
@@ -42,12 +45,9 @@ export class CicaService {
         telefono: dto.telefono,
         correo: dto.correo,
         estadoCivil: dto.estadoCivil,
-        conyugeNombre:
-          dto.estadoCivil === 'soltero' ? null : (dto.conyugeNombre ?? null),
-        conyugeApellido1:
-          dto.estadoCivil === 'soltero' ? null : (dto.conyugeApellido1 ?? null),
-        conyugeApellido2:
-          dto.estadoCivil === 'soltero' ? null : (dto.conyugeApellido2 ?? null),
+        conyugeNombre: conyuge ? (dto.conyugeNombre ?? null) : null,
+        conyugeApellido1: conyuge ? (dto.conyugeApellido1 ?? null) : null,
+        conyugeApellido2: conyuge ? (dto.conyugeApellido2 ?? null) : null,
         necesitaBautizo: dto.necesitaBautizo,
         necesitaPrimeraComunion: dto.necesitaPrimeraComunion,
         necesitaConfirmacion: dto.necesitaConfirmacion,

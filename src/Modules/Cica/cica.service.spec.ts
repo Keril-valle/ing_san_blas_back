@@ -5,7 +5,10 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { CicaService } from './cica.service';
 import { InscripcionCica } from './Entities/inscripcion-cica.entity';
-import { ActualizarEstadoCicaDto } from './DTO/inscripcion-cica.dto';
+import {
+  ActualizarEstadoCicaDto,
+  CrearInscripcionCicaDto,
+} from './DTO/inscripcion-cica.dto';
 
 describe('CicaService.actualizarEstado', () => {
   const repositorio = {
@@ -104,5 +107,76 @@ describe('CicaService.actualizarEstado', () => {
     const resultado = await cambiarEstado({ estado: 'Aprobada' }, 9);
 
     expect(resultado).toBe(guardada);
+  });
+});
+
+describe('CicaService.crear: cónyuge según estado civil', () => {
+  const repositorio = {
+    create: jest.fn((entidad: unknown) => entidad),
+    save: jest.fn((entidad: unknown) => Promise.resolve(entidad)),
+  };
+
+  const service = new CicaService(
+    repositorio as unknown as Repository<InscripcionCica>,
+  );
+
+  const base = {
+    tipoCedula: 'nacional',
+    cedula: '123456789',
+    nombre: 'Ana',
+    apellido1: 'Pérez',
+    fechaNacimiento: '1990-01-01',
+    nacionalidad: 'Costarricense',
+    telefono: '8888-8888',
+    correo: 'ana@dominio.com',
+    estadoCivil: 'soltero',
+    conyugeNombre: 'Luis',
+    conyugeApellido1: 'Pérez',
+    conyugeApellido2: 'Gómez',
+    necesitaBautizo: true,
+    necesitaPrimeraComunion: false,
+    necesitaConfirmacion: false,
+    padreNombre: 'Luis',
+    padreApellido1: 'Pérez',
+    madreNombre: 'Marta',
+    madreApellido1: 'Gómez',
+    direccionHogar: 'Calle 1 casa 2',
+    esCatolico: true,
+  } as const;
+
+  const crear = (datos: Partial<CrearInscripcionCicaDto>) =>
+    service.crear({ ...base, ...datos } as CrearInscripcionCicaDto);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it.each(['soltero', 'divorciado'])(
+    'anula el cónyuge cuando el estado es %s',
+    async (estadoCivil) => {
+      await crear({ estadoCivil: estadoCivil as 'soltero' });
+
+      expect(repositorio.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estadoCivil,
+          conyugeNombre: null,
+          conyugeApellido1: null,
+          conyugeApellido2: null,
+        }),
+      );
+    },
+  );
+
+  it('conserva el cónyuge cuando el estado implica pareja', async () => {
+    await crear({ estadoCivil: 'matrimonio_catolico' });
+
+    expect(repositorio.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        estadoCivil: 'matrimonio_catolico',
+        conyugeNombre: 'Luis',
+        conyugeApellido1: 'Pérez',
+        conyugeApellido2: 'Gómez',
+      }),
+    );
   });
 });

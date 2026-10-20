@@ -27,8 +27,28 @@ const vacioANulo = ({ value }: { value: unknown }) => {
 export const ESTADOS_CIVILES_CICA = [
   'soltero',
   'matrimonio_civil',
+  'matrimonio_catolico',
   'union_libre',
+  'union_civil',
+  'divorciado',
 ] as const;
+
+export const ESTADOS_CON_PAREJA_CICA = [
+  'matrimonio_civil',
+  'matrimonio_catolico',
+  'union_libre',
+  'union_civil',
+] as const;
+
+export const requiereConyugeCica = (
+  estadoCivil?: (typeof ESTADOS_CIVILES_CICA)[number],
+): boolean =>
+  Boolean(
+    estadoCivil &&
+      ESTADOS_CON_PAREJA_CICA.includes(
+        estadoCivil as (typeof ESTADOS_CON_PAREJA_CICA)[number],
+      ),
+  );
 
 const LETRAS_CON_ESPACIO = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 const LETRAS_SIN_ESPACIO = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+$/;
@@ -135,10 +155,16 @@ export class CrearInscripcionCicaDto extends IdentificacionCatequesisDto {
   estadoCivil: (typeof ESTADOS_CIVILES_CICA)[number];
 
   @Transform(vacioANulo)
-  @ValidateIf((dto: CrearInscripcionCicaDto) => dto.estadoCivil !== 'soltero')
+  @ValidateIf((dto: CrearInscripcionCicaDto) =>
+    requiereConyugeCica(dto.estadoCivil),
+  )
   @IsString()
   @IsNotEmpty({
     message: 'El nombre del cónyuge o compañero(a) es obligatorio.',
+  })
+  @MinLength(3, {
+    message:
+      'El nombre del cónyuge o compañero(a) debe tener al menos 3 caracteres.',
   })
   @MaxLength(25, {
     message:
@@ -150,7 +176,9 @@ export class CrearInscripcionCicaDto extends IdentificacionCatequesisDto {
   conyugeNombre?: string | null;
 
   @Transform(vacioANulo)
-  @ValidateIf((dto: CrearInscripcionCicaDto) => dto.estadoCivil !== 'soltero')
+  @ValidateIf((dto: CrearInscripcionCicaDto) =>
+    requiereConyugeCica(dto.estadoCivil),
+  )
   @IsString()
   @IsNotEmpty({
     message: 'El primer apellido del cónyuge o compañero(a) es obligatorio.',
@@ -166,7 +194,6 @@ export class CrearInscripcionCicaDto extends IdentificacionCatequesisDto {
   conyugeApellido1?: string | null;
 
   @Transform(vacioANulo)
-  @ValidateIf((dto: CrearInscripcionCicaDto) => dto.estadoCivil !== 'soltero')
   @IsOptional()
   @IsString()
   @MaxLength(25, {
