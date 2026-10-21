@@ -30,13 +30,26 @@ const COLUMNAS_ORDEN_USUARIO = {
 
 type ColumnaOrdenUsuario = keyof typeof COLUMNAS_ORDEN_USUARIO;
 
+// Resultado de consultar una cédula en el registro externo. Distingue "no
+// existe" de "el proveedor falló" para que el frontend muestre el mensaje correcto.
+export type ResultadoConsultaCedula =
+  | { estado: 'encontrada'; nombre: string }
+  | { estado: 'no_encontrada' }
+  | { estado: 'error' };
+
+const TTL_CEDULA_ENCONTRADA_MS = 86_400_000; // 24 h: la identidad no cambia
+const TTL_CEDULA_NO_ENCONTRADA_MS = 5 * 60_000; // 5 min: permite reintentar pronto sin castigar a GoMeta
+
 @Injectable()
 export class UsuarioService {
   private readonly cedulasCache = new Map<
     string,
-    { nombre: string | null; venceEn: number }
+    { resultado: ResultadoConsultaCedula; venceEn: number }
   >();
-  private readonly consultasCedula = new Map<string, Promise<string | null>>();
+  private readonly consultasCedula = new Map<
+    string,
+    Promise<ResultadoConsultaCedula>
+  >();
 
   constructor(
     @InjectRepository(Usuario)
@@ -362,12 +375,16 @@ export class UsuarioService {
   }
 
   // Consulta GoMeta una sola vez por cédula mientras la respuesta siga fresca.
-  async obtenerNombrePorCedula(cedula: string): Promise<string | null> {
+  // Los aciertos se cachean 24 h; los "no encontrada" solo 5 min; los fallos del
+  // proveedor no se cachean, de modo que se puede reintentar.
+  async obtenerNombrePorCedula(
+    cedula: string,
+  ): Promise<ResultadoConsultaCedula> {
     const cedulaNormalizada = cedula.replace(/\D/g, '');
-    if (cedulaNormalizada.length !== 9) return null;
+    if (cedulaNormalizada.length !== 9) return { estado: 'no_encontrada' };
 
     const cacheada = this.cedulasCache.get(cedulaNormalizada);
-    if (cacheada && cacheada.venceEn > Date.now()) return cacheada.nombre;
+    if (cacheada && cacheada.venceEn > Date.now()) return cacheada.resultado;
 
     const enCurso = this.consultasCedula.get(cedulaNormalizada);
     if (enCurso) return enCurso;
@@ -376,12 +393,18 @@ export class UsuarioService {
     this.consultasCedula.set(cedulaNormalizada, consulta);
 
     try {
-      const nombre = await consulta;
-      this.cedulasCache.set(cedulaNormalizada, {
-        nombre,
-        venceEn: Date.now() + 86_400_000, // la identidad no cambia y así se evita castigar a GoMeta
-      });
-      return nombre;
+      const resultado = await consulta;
+      if (resultado.estado !== 'error') {
+        this.cedulasCache.set(cedulaNormalizada, {
+          resultado,
+          venceEn:
+            Date.now() +
+            (resultado.estado === 'encontrada'
+              ? TTL_CEDULA_ENCONTRADA_MS
+              : TTL_CEDULA_NO_ENCONTRADA_MS),
+        });
+      }
+      return resultado;
     } finally {
       this.consultasCedula.delete(cedulaNormalizada);
     }
@@ -390,7 +413,7 @@ export class UsuarioService {
   // Protege el endpoint si el proveedor externo queda colgado.
   private async consultarNombrePorCedula(
     cedula: string,
-  ): Promise<string | null> {
+  ): Promise<ResultadoConsultaCedula> {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), 7_000);
 
@@ -401,19 +424,20 @@ export class UsuarioService {
           signal: abortController.signal,
         },
       );
-      if (!respuesta.ok) return null;
+      if (!respuesta.ok) return { estado: 'error' };
       const data: unknown = await respuesta.json();
       if (
         typeof data === 'object' &&
         data !== null &&
         'nombre' in data &&
-        typeof data.nombre === 'string'
+        typeof data.nombre === 'string' &&
+        data.nombre.trim() !== ''
       ) {
-        return data.nombre;
+        return { estado: 'encontrada', nombre: data.nombre };
       }
-      return null;
+      return { estado: 'no_encontrada' };
     } catch {
-      return null;
+      return { estado: 'error' };
     } finally {
       clearTimeout(timeout);
     }
