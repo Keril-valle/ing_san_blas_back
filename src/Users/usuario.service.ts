@@ -64,10 +64,13 @@ export class UsuarioService {
 
     const existingUser = await this.usuarioRepository.findOneBy({
       email: ILike(registerDto.email),
-      isActive: true,
     });
     if (existingUser) {
-      throw new ConflictException('El ingresado email ya está registrado');
+      throw new ConflictException(
+        existingUser.isActive
+          ? 'El correo ya está registrado.'
+          : 'Ya existe una cuenta con este correo, pero está inactiva. Reactívela desde el listado de usuarios inactivos en lugar de crear una nueva.',
+      );
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
@@ -258,7 +261,8 @@ export class UsuarioService {
 
   findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
-      where: { email, isActive: true },
+      // El correo no distingue mayúsculas/minúsculas al iniciar sesión.
+      where: { email: ILike(email.trim()), isActive: true },
       select: {
         id: true,
         nombre: true,
@@ -289,7 +293,9 @@ export class UsuarioService {
     updateUsuarioDto: UpdateUsuarioDto,
     actorId?: number,
   ) {
-    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
+    // Se busca sin filtrar por isActive: una cuenta inactiva también debe poder
+    // editarse y, sobre todo, reactivarse desde el panel.
+    const user = await this.usuarioRepository.findOneBy({ id });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
@@ -346,7 +352,30 @@ export class UsuarioService {
         );
       }
       if (updateUsuarioDto.isActive !== undefined) {
+        const estabaActiva = user.isActive;
+
+        if (updateUsuarioDto.isActive && !estabaActiva) {
+          const activaConMismoEmail = await this.usuarioRepository.findOneBy({
+            email: ILike(user.email),
+            isActive: true,
+          });
+          if (activaConMismoEmail && activaConMismoEmail.id !== user.id) {
+            throw new ConflictException(
+              `Ya existe otra cuenta activa con este correo (ID ${activaConMismoEmail.id}). Desactívela primero o cambie su correo antes de reactivar esta cuenta.`,
+            );
+          }
+        }
+
         user.isActive = updateUsuarioDto.isActive;
+
+        // Desactivar debe cortar las sesiones abiertas: se limpia el refresh
+        // token y se adelanta passwordChangedAt para que los access tokens
+        // emitidos antes dejen de ser válidos. Al reactivar se exige un login
+        // nuevo, de modo que una sesión vieja no revive con la cuenta.
+        if (!user.isActive || !estabaActiva) {
+          user.refreshTokenHash = null;
+          user.passwordChangedAt = new Date();
+        }
       }
     }
 
@@ -369,6 +398,10 @@ export class UsuarioService {
     }
 
     user.isActive = false;
+    // Igual que al desactivar desde el formulario: se revocan las sesiones
+    // abiertas para que no vuelvan a servir si la cuenta se reactiva.
+    user.refreshTokenHash = null;
+    user.passwordChangedAt = new Date();
     const guardado = await this.usuarioRepository.save(user);
     const [conRol] = await this.conRoles([guardado]);
     return plainToInstance(UsuarioRespuestaDto, conRol);
