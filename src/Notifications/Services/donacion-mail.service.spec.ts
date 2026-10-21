@@ -44,11 +44,14 @@ describe('DonacionMailService.notificarEstado', () => {
       'Oficina parroquial, frente a la juguetería El Jade',
     );
     expect(ultimoEnvio?.htmlContent).toContain('2685-3540');
+    expect(ultimoEnvio?.htmlContent).toContain('Horarios de atención');
+    expect(ultimoEnvio?.htmlContent).toContain('Miércoles: Cerrado');
     expect(ultimoEnvio?.textContent).toContain('Entregar en portería el lunes');
     expect(ultimoEnvio?.textContent).toContain('2685-3540');
     expect(ultimoEnvio?.textContent).toContain(
       'Oficina parroquial, frente a la juguetería El Jade',
     );
+    expect(ultimoEnvio?.textContent).toContain('Horarios de atención');
   });
 
   it('mantiene el lugar de entrega dentro del comentario aunque no haya detalle al aprobar', async () => {

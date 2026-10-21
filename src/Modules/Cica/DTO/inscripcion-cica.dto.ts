@@ -33,6 +33,16 @@ export const ESTADOS_CIVILES_CICA = [
   'divorciado',
 ] as const;
 
+export const PROVINCIAS_COSTA_RICA_CICA = [
+  'San José',
+  'Alajuela',
+  'Cartago',
+  'Heredia',
+  'Guanacaste',
+  'Puntarenas',
+  'Limón',
+] as const;
+
 export const ESTADOS_CON_PAREJA_CICA = [
   'matrimonio_civil',
   'matrimonio_catolico',
@@ -280,6 +290,33 @@ export class CrearInscripcionCicaDto extends IdentificacionCatequesisDto {
     message: 'El segundo apellido de la madre solo puede contener letras.',
   })
   madreApellido2?: string | null;
+
+  @IsIn(PROVINCIAS_COSTA_RICA_CICA, {
+    message: 'Seleccione una provincia de Costa Rica.',
+  })
+  provincia: (typeof PROVINCIAS_COSTA_RICA_CICA)[number];
+
+  @Transform(recortar)
+  @IsString()
+  @IsNotEmpty({ message: 'El cantón es obligatorio.' })
+  @MaxLength(50, {
+    message: 'El cantón no puede superar los 50 caracteres.',
+  })
+  @Matches(LETRAS_CON_ESPACIO, {
+    message: 'El cantón solo puede contener letras.',
+  })
+  canton: string;
+
+  @Transform(recortar)
+  @IsString()
+  @IsNotEmpty({ message: 'El distrito es obligatorio.' })
+  @MaxLength(50, {
+    message: 'El distrito no puede superar los 50 caracteres.',
+  })
+  @Matches(LETRAS_CON_ESPACIO, {
+    message: 'El distrito solo puede contener letras.',
+  })
+  distrito: string;
 
   @Transform(recortar)
   @IsString()

@@ -73,6 +73,15 @@ export class InscripcionCica {
   @Column({ type: 'varchar', length: 25, nullable: true })
   madreApellido2: string | null;
 
+  @Column({ type: 'varchar', length: 40 })
+  provincia: string;
+
+  @Column({ type: 'varchar', length: 50 })
+  canton: string;
+
+  @Column({ type: 'varchar', length: 50 })
+  distrito: string;
+
   @Column({ type: 'varchar', length: 100 })
   direccionHogar: string;
 

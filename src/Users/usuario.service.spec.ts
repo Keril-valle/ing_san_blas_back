@@ -307,3 +307,86 @@ describe('UsuarioService.findAllPaginado — filtros', () => {
     });
   });
 });
+
+describe('UsuarioService.obtenerNombrePorCedula — caché', () => {
+  const fetchOriginal = global.fetch;
+
+  afterEach(() => {
+    global.fetch = fetchOriginal;
+    jest.useRealTimers();
+  });
+
+  const respuesta = (body: unknown, ok = true) => ({
+    ok,
+    json: jest.fn().mockResolvedValue(body),
+  });
+
+  const simularFetch = (mock: jest.Mock) => {
+    global.fetch = mock as unknown as typeof fetch;
+    return mock;
+  };
+
+  it('cachea 24 h las cédulas encontradas', async () => {
+    const fetchMock = simularFetch(
+      jest.fn().mockResolvedValue(respuesta({ nombre: 'ANA PEREZ SOLIS' })),
+    );
+    const { service } = crearServicio();
+
+    await expect(
+      service.obtenerNombrePorCedula('102340567'),
+    ).resolves.toEqual({ estado: 'encontrada', nombre: 'ANA PEREZ SOLIS' });
+    await service.obtenerNombrePorCedula('102340567');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('cachea 5 min las cédulas no encontradas y luego reintenta', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    const fetchMock = simularFetch(
+      jest.fn().mockResolvedValue(respuesta({ resultcount: 0 })),
+    );
+    const { service } = crearServicio();
+
+    await expect(
+      service.obtenerNombrePorCedula('102340567'),
+    ).resolves.toEqual({ estado: 'no_encontrada' });
+
+    jest.setSystemTime(new Date('2026-01-01T00:04:59Z'));
+    await service.obtenerNombrePorCedula('102340567');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    jest.setSystemTime(new Date('2026-01-01T00:05:01Z'));
+    await service.obtenerNombrePorCedula('102340567');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('no cachea los fallos del proveedor', async () => {
+    const fetchMock = simularFetch(
+      jest
+        .fn()
+        .mockResolvedValueOnce(respuesta({}, false))
+        .mockResolvedValueOnce(respuesta({ nombre: 'ANA PEREZ SOLIS' })),
+    );
+    const { service } = crearServicio();
+
+    await expect(
+      service.obtenerNombrePorCedula('102340567'),
+    ).resolves.toEqual({ estado: 'error' });
+    await expect(
+      service.obtenerNombrePorCedula('102340567'),
+    ).resolves.toEqual({ estado: 'encontrada', nombre: 'ANA PEREZ SOLIS' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('no consulta el proveedor con cédulas incompletas', async () => {
+    const fetchMock = simularFetch(jest.fn());
+    const { service } = crearServicio();
+
+    await expect(service.obtenerNombrePorCedula('10234')).resolves.toEqual({
+      estado: 'no_encontrada',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
