@@ -140,6 +140,9 @@ describe('CicaService.crear: cónyuge según estado civil', () => {
     padreApellido1: 'Pérez',
     madreNombre: 'Marta',
     madreApellido1: 'Gómez',
+    provincia: 'Guanacaste',
+    canton: 'Nicoya',
+    distrito: 'Nicoya',
     direccionHogar: 'Calle 1 casa 2',
     esCatolico: true,
   } as const;

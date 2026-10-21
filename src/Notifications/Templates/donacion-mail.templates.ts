@@ -1,10 +1,38 @@
 const TELEFONO_PARROQUIA = '2685-3540';
 const LUGAR_PARROQUIA = 'Oficina parroquial, frente a la juguetería El Jade';
 
+export const HORARIOS_ATENCION = [
+  'Lunes: 8:00 a.m. a 12:00 m.d.',
+  'Martes: 8:00 a.m. a 12:00 m.d. y 2:00 p.m. a 5:00 p.m.',
+  'Miércoles: Cerrado',
+  'Jueves a Viernes: 8:00 a.m. a 12:00 m.d. y 2:00 p.m. a 5:00 p.m.',
+  'Sábados: 8:00 a.m. a 12:00 m.d.',
+] as const;
+
 export const DATOS_CONTACTO_PARROQUIA = {
   telefono: TELEFONO_PARROQUIA,
   lugar: LUGAR_PARROQUIA,
+  horariosAtencion: HORARIOS_ATENCION,
 };
+
+/** Bloque HTML de horarios para correos de aprobación. */
+export function renderBloqueHorariosAtencionHtml(): string {
+  const items = HORARIOS_ATENCION.map(
+    (linea) =>
+      `<li style="margin: 0 0 6px 0; font-size: 15px; line-height: 1.5; color: #495057;">${linea}</li>`,
+  ).join('');
+
+  return `<div style="background-color: #f0f4f8; padding: 20px 22px; border: 1px solid #dee2e6; border-left: 3px solid #1f3350; margin-bottom: 24px;">
+                                <strong style="color: #1f3350; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Horarios de atención:</strong>
+                                <ul style="margin: 12px 0 0 0; padding-left: 20px;">
+                                    ${items}
+                                </ul>
+                            </div>`;
+}
+
+export function textoHorariosAtencionPlano(): string {
+  return `Horarios de atención: ${HORARIOS_ATENCION.join(' | ')}`;
+}
 
 // Plantillas de correo de donaciones (mismo diseño que los HTML sueltos de /Template, pero en TS para que viajen en el build de Railway sin pelear con assets)
 function escapeHtml(value: string): string {
@@ -79,6 +107,7 @@ export function renderDonacionEstadoHtml(input: {
                             </div>
 
                             ${bloqueParroquia}
+                            ${esAprobado ? renderBloqueHorariosAtencionHtml() : ''}
                             ${
                               esAprobado
                                 ? ''

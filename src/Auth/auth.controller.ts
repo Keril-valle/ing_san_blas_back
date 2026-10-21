@@ -27,7 +27,7 @@ import {
   REFRESH_TOKEN_COOKIE,
   refreshCookieOptions,
 } from './auth-cookies';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -69,10 +69,14 @@ export class AuthController {
     return { message: 'Sesión renovada' };
   }
 
-  // Devuelve el perfil ya validado sin exponer el JWT al JavaScript del navegador.
+  // Sin cookie responde 200 y user null, para que las páginas públicas
+  // no disparen un 401 al comprobar si hay sesión.
+  @Public()
   @Get('session')
-  session(@Req() req: RequestWithUser) {
-    return { user: this.authService.getSessionUser(req.user) };
+  session(@Req() req: Request) {
+    const user = (req as RequestWithUser).user;
+    if (!user?.sub) return { user: null };
+    return { user: this.authService.getSessionUser(user) };
   }
 
   @Public()
