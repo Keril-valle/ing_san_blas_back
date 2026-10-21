@@ -21,8 +21,8 @@ export class InscripcionCatequesis {
   @Column({ name: 'Estado', default: 'Pendiente' })
   estado: string;
 
-  @Column({ name: 'FechaSolicitud', type: 'timestamptz' })
-  fechaSolicitud: Date;
+  @Column({ name: 'FechaSolicitud', type: 'date' })
+  fechaSolicitud: string;
 
   @Column({ name: 'ObservacionAdministrativa', type: 'text', nullable: true })
   observacionAdministrativa: string | null;

@@ -27,6 +27,7 @@ import {
   unirApellidos,
   validarFechaNoFutura,
 } from '../../Common/Utils/inscripcion-catequesis-validaciones';
+import { fechaCostaRica } from '../../Common/Utils/fecha-costa-rica';
 import {
   CatequesisMailService,
   type AvisoInscripcionCatequesis,
@@ -75,7 +76,7 @@ export class CatequesisService {
       centroCatequesis: dto.datosInscripcion.centroCatequesis.trim(),
       nivelAInscribirse: nivel,
       estado: 'Pendiente',
-      fechaSolicitud: new Date(),
+      fechaSolicitud: fechaCostaRica(),
       feBautismoArchivo: dto.datosInscripcion.feBautismoArchivo.trim(),
       catequizando: {
         nombre: dto.datosCatequizando.nombre.trim(),
@@ -159,7 +160,8 @@ export class CatequesisService {
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
       .leftJoinAndSelect('inscripcion.madre', 'madre')
       .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
-      .orderBy('inscripcion.fechaSolicitud', 'DESC');
+      .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .addOrderBy('inscripcion.id', 'DESC');
 
     if (opciones.estado) {
       query.andWhere('inscripcion.estado = :estado', {
@@ -270,14 +272,14 @@ export class CatequesisService {
 
     if (opciones.desde) {
       qb.andWhere('inscripcion.fechaSolicitud >= :desde', {
-        desde: new Date(`${opciones.desde}T00:00:00`),
+        desde: opciones.desde,
       });
     }
 
     if (opciones.hasta) {
-      const hasta = new Date(`${opciones.hasta}T00:00:00`);
-      hasta.setDate(hasta.getDate() + 1);
-      qb.andWhere('inscripcion.fechaSolicitud < :hasta', { hasta });
+      qb.andWhere('inscripcion.fechaSolicitud <= :hasta', {
+        hasta: opciones.hasta,
+      });
     }
 
     qb.orderBy('inscripcion.fechaActualizacionEstado', 'DESC');
@@ -364,7 +366,7 @@ export class CatequesisService {
       centroCatequesis: string;
       nivelAInscribirse: string;
       estado: string;
-      fechaSolicitud: Date;
+      fechaSolicitud: string;
       telefono: string;
       direccionExacta: string;
     }>
@@ -375,7 +377,8 @@ export class CatequesisService {
       .leftJoinAndSelect('inscripcion.catequizando', 'catequizando')
       .leftJoinAndSelect('inscripcion.madre', 'madre')
       .leftJoinAndSelect('inscripcion.personaInscribe', 'personaInscribe')
-      .orderBy('inscripcion.fechaSolicitud', 'DESC');
+      .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .addOrderBy('inscripcion.id', 'DESC');
 
     if (filtros.estado) {
       query.andWhere('inscripcion.estado = :estado', {
@@ -431,6 +434,7 @@ export class CatequesisService {
         correo: correo.trim(),
       })
       .orderBy('inscripcion.fechaSolicitud', 'DESC')
+      .addOrderBy('inscripcion.id', 'DESC')
       .getMany();
 
     return inscripciones.map((inscripcion) => this.toResumenDto(inscripcion));

@@ -6,10 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PATRON_CEDULA_CATEQUESIS } from '../../Common/DTO/identificacion-catequesis.dto';
 import { InscripcionCica } from './Entities/inscripcion-cica.entity';
 import {
   ActualizarEstadoCicaDto,
   CrearInscripcionCicaDto,
+  requiereConyugeCica,
 } from './DTO/inscripcion-cica.dto';
 
 @Injectable()
@@ -30,6 +32,8 @@ export class CicaService {
       });
     }
 
+    const conyuge = requiereConyugeCica(dto.estadoCivil);
+
     const guardada = await this.repositorio.save(
       this.repositorio.create({
         nombre: dto.nombre,
@@ -41,12 +45,9 @@ export class CicaService {
         telefono: dto.telefono,
         correo: dto.correo,
         estadoCivil: dto.estadoCivil,
-        conyugeNombre:
-          dto.estadoCivil === 'soltero' ? null : (dto.conyugeNombre ?? null),
-        conyugeApellido1:
-          dto.estadoCivil === 'soltero' ? null : (dto.conyugeApellido1 ?? null),
-        conyugeApellido2:
-          dto.estadoCivil === 'soltero' ? null : (dto.conyugeApellido2 ?? null),
+        conyugeNombre: conyuge ? (dto.conyugeNombre ?? null) : null,
+        conyugeApellido1: conyuge ? (dto.conyugeApellido1 ?? null) : null,
+        conyugeApellido2: conyuge ? (dto.conyugeApellido2 ?? null) : null,
         necesitaBautizo: dto.necesitaBautizo,
         necesitaPrimeraComunion: dto.necesitaPrimeraComunion,
         necesitaConfirmacion: dto.necesitaConfirmacion,
@@ -136,9 +137,9 @@ export class CicaService {
 
   consultarPorCedula(cedula: string) {
     const limpia = cedula?.trim() ?? '';
-    if (!/^\d{9}$/.test(limpia)) {
+    if (!PATRON_CEDULA_CATEQUESIS.test(limpia)) {
       throw new BadRequestException({
-        mensaje: 'La cédula debe tener 9 dígitos.',
+        mensaje: 'La cédula debe tener 9 dígitos (nacional) o 12 (extranjera).',
       });
     }
 

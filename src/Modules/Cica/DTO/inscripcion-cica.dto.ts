@@ -1,4 +1,5 @@
 import { Transform } from 'class-transformer';
+import { IdentificacionCatequesisDto } from '../../../Common/DTO/identificacion-catequesis.dto';
 import {
   IsBoolean,
   IsIn,
@@ -26,8 +27,28 @@ const vacioANulo = ({ value }: { value: unknown }) => {
 export const ESTADOS_CIVILES_CICA = [
   'soltero',
   'matrimonio_civil',
+  'matrimonio_catolico',
   'union_libre',
+  'union_civil',
+  'divorciado',
 ] as const;
+
+export const ESTADOS_CON_PAREJA_CICA = [
+  'matrimonio_civil',
+  'matrimonio_catolico',
+  'union_libre',
+  'union_civil',
+] as const;
+
+export const requiereConyugeCica = (
+  estadoCivil?: (typeof ESTADOS_CIVILES_CICA)[number],
+): boolean =>
+  Boolean(
+    estadoCivil &&
+      ESTADOS_CON_PAREJA_CICA.includes(
+        estadoCivil as (typeof ESTADOS_CON_PAREJA_CICA)[number],
+      ),
+  );
 
 const LETRAS_CON_ESPACIO = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 const LETRAS_SIN_ESPACIO = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+$/;
@@ -61,7 +82,7 @@ class AdultoCicaConstraint implements ValidatorConstraintInterface {
   }
 }
 
-export class CrearInscripcionCicaDto {
+export class CrearInscripcionCicaDto extends IdentificacionCatequesisDto {
   @Transform(recortar)
   @IsString()
   @IsNotEmpty({ message: 'El nombre es obligatorio.' })
@@ -102,12 +123,6 @@ export class CrearInscripcionCicaDto {
 
   @Transform(recortar)
   @IsString()
-  @IsNotEmpty({ message: 'La cédula es obligatoria.' })
-  @Matches(/^\d{9}$/, { message: 'La cédula debe tener 9 dígitos.' })
-  cedula: string;
-
-  @Transform(recortar)
-  @IsString()
   @IsNotEmpty({ message: 'La nacionalidad es obligatoria.' })
   @MaxLength(25, {
     message: 'La nacionalidad no puede superar los 25 caracteres.',
@@ -140,10 +155,16 @@ export class CrearInscripcionCicaDto {
   estadoCivil: (typeof ESTADOS_CIVILES_CICA)[number];
 
   @Transform(vacioANulo)
-  @ValidateIf((dto: CrearInscripcionCicaDto) => dto.estadoCivil !== 'soltero')
+  @ValidateIf((dto: CrearInscripcionCicaDto) =>
+    requiereConyugeCica(dto.estadoCivil),
+  )
   @IsString()
   @IsNotEmpty({
     message: 'El nombre del cónyuge o compañero(a) es obligatorio.',
+  })
+  @MinLength(3, {
+    message:
+      'El nombre del cónyuge o compañero(a) debe tener al menos 3 caracteres.',
   })
   @MaxLength(25, {
     message:
@@ -155,7 +176,9 @@ export class CrearInscripcionCicaDto {
   conyugeNombre?: string | null;
 
   @Transform(vacioANulo)
-  @ValidateIf((dto: CrearInscripcionCicaDto) => dto.estadoCivil !== 'soltero')
+  @ValidateIf((dto: CrearInscripcionCicaDto) =>
+    requiereConyugeCica(dto.estadoCivil),
+  )
   @IsString()
   @IsNotEmpty({
     message: 'El primer apellido del cónyuge o compañero(a) es obligatorio.',
@@ -171,7 +194,6 @@ export class CrearInscripcionCicaDto {
   conyugeApellido1?: string | null;
 
   @Transform(vacioANulo)
-  @ValidateIf((dto: CrearInscripcionCicaDto) => dto.estadoCivil !== 'soltero')
   @IsOptional()
   @IsString()
   @MaxLength(25, {

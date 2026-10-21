@@ -4,7 +4,7 @@ export class HistorialInscripcionCatequesisDto {
   centroCatequesis: string;
   nivelAInscribirse: string;
   estado: string;
-  fechaSolicitud: Date;
+  fechaSolicitud: string;
   telefonoEncargada: string;
   nombreEncargado: string;
   observacionAdministrativa: string | null;

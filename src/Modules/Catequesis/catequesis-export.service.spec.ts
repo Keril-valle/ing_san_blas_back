@@ -30,7 +30,7 @@ describe('CatequesisExportService', () => {
           centroCatequesis: 'San Blas',
           nivelAInscribirse: 'Sétimo',
           estado: 'Pendiente',
-          fechaSolicitud: new Date('2026-10-07T12:00:00.000Z'),
+          fechaSolicitud: '2026-10-07',
           telefono: '8888-8888',
           direccionExacta: direccionLarga,
         },
@@ -65,7 +65,7 @@ describe('CatequesisExportService', () => {
           centroCatequesis: 'San Blas',
           nivelAInscribirse: 'Primero',
           estado: 'Pendiente',
-          fechaSolicitud: new Date('2026-10-07T12:00:00.000Z'),
+          fechaSolicitud: '2026-10-07',
           telefono: '8888-8888',
           direccionExacta: direccionCorta,
         },
@@ -78,5 +78,58 @@ describe('CatequesisExportService', () => {
 
     expect(celdaDireccion.value).toBe(direccionCorta);
     expect(textoNota(celdaDireccion)).toBe('');
+  });
+
+  it('escribe la fecha de inscripción como fecha real, sin hora', async () => {
+    const servicio = new CatequesisExportService({
+      findForExport: jest.fn().mockResolvedValue([
+        {
+          nombre: 'Prueba',
+          primerApellido: 'Fecha',
+          segundoApellido: '',
+          fechaNacimiento: '2012-04-15',
+          centroCatequesis: 'San Blas',
+          nivelAInscribirse: 'Primero',
+          estado: 'Pendiente',
+          fechaSolicitud: '2026-10-07',
+          telefono: '8888-8888',
+          direccionExacta: direccionCorta,
+        },
+      ]),
+    } as never);
+    const { buffer } = await servicio.exportar();
+    const workbook = new Workbook();
+    await workbook.xlsx.load(buffer);
+    const celdaFecha = workbook.worksheets[0].getCell('H6');
+
+    expect(celdaFecha.value).toEqual(new Date(Date.UTC(2026, 9, 7)));
+    expect(celdaFecha.numFmt).toBe('dd/mm/yyyy');
+  });
+
+  it('no muestra hora en el resumen ni en el nombre del archivo', async () => {
+    const servicio = new CatequesisExportService({
+      findForExport: jest.fn().mockResolvedValue([
+        {
+          nombre: 'Prueba',
+          primerApellido: 'Fecha',
+          segundoApellido: '',
+          fechaNacimiento: '2012-04-15',
+          centroCatequesis: 'San Blas',
+          nivelAInscribirse: 'Primero',
+          estado: 'Pendiente',
+          fechaSolicitud: '2026-10-07',
+          telefono: '8888-8888',
+          direccionExacta: direccionCorta,
+        },
+      ]),
+    } as never);
+    const { buffer, fileName } = await servicio.exportar();
+    const workbook = new Workbook();
+    await workbook.xlsx.load(buffer);
+    const resumen = String(workbook.worksheets[0].getCell('A3').value);
+
+    expect(resumen).toMatch(/Generado: \d{2}\/\d{2}\/\d{4}/);
+    expect(resumen).not.toMatch(/\d{1,2}:\d{2}/);
+    expect(fileName).toMatch(/^inscripciones_\d{4}-\d{2}-\d{2}\.xlsx$/);
   });
 });
