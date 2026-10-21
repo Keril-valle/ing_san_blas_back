@@ -116,6 +116,19 @@ export class CatequesisBautismoService {
     return this.repositorio.save(inscripcion);
   }
 
+  async remove(id: number) {
+    const inscripcion = await this.repositorio.findOneBy({ id });
+    if (!inscripcion) {
+      throw new NotFoundException({ mensaje: 'La solicitud no existe.' });
+    }
+    if (inscripcion.estado !== 'Aprobada' && inscripcion.estado !== 'Rechazada') {
+      throw new BadRequestException({
+        mensaje: 'Solo se pueden eliminar solicitudes aprobadas o rechazadas.',
+      });
+    }
+    await this.repositorio.remove(inscripcion);
+  }
+
   consultarPorCedula(cedula: string) {
     const limpia = cedula?.trim() ?? '';
     if (!PATRON_CEDULA_CATEQUESIS.test(limpia)) {

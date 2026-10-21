@@ -569,39 +569,34 @@ describe('BusquedaNormalizadaService', () => {
     expect(parentRepository.save).not.toHaveBeenCalled();
   });
 
-  it('returns all the sacraments of a person by cedula', async () => {
-    const manager = {
-      query: jest
-        .fn()
-        .mockResolvedValueOnce([
-          {
-            id: 15,
-            cedula: '1-2345-6789',
-            nombre: 'Juan',
-            primerApellido: 'Pérez',
-            segundoApellido: null,
-            nacionalidad: null,
-          },
-        ])
-        .mockResolvedValueOnce([
-          {
-            id: 10,
-            tipo: 'bautismo',
-            fechaSacramento: '2024-05-10',
-            parroquia: { id: 1, nombre: 'San Blas' },
-            detalle: { bautizado: { id: 15 }, abuelos: [] },
-          },
-        ])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([]),
-    };
-    const transaction = jest.fn((callback) => callback(manager));
+  it('returns all the sacraments of the person that owns the given acta', async () => {
+    const query = jest.fn().mockResolvedValueOnce([
+      {
+        persona: {
+          id: 15,
+          cedula: '1-2345-6789',
+          nombre: 'Juan',
+          primerApellido: 'Pérez',
+          segundoApellido: null,
+          nacionalidad: null,
+        },
+        bautismo: {
+          id: 10,
+          tipo: 'bautismo',
+          fechaSacramento: '2024-05-10',
+          parroquia: { id: 1, nombre: 'San Blas' },
+          detalle: { bautizado: { id: 15 }, abuelos: [] },
+        },
+        comunion: null,
+        confirmacion: null,
+        matrimonio: null,
+      },
+    ]);
     const service = new BusquedaNormalizadaService({
-      transaction,
+      query,
     } as unknown as DataSource);
 
-    const result = await service.obtenerSacramentosPorCedula('1-2345-6789');
+    const result = await service.obtenerSacramentosPorSacramento(10);
 
     expect(result.persona.id).toBe(15);
     expect(result.bautismo.detalle.bautizado.id).toBe(15);
@@ -610,15 +605,14 @@ describe('BusquedaNormalizadaService', () => {
     expect(result.matrimonio).toBeNull();
   });
 
-  it('throws 404 when the cedula does not match any person', async () => {
-    const manager = { query: jest.fn().mockResolvedValueOnce([]) };
-    const transaction = jest.fn((callback) => callback(manager));
+  it('throws 404 when the acta does not exist', async () => {
+    const query = jest.fn().mockResolvedValueOnce([]);
     const service = new BusquedaNormalizadaService({
-      transaction,
+      query,
     } as unknown as DataSource);
 
     await expect(
-      service.obtenerSacramentosPorCedula('9-9999-9999'),
+      service.obtenerSacramentosPorSacramento(999),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
