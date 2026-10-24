@@ -10,6 +10,7 @@ import { UsuarioModule } from './Users/usuario.module';
 import { LandingModule } from './landing/landing.module';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { RecuperacionContrasena } from './Auth/Entities/recuperacion-contrasena.entity';
+import { ActivacionCuenta } from './Auth/Entities/activacion-cuenta.entity';
 import { Rol } from './Users/Entities/rol.entity';
 import { LandingSection } from './landing/Entities/landing-section.entity';
 import { SolicSacramento } from './Modules/Solicitudes/Entities/solic-sacramento.entity';

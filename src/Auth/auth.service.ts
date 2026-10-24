@@ -15,14 +15,20 @@ import { LoginDto } from './DTO/login.dto';
 import { RestablecerContrasenaDto } from './DTO/restablecer-contrasena.dto';
 import { ValidarEnlaceRecuperacionDto } from './DTO/validar-enlace-recuperacion.dto';
 import { RecuperacionContrasena } from './Entities/recuperacion-contrasena.entity';
+import { ActivacionCuenta } from './Entities/activacion-cuenta.entity';
 import { UsuarioService } from '../Users/usuario.service';
 import { RolService } from '../Users/rol.service';
 import { Usuario } from '../Users/Entities/usuario.entity';
 import { AuthMailService } from '../Notifications/Services/auth-mail.service';
+import { ActivarCuentaDto } from './DTO/activar-cuenta.dto';
+import { ValidarEnlaceActivacionDto } from './DTO/validar-enlace-activacion.dto';
 
 const MENSAJE_RECUPERACION =
   'Si existe una cuenta asociada a este correo, recibirás instrucciones para recuperar tu contraseña.';
+const MENSAJE_REENVIO_ACTIVACION =
+  'Si existe una cuenta pendiente de activación con este correo, recibirás un nuevo enlace.';
 const MINUTOS_EXPIRACION_RECUPERACION = 15;
+const HORAS_EXPIRACION_ACTIVACION = 24;
 
 @Injectable()
 export class AuthService {
@@ -85,7 +91,10 @@ export class AuthService {
   }
 
   private mensajeSiEnlaceNoSirve(
-    fila: Pick<RecuperacionContrasena, 'usedAt' | 'expiresAt'> | null,
+    fila: Pick<
+      RecuperacionContrasena | ActivacionCuenta,
+      'usedAt' | 'expiresAt'
+    > | null,
   ): string | null {
     if (!fila) {
       return 'El enlace no es válido.';
@@ -97,6 +106,153 @@ export class AuthService {
       return 'El enlace expiró. Solicite uno nuevo.';
     }
     return null;
+  }
+
+  private frontendBase(): string | null {
+    const frontend = this.configService
+      .get<string>('FRONTEND_URL')
+      ?.trim()
+      .replace(/\/$/, '');
+    return frontend || null;
+  }
+
+  /** Crea token de un solo uso y envía el correo. No expone el token. */
+  async emitirActivacion(usuarioId: number): Promise<boolean> {
+    const usuario = await this.usuarioService.findParaActivacionPorId(usuarioId);
+    if (!usuario) {
+      throw new BadRequestException(
+        'Solo se puede enviar activación a cuentas inactivas.',
+      );
+    }
+    if (usuario.isActive) {
+      throw new BadRequestException('Esta cuenta ya está activada.');
+    }
+
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(
+      Date.now() + HORAS_EXPIRACION_ACTIVACION * 60 * 60 * 1000,
+    );
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager
+        .createQueryBuilder()
+        .update(ActivacionCuenta)
+        .set({ usedAt: new Date() })
+        .where('"usuarioId" = :usuarioId AND "usedAt" IS NULL', {
+          usuarioId: usuario.id,
+        })
+        .execute();
+      await manager.getRepository(ActivacionCuenta).save({
+        usuarioId: usuario.id,
+        tokenHash,
+        expiresAt,
+        usedAt: null,
+      });
+    });
+
+    const frontend = this.frontendBase();
+    if (!frontend) {
+      this.logger.error(
+        'FRONTEND_URL no configurada. No se envió el enlace de activación.',
+      );
+      return false;
+    }
+
+    try {
+      await this.authMailService.enviarActivacionCuenta({
+        correo: usuario.email,
+        nombre: usuario.nombre ?? '',
+        enlace: `${frontend}/activar-cuenta?token=${encodeURIComponent(token)}`,
+        horas: HORAS_EXPIRACION_ACTIVACION,
+      });
+      return true;
+    } catch {
+      this.logger.error(
+        `No se pudo enviar el enlace de activación a ${usuario.email}.`,
+      );
+      return false;
+    }
+  }
+
+  async validarEnlaceActivacion(dto: ValidarEnlaceActivacionDto) {
+    const fila = await this.dataSource.getRepository(ActivacionCuenta).findOne({
+      where: { tokenHash: this.hashToken(dto.token) },
+      select: { id: true, usuarioId: true, usedAt: true, expiresAt: true },
+    });
+    const mensaje = this.mensajeSiEnlaceNoSirve(fila);
+    if (mensaje) {
+      throw new BadRequestException(mensaje);
+    }
+
+    const usuario = await this.usuarioService.findParaActivacionPorId(
+      fila!.usuarioId,
+    );
+    if (!usuario) {
+      throw new BadRequestException('El enlace no es válido.');
+    }
+    if (usuario.isActive) {
+      throw new BadRequestException('Esta cuenta ya fue activada.');
+    }
+
+    return { valido: true };
+  }
+
+  async activarCuenta(dto: ActivarCuentaDto) {
+    const tokenHash = this.hashToken(dto.token);
+
+    await this.dataSource.transaction(async (manager) => {
+      const fila = await manager
+        .getRepository(ActivacionCuenta)
+        .createQueryBuilder('activacion')
+        .setLock('pessimistic_write')
+        .where('activacion.tokenHash = :tokenHash', { tokenHash })
+        .getOne();
+
+      const mensaje = this.mensajeSiEnlaceNoSirve(fila);
+      if (!fila || mensaje) {
+        throw new BadRequestException(mensaje ?? 'El enlace no es válido.');
+      }
+
+      const usuario = await manager.getRepository(Usuario).findOne({
+        where: { id: fila.usuarioId },
+        select: { id: true, isActive: true },
+      });
+      if (!usuario) {
+        throw new BadRequestException('El enlace no es válido.');
+      }
+      if (usuario.isActive) {
+        throw new BadRequestException('Esta cuenta ya fue activada.');
+      }
+
+      await manager.update(Usuario, fila.usuarioId, { isActive: true });
+      fila.usedAt = new Date();
+      await manager.save(fila);
+    });
+
+    return { message: 'Tu cuenta fue activada correctamente.' };
+  }
+
+  async solicitarReenvioActivacion(email: string) {
+    const usuario =
+      await this.usuarioService.findInactivoParaActivacion(email);
+    if (!usuario) {
+      this.hashToken(randomBytes(32).toString('base64url'));
+      return { message: MENSAJE_REENVIO_ACTIVACION };
+    }
+
+    await this.emitirActivacion(usuario.id);
+    return { message: MENSAJE_REENVIO_ACTIVACION };
+  }
+
+  async reenviarActivacionUsuario(usuarioId: number) {
+    const enviado = await this.emitirActivacion(usuarioId);
+    if (!enviado) {
+      throw new BadRequestException(
+        'No se pudo enviar el correo de activación. Verifique la configuración de correo e intente de nuevo.',
+      );
+    }
+    return { message: 'Se envió un nuevo enlace de activación.' };
   }
 
   private async updateRefreshTokenHash(userId: number, refreshToken: string) {

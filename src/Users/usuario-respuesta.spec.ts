@@ -14,7 +14,7 @@ const crearService = (usuario: Fila | null) => {
     create: jest.fn((datos: Fila) => ({
       ...datos,
       id: 7,
-      isActive: true,
+      isActive: datos.isActive ?? false,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
     })),
     save: guardar,
@@ -62,7 +62,7 @@ describe('UsuarioService — ninguna respuesta de usuario expone la contraseña'
       userName: 'Ana Pérez',
       email: 'ana@prueba.com',
       phoneNumber: '8888-8888',
-      state: true,
+      state: false,
       roles: ['user'],
     });
     expect(respuesta.creationDate).toBeInstanceOf(Date);

@@ -69,7 +69,7 @@ export class UsuarioService {
       throw new ConflictException(
         existingUser.isActive
           ? 'El correo ya está registrado.'
-          : 'Ya existe una cuenta con este correo, pero está inactiva. Reactívela desde el listado de usuarios inactivos en lugar de crear una nueva.',
+          : 'Ya existe una cuenta con este correo, pero está inactiva. Reenvíe el enlace de activación desde el listado de usuarios inactivos en lugar de crear una nueva.',
       );
     }
 
@@ -86,6 +86,7 @@ export class UsuarioService {
       password: hashedPassword,
       role: roles[0].clave,
       telefono,
+      isActive: false,
     });
 
     const saved = await this.usuarioRepository.save(user);
@@ -187,16 +188,23 @@ export class UsuarioService {
       .skip((pagina - 1) * limite);
 
     if (rolFiltro) {
-      qb.andWhere('usuario.role = :role', { role: rolFiltro });
+      // Filtra por roles reales (tabla usuario_roles), no solo la columna legacy.
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM usuario_roles ur
+          INNER JOIN rol r ON r.id = ur.rol_id
+          WHERE ur.usuario_id = usuario.id AND r.clave = :role
+        )`,
+        { role: rolFiltro },
+      );
     }
 
     if (estadoFiltro === 'active') {
       qb.andWhere('usuario.isActive = :isActive', { isActive: true });
     } else if (estadoFiltro === 'inactive') {
       qb.andWhere('usuario.isActive = :isActive', { isActive: false });
-    } else {
-      qb.andWhere('usuario.isActive = :isActive', { isActive: true });
     }
+    // Sin state, o state=all: activos e inactivos (listado por defecto).
 
     if (texto) {
       qb.andWhere(
@@ -237,6 +245,20 @@ export class UsuarioService {
     return this.usuarioRepository.findOne({
       where: { email: ILike(email.trim()), isActive: true },
       select: { id: true, email: true, nombre: true },
+    });
+  }
+
+  findInactivoParaActivacion(email: string) {
+    return this.usuarioRepository.findOne({
+      where: { email: ILike(email.trim()), isActive: false },
+      select: { id: true, email: true, nombre: true, isActive: true },
+    });
+  }
+
+  findParaActivacionPorId(id: number) {
+    return this.usuarioRepository.findOne({
+      where: { id },
+      select: { id: true, email: true, nombre: true, isActive: true },
     });
   }
 
@@ -391,10 +413,23 @@ export class UsuarioService {
     if (actorId != null && id === actorId) {
       throw new BadRequestException('No puede inactivar su propia cuenta.');
     }
-    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
+    const user = await this.usuarioRepository.findOneBy({ id });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
+    }
+
+    // Cuenta ya inactiva: se borra del todo (libera el correo para un alta nueva).
+    if (!user.isActive) {
+      await this.usuarioRepository.manager.query(
+        'DELETE FROM usuario_roles WHERE usuario_id = $1',
+        [id],
+      );
+      await this.usuarioRepository.remove(user);
+      return plainToInstance(UsuarioRespuestaDto, {
+        ...user,
+        roles: [],
+      });
     }
 
     user.isActive = false;
