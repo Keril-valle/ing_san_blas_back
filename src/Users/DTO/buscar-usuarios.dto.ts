@@ -20,8 +20,9 @@ export class BuscarUsuariosDto {
   @MaxLength(40)
   role?: string;
 
+  /** active | inactive | all (todos los estados) */
   @IsOptional()
-  @IsIn(['active', 'inactive'], {
+  @IsIn(['active', 'inactive', 'all'], {
     message: 'El estado ingresado no es válido',
   })
   state?: string;

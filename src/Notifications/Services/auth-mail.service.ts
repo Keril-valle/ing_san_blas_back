@@ -4,6 +4,10 @@ import {
   renderRecuperacionContrasenaHtml,
   renderRecuperacionContrasenaTexto,
 } from '../Templates/recuperacion-contrasena-mail.templates';
+import {
+  renderActivacionCuentaHtml,
+  renderActivacionCuentaTexto,
+} from '../Templates/activacion-cuenta-mail.templates';
 
 @Injectable()
 export class AuthMailService {
@@ -30,6 +34,30 @@ export class AuthMailService {
       const detalle = error instanceof Error ? error.message : 'error de envío';
       this.logger.error(
         `No se pudo enviar el correo de recuperación a ${input.correo}: ${detalle}`,
+      );
+      throw error;
+    }
+  }
+
+  async enviarActivacionCuenta(input: {
+    correo: string;
+    nombre: string;
+    enlace: string;
+    horas: number;
+  }): Promise<void> {
+    try {
+      await this.mailService.sendMail({
+        to: input.correo,
+        toName: input.nombre,
+        subject: 'Activa tu cuenta — Parroquia San Blas',
+        htmlContent: renderActivacionCuentaHtml(input),
+        textContent: renderActivacionCuentaTexto(input),
+        tags: ['activacion-cuenta'],
+      });
+    } catch (error) {
+      const detalle = error instanceof Error ? error.message : 'error de envío';
+      this.logger.error(
+        `No se pudo enviar el correo de activación a ${input.correo}: ${detalle}`,
       );
       throw error;
     }

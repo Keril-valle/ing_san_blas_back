@@ -9,6 +9,9 @@ import {
   Delete,
   Req,
   Query,
+  Inject,
+  forwardRef,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './DTO/create-usuario.dto';
@@ -17,15 +20,30 @@ import { BuscarUsuariosDto } from './DTO/buscar-usuarios.dto';
 import { Public } from '../Auth/Decorators/public.decorator';
 import { Permisos } from '../Auth/Decorators/permisos.decorator';
 import type { RequestWithUser } from '../Common/Interfaces/requestWithUser.interface';
+import { AuthService } from '../Auth/auth.service';
 
 @Controller('usuario')
 export class UsuarioController {
-  constructor(private readonly usuarioService: UsuarioService) {}
+  constructor(
+    private readonly usuarioService: UsuarioService,
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
+  ) {}
 
   @Permisos('usuarios')
   @Post()
-  create(@Body() createUsuarioDto: CreateUsuarioDto) {
-    return this.usuarioService.createUser(createUsuarioDto);
+  async create(@Body() createUsuarioDto: CreateUsuarioDto) {
+    const usuario = await this.usuarioService.createUser(createUsuarioDto);
+    const correoActivacionEnviado = await this.authService.emitirActivacion(
+      usuario.id,
+    );
+    return { ...usuario, correoActivacionEnviado };
+  }
+
+  @Permisos('usuarios')
+  @Post(':id/reenviar-activacion')
+  reenviarActivacion(@Param('id', ParseIntPipe) id: number) {
+    return this.authService.reenviarActivacionUsuario(id);
   }
 
   // sin query params devuelve la lista completa (compatibilidad con el frontend actual);

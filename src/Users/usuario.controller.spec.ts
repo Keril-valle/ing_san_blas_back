@@ -7,15 +7,23 @@ const crearServiceMock = () => ({
   findAllPaginado: jest.fn(() => 'paginada'),
 });
 
+const authServiceMock = () => ({
+  emitirActivacion: jest.fn().mockResolvedValue(true),
+  reenviarActivacionUsuario: jest.fn(),
+});
+
 const dto = (entrada: Partial<BuscarUsuariosDto> = {}) =>
   entrada as BuscarUsuariosDto;
+
+const crearController = (service: unknown) =>
+  new UsuarioController(service as never, authServiceMock() as never);
 
 describe('UsuarioController.findAll — rutas de ordenamiento', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('sin query params devuelve la lista completa (compatibilidad)', () => {
     const service = crearServiceMock();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     const respuesta = controller.findAll(dto());
 
@@ -25,7 +33,7 @@ describe('UsuarioController.findAll — rutas de ordenamiento', () => {
 
   it('con page/limit va a la versión paginada', () => {
     const service = crearServiceMock();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     void controller.findAll(dto({ page: 2, limit: 25 }));
 
@@ -43,7 +51,7 @@ describe('UsuarioController.findAll — rutas de ordenamiento', () => {
 
   it('solo con sortBy ya no devuelve la lista completa', () => {
     const service = crearServiceMock();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     void controller.findAll(dto({ sortBy: 'nombre' }));
 
@@ -62,7 +70,7 @@ describe('UsuarioController.findAll — rutas de ordenamiento', () => {
 
   it('solo con sortDirection también va a la paginada', () => {
     const service = crearServiceMock();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     void controller.findAll(dto({ sortDirection: 'asc' }));
 
@@ -80,7 +88,7 @@ describe('UsuarioController.findAll — rutas de ordenamiento', () => {
 
   it('reenvía los dos parámetros de orden en su posición correcta', () => {
     const service = crearServiceMock();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     void controller.findAll(
       dto({
@@ -107,7 +115,7 @@ describe('UsuarioController.findAll — rutas de ordenamiento', () => {
 
   it('los parámetros de orden no se pierden junto a los filtros', () => {
     const service = crearServiceMock();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     void controller.findAll(dto({ page: 1, role: 'admin', sortBy: 'state' }));
 
@@ -131,7 +139,7 @@ describe('UsuarioController.findOne — lectura propia', () => {
 
   it('permite ver el propio perfil sin el permiso usuarios', () => {
     const service = serviceConFindOne();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     const respuesta = controller.findOne(
       '7',
@@ -143,7 +151,7 @@ describe('UsuarioController.findOne — lectura propia', () => {
 
   it('permite ver otro perfil con el permiso usuarios', () => {
     const service = serviceConFindOne();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     const respuesta = controller.findOne(
       '9',
@@ -155,7 +163,7 @@ describe('UsuarioController.findOne — lectura propia', () => {
 
   it('rechaza ver perfil ajeno sin el permiso usuarios', () => {
     const service = serviceConFindOne();
-    const controller = new UsuarioController(service as never);
+    const controller = crearController(service);
 
     expect(() =>
       controller.findOne(

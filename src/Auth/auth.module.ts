@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
@@ -7,9 +7,10 @@ import { UsuarioModule } from '../Users/usuario.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './Guards/auth.guard';
 import { RolesGuard } from './Guards/roles.guard';
+
 @Module({
   imports: [
-    UsuarioModule,
+    forwardRef(() => UsuarioModule),
     // JWT config desde variables de entorno (Vercel) o fallback local
     JwtModule.registerAsync({
       global: true,
@@ -27,5 +28,6 @@ import { RolesGuard } from './Guards/roles.guard';
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}

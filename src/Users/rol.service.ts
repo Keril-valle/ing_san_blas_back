@@ -32,7 +32,7 @@ export class RolService {
 
   findAll() {
     return this.rolRepository.find({
-      order: { esSistema: 'DESC', nombre: 'ASC' },
+      order: { createdAt: 'DESC', id: 'DESC' },
     });
   }
 
