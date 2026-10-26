@@ -7,6 +7,7 @@ import {
   IsString,
   Matches,
   MaxLength,
+  MinLength,
   Validate,
   ValidateIf,
   ValidatorConstraint,
@@ -199,6 +200,7 @@ export class ActualizarEstadoCatequesisBautismoDto {
   @IsNotEmpty({
     message: 'La observación es obligatoria al rechazar la solicitud.',
   })
+  @MinLength(5, { message: 'El motivo debe tener al menos 5 caracteres.' })
   @MaxLength(500)
   observacionAdministrativa?: string | null;
 
