@@ -124,13 +124,34 @@ export class UsuarioService {
   ): Promise<
     Array<Usuario & { roles: string[]; pendienteActivacion: boolean }>
   > {
-    return Promise.all(
-      usuarios.map(async (usuario) => ({
-        ...usuario,
-        roles: await this.obtenerRolesDeUsuario(usuario.id),
-        pendienteActivacion: this.pendienteActivacionDe(usuario),
-      })),
+    if (usuarios.length === 0) return [];
+
+    // Una sola consulta para todos: evita N+1 que satura el pool de Supabase.
+    const ids = usuarios.map((usuario) => usuario.id);
+    const filas = await this.usuarioRepository.manager.query<
+      Array<{ usuario_id: number | string; clave: string }>
+    >(
+      `SELECT ur.usuario_id, r.clave
+       FROM usuario_roles ur
+       INNER JOIN rol r ON r.id = ur.rol_id
+       WHERE ur.usuario_id = ANY($1::int[])
+       ORDER BY r.id ASC`,
+      [ids],
     );
+
+    const rolesPorUsuario = new Map<number, string[]>();
+    for (const fila of filas) {
+      const usuarioId = Number(fila.usuario_id);
+      const actuales = rolesPorUsuario.get(usuarioId) ?? [];
+      actuales.push(fila.clave);
+      rolesPorUsuario.set(usuarioId, actuales);
+    }
+
+    return usuarios.map((usuario) => ({
+      ...usuario,
+      roles: rolesPorUsuario.get(usuario.id) ?? [],
+      pendienteActivacion: this.pendienteActivacionDe(usuario),
+    }));
   }
 
   /** Alta por panel: placeholder aleatorio. Registro con password: valida confirmación. */

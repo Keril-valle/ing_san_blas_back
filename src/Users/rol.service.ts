@@ -51,11 +51,28 @@ export class RolService {
   }
 
   async assertExisten(claves: string[]): Promise<Rol[]> {
-    const roles: Rol[] = [];
-    for (const clave of claves) {
-      roles.push(await this.assertExiste(clave));
+    const unicas = [...new Set(claves.map((c) => c.trim()).filter(Boolean))];
+    if (unicas.length === 0) {
+      throw new BadRequestException({
+        mensaje: 'Debe indicar al menos un rol.',
+      });
     }
-    return roles;
+
+    const roles = await this.rolRepository
+      .createQueryBuilder('rol')
+      .where('rol.clave IN (:...claves)', { claves: unicas })
+      .getMany();
+
+    const porClave = new Map(roles.map((rol) => [rol.clave, rol]));
+    const faltantes = unicas.filter((clave) => !porClave.has(clave));
+    if (faltantes.length > 0) {
+      throw new BadRequestException({
+        mensaje: 'El rol indicado no existe.',
+      });
+    }
+
+    // Conserva el orden solicitado (el primero define la columna legacy `role`).
+    return unicas.map((clave) => porClave.get(clave)!);
   }
 
   async create(dto: CreateRolDto) {
@@ -131,13 +148,19 @@ export class RolService {
   }
 
   async permisosDeRoles(claves: string[]): Promise<string[]> {
+    const unicas = [...new Set(claves.map((c) => c.trim()).filter(Boolean))];
+    if (unicas.length === 0) return [];
+
+    const roles = await this.rolRepository
+      .createQueryBuilder('rol')
+      .where('rol.clave IN (:...claves)', { claves: unicas })
+      .getMany();
+
     const permisos = new Set<string>();
-    for (const clave of claves) {
-      const rol = await this.findByClave(clave);
-      if (!rol) continue;
+    for (const rol of roles) {
       for (const permiso of rol.permisos) permisos.add(permiso);
     }
-    if (claves.includes('secretario')) permisos.add('panel');
+    if (unicas.includes('secretario')) permisos.add('panel');
     return [...permisos];
   }
 

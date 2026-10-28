@@ -36,6 +36,7 @@ export class SearchSolicSacramentoDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @IsIn([10, 25, 50])
+  // 1: conteo ligero (campana de notificaciones); 10/25/50: tablas del panel
+  @IsIn([1, 10, 25, 50])
   pageSize?: number;
 }
