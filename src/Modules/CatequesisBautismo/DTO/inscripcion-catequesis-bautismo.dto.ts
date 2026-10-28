@@ -118,6 +118,17 @@ export class CrearInscripcionCatequesisBautismoDto extends IdentificacionCateque
   @Validate(AdultoCatequesisBautismoConstraint)
   fechaNacimiento: string;
 
+  @Transform(vacioANulo)
+  @IsOptional()
+  @IsString()
+  @MaxLength(25, {
+    message: 'La nacionalidad no puede superar los 25 caracteres.',
+  })
+  @Matches(LETRAS_CON_ESPACIO, {
+    message: 'La nacionalidad solo puede contener letras.',
+  })
+  nacionalidad?: string | null;
+
   @Transform(recortar)
   @IsString()
   @IsNotEmpty({ message: 'El teléfono es obligatorio.' })

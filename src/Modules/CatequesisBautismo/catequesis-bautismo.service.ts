@@ -28,6 +28,7 @@ export class CatequesisBautismoService {
         apellido2: dto.apellido2 ?? null,
         fechaNacimiento: dto.fechaNacimiento,
         cedula: dto.cedula,
+        nacionalidad: dto.nacionalidad ?? null,
         telefono: dto.telefono,
         estadoCivil: dto.estadoCivil,
         parroquiaOrigen: dto.parroquiaOrigen,

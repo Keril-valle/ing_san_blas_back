@@ -25,6 +25,9 @@ export class InscripcionCatequesisBautismo {
   @Column({ type: 'varchar', length: 20 })
   cedula: string;
 
+  @Column({ type: 'varchar', length: 25, nullable: true })
+  nacionalidad: string | null;
+
   @Column({ type: 'varchar', length: 20 })
   telefono: string;
 
