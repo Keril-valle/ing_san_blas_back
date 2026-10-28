@@ -41,16 +41,16 @@ export class BusquedaNormalizadaController {
     return this.busquedaService.listarPresbiteros();
   }
 
-  // Todos los sacramentos de una persona, buscada por cédula exacta.
-  @Get('persona/cedula/:cedula')
-  obtenerSacramentosPersona(@Param('cedula') cedula: string) {
-    return this.busquedaService.obtenerSacramentosPorCedula(cedula);
-  }
-
   // Registra un sacramento y su detalle específico de forma atómica.
   @Post()
   crear(@Body() dto: CreateSacramentoNormalizadoDto) {
     return this.busquedaService.crear(dto);
+  }
+
+  // Todos los sacramentos de la persona dueña del acta indicada (por id).
+  @Get(':id/persona')
+  obtenerSacramentosPersona(@Param('id', ParseIntPipe) id: number) {
+    return this.busquedaService.obtenerSacramentosPorSacramento(id);
   }
 
   // Obtiene el registro padre junto con el detalle de su tipo.

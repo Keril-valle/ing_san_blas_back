@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { Usuario } from './Users/Entities/usuario.entity';
 import { RecuperacionContrasena } from './Auth/Entities/recuperacion-contrasena.entity';
+import { ActivacionCuenta } from './Auth/Entities/activacion-cuenta.entity';
 import { Rol } from './Users/Entities/rol.entity';
 import { UsuarioRol } from './Users/Entities/usuario-rol.entity';
 import { LandingSection } from './landing/Entities/landing-section.entity';

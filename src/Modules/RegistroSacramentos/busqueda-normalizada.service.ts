@@ -277,49 +277,32 @@ export class BusquedaNormalizadaService {
   }
 
   // Devuelve un sacramento completo únicamente cuando se solicita su detalle.
+  // Es una lectura: no necesita transacción (evita los round trips de BEGIN/COMMIT).
   async obtener(id: number) {
-    return this.dataSource.transaction((manager) =>
-      this.obtenerDetalle(manager, id),
-    );
+    return this.obtenerDetalle(this.dataSource.manager, id);
   }
 
-  // Devuelve todos los sacramentos de una persona (por cédula exacta) agrupados.
-  async obtenerSacramentosPorCedula(cedula: string) {
-    return this.dataSource
-      .transaction(async (manager) => {
-        const personas = await manager.query(
-          `SELECT id_persona AS id, cedula, nombre,
-                primer_apellido AS "primerApellido",
-                segundo_apellido AS "segundoApellido",
-                nacionalidad
-         FROM persona
-         WHERE lower(trim(cedula)) = lower(trim($1))`,
-          [cedula],
-        );
-        const persona = personas[0];
-        if (!persona) throw new NotFoundException('Persona no encontrada');
-
-        const [bautismo, comunion, confirmacion, matrimonio] =
-          await Promise.all([
-            this.queryDetalleBautismo(manager, 'b.id_bautizado = $1', [
-              persona.id,
-            ]),
-            this.queryDetalleComunion(manager, 'c.id_persona = $1', [
-              persona.id,
-            ]),
-            this.queryDetalleConfirmacion(manager, 'cf.id_persona = $1', [
-              persona.id,
-            ]),
-            this.queryDetalleMatrimonio(
-              manager,
-              '(m.id_contrayente1 = $1 OR m.id_contrayente2 = $1)',
-              [persona.id],
-            ),
-          ]);
-
-        return { persona, bautismo, comunion, confirmacion, matrimonio };
-      })
-      .catch((error: unknown) => this.convertirError(error));
+  // Devuelve todos los sacramentos de la persona dueña del acta indicada,
+  // agrupados por tipo. Todo se resuelve en una sola consulta.
+  async obtenerSacramentosPorSacramento(idSacramento: number) {
+    const rows = await this.dataSource.query(
+      this.sqlAgregadoPersona(
+        `FROM persona per
+         JOIN (
+           SELECT COALESCE(b.id_bautizado, c.id_persona, cf.id_persona, m.id_contrayente1) AS id_persona
+           FROM sacramento s
+           LEFT JOIN bautismo b ON b.id_sacramento = s.id_sacramento
+           LEFT JOIN comunion c ON c.id_sacramento = s.id_sacramento
+           LEFT JOIN confirmacion cf ON cf.id_sacramento = s.id_sacramento
+           LEFT JOIN matrimonio m ON m.id_sacramento = s.id_sacramento
+           WHERE s.id_sacramento = $1
+         ) acta ON acta.id_persona = per.id_persona`,
+      ),
+      [idSacramento],
+    );
+    const resultado = rows[0];
+    if (!resultado) throw new NotFoundException('Sacramento no encontrado');
+    return resultado;
   }
 
   // Catálogo de filiales para el lugar de celebración sacramental.
@@ -857,13 +840,8 @@ export class BusquedaNormalizadaService {
   }
 
   // Detalle de bautismo con bautizado, padres, padrinos, declarante y abuelos.
-  private async queryDetalleBautismo(
-    manager: EntityManager,
-    where: string,
-    params: unknown[],
-  ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
-      `
+  private sqlDetalleBautismo(where: string): string {
+    return `
       SELECT
         s.id_sacramento AS id,
         s.tipo_sacramento AS tipo,
@@ -905,20 +883,21 @@ export class BusquedaNormalizadaService {
       WHERE ${where}
       ORDER BY s.fecha_sacramento DESC
       LIMIT 1
-    `,
-      params,
-    );
-    return rows[0] ?? null;
+    `;
   }
 
-  // Detalle de comunión con la persona que la recibió.
-  private async queryDetalleComunion(
+  private async queryDetalleBautismo(
     manager: EntityManager,
     where: string,
     params: unknown[],
   ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
-      `
+    const rows = await manager.query(this.sqlDetalleBautismo(where), params);
+    return rows[0] ?? null;
+  }
+
+  // Detalle de comunión con la persona que la recibió.
+  private sqlDetalleComunion(where: string): string {
+    return `
       SELECT
         s.id_sacramento AS id,
         s.tipo_sacramento AS tipo,
@@ -937,20 +916,21 @@ export class BusquedaNormalizadaService {
       WHERE ${where}
       ORDER BY s.fecha_sacramento DESC
       LIMIT 1
-    `,
-      params,
-    );
-    return rows[0] ?? null;
+    `;
   }
 
-  // Detalle de confirmación con la persona confirmada.
-  private async queryDetalleConfirmacion(
+  private async queryDetalleComunion(
     manager: EntityManager,
     where: string,
     params: unknown[],
   ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
-      `
+    const rows = await manager.query(this.sqlDetalleComunion(where), params);
+    return rows[0] ?? null;
+  }
+
+  // Detalle de confirmación con la persona confirmada.
+  private sqlDetalleConfirmacion(where: string): string {
+    return `
       SELECT
         s.id_sacramento AS id,
         s.tipo_sacramento AS tipo,
@@ -969,20 +949,24 @@ export class BusquedaNormalizadaService {
       WHERE ${where}
       ORDER BY s.fecha_sacramento DESC
       LIMIT 1
-    `,
+    `;
+  }
+
+  private async queryDetalleConfirmacion(
+    manager: EntityManager,
+    where: string,
+    params: unknown[],
+  ): Promise<Record<string, unknown> | null> {
+    const rows = await manager.query(
+      this.sqlDetalleConfirmacion(where),
       params,
     );
     return rows[0] ?? null;
   }
 
   // Detalle de matrimonio con ambos contrayentes.
-  private async queryDetalleMatrimonio(
-    manager: EntityManager,
-    where: string,
-    params: unknown[],
-  ): Promise<Record<string, unknown> | null> {
-    const rows = await manager.query(
-      `
+  private sqlDetalleMatrimonio(where: string): string {
+    return `
       SELECT
         s.id_sacramento AS id,
         s.tipo_sacramento AS tipo,
@@ -1006,11 +990,33 @@ export class BusquedaNormalizadaService {
       WHERE ${where}
       ORDER BY s.fecha_sacramento DESC
       LIMIT 1
-    `,
-      params,
-    );
+    `;
+  }
+
+  private async queryDetalleMatrimonio(
+    manager: EntityManager,
+    where: string,
+    params: unknown[],
+  ): Promise<Record<string, unknown> | null> {
+    const rows = await manager.query(this.sqlDetalleMatrimonio(where), params);
     return rows[0] ?? null;
   }
+
+  // Consulta única que arma el agregado de una persona: sus datos y los cuatro
+  // detalles como subconsultas correlacionadas. `fuentePersona` debe exponer la
+  // persona con el alias `per`.
+  private sqlAgregadoPersona(fuentePersona: string): string {
+    return `
+      SELECT
+        ${this.personaJson('per')} AS persona,
+        (SELECT to_jsonb(t) FROM (${this.sqlDetalleBautismo('b.id_bautizado = per.id_persona')}) t) AS bautismo,
+        (SELECT to_jsonb(t) FROM (${this.sqlDetalleComunion('c.id_persona = per.id_persona')}) t) AS comunion,
+        (SELECT to_jsonb(t) FROM (${this.sqlDetalleConfirmacion('cf.id_persona = per.id_persona')}) t) AS confirmacion,
+        (SELECT to_jsonb(t) FROM (${this.sqlDetalleMatrimonio('(m.id_contrayente1 = per.id_persona OR m.id_contrayente2 = per.id_persona)')}) t) AS matrimonio
+      ${fuentePersona}
+    `;
+  }
+
 
   private convertirError(error: unknown): never {
     if (

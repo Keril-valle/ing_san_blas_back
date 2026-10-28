@@ -30,13 +30,26 @@ const COLUMNAS_ORDEN_USUARIO = {
 
 type ColumnaOrdenUsuario = keyof typeof COLUMNAS_ORDEN_USUARIO;
 
+// Resultado de consultar una cédula en el registro externo. Distingue "no
+// existe" de "el proveedor falló" para que el frontend muestre el mensaje correcto.
+export type ResultadoConsultaCedula =
+  | { estado: 'encontrada'; nombre: string }
+  | { estado: 'no_encontrada' }
+  | { estado: 'error' };
+
+const TTL_CEDULA_ENCONTRADA_MS = 86_400_000; // 24 h: la identidad no cambia
+const TTL_CEDULA_NO_ENCONTRADA_MS = 5 * 60_000; // 5 min: permite reintentar pronto sin castigar a GoMeta
+
 @Injectable()
 export class UsuarioService {
   private readonly cedulasCache = new Map<
     string,
-    { nombre: string | null; venceEn: number }
+    { resultado: ResultadoConsultaCedula; venceEn: number }
   >();
-  private readonly consultasCedula = new Map<string, Promise<string | null>>();
+  private readonly consultasCedula = new Map<
+    string,
+    Promise<ResultadoConsultaCedula>
+  >();
 
   constructor(
     @InjectRepository(Usuario)
@@ -51,10 +64,13 @@ export class UsuarioService {
 
     const existingUser = await this.usuarioRepository.findOneBy({
       email: ILike(registerDto.email),
-      isActive: true,
     });
     if (existingUser) {
-      throw new ConflictException('El ingresado email ya está registrado');
+      throw new ConflictException(
+        existingUser.isActive
+          ? 'El correo ya está registrado.'
+          : 'Ya existe una cuenta con este correo, pero está inactiva. Reenvíe el enlace de activación desde el listado de usuarios inactivos en lugar de crear una nueva.',
+      );
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
@@ -70,6 +86,7 @@ export class UsuarioService {
       password: hashedPassword,
       role: roles[0].clave,
       telefono,
+      isActive: false,
     });
 
     const saved = await this.usuarioRepository.save(user);
@@ -171,16 +188,23 @@ export class UsuarioService {
       .skip((pagina - 1) * limite);
 
     if (rolFiltro) {
-      qb.andWhere('usuario.role = :role', { role: rolFiltro });
+      // Filtra por roles reales (tabla usuario_roles), no solo la columna legacy.
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM usuario_roles ur
+          INNER JOIN rol r ON r.id = ur.rol_id
+          WHERE ur.usuario_id = usuario.id AND r.clave = :role
+        )`,
+        { role: rolFiltro },
+      );
     }
 
     if (estadoFiltro === 'active') {
       qb.andWhere('usuario.isActive = :isActive', { isActive: true });
     } else if (estadoFiltro === 'inactive') {
       qb.andWhere('usuario.isActive = :isActive', { isActive: false });
-    } else {
-      qb.andWhere('usuario.isActive = :isActive', { isActive: true });
     }
+    // Sin state, o state=all: activos e inactivos (listado por defecto).
 
     if (texto) {
       qb.andWhere(
@@ -224,6 +248,20 @@ export class UsuarioService {
     });
   }
 
+  findInactivoParaActivacion(email: string) {
+    return this.usuarioRepository.findOne({
+      where: { email: ILike(email.trim()), isActive: false },
+      select: { id: true, email: true, nombre: true, isActive: true },
+    });
+  }
+
+  findParaActivacionPorId(id: number) {
+    return this.usuarioRepository.findOne({
+      where: { id },
+      select: { id: true, email: true, nombre: true, isActive: true },
+    });
+  }
+
   async credencialesVigentes(
     id: number,
     emitidoEnSegundos?: number,
@@ -245,7 +283,8 @@ export class UsuarioService {
 
   findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
-      where: { email, isActive: true },
+      // El correo no distingue mayúsculas/minúsculas al iniciar sesión.
+      where: { email: ILike(email.trim()), isActive: true },
       select: {
         id: true,
         nombre: true,
@@ -276,7 +315,9 @@ export class UsuarioService {
     updateUsuarioDto: UpdateUsuarioDto,
     actorId?: number,
   ) {
-    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
+    // Se busca sin filtrar por isActive: una cuenta inactiva también debe poder
+    // editarse y, sobre todo, reactivarse desde el panel.
+    const user = await this.usuarioRepository.findOneBy({ id });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
@@ -333,7 +374,30 @@ export class UsuarioService {
         );
       }
       if (updateUsuarioDto.isActive !== undefined) {
+        const estabaActiva = user.isActive;
+
+        if (updateUsuarioDto.isActive && !estabaActiva) {
+          const activaConMismoEmail = await this.usuarioRepository.findOneBy({
+            email: ILike(user.email),
+            isActive: true,
+          });
+          if (activaConMismoEmail && activaConMismoEmail.id !== user.id) {
+            throw new ConflictException(
+              `Ya existe otra cuenta activa con este correo (ID ${activaConMismoEmail.id}). Desactívela primero o cambie su correo antes de reactivar esta cuenta.`,
+            );
+          }
+        }
+
         user.isActive = updateUsuarioDto.isActive;
+
+        // Desactivar debe cortar las sesiones abiertas: se limpia el refresh
+        // token y se adelanta passwordChangedAt para que los access tokens
+        // emitidos antes dejen de ser válidos. Al reactivar se exige un login
+        // nuevo, de modo que una sesión vieja no revive con la cuenta.
+        if (!user.isActive || !estabaActiva) {
+          user.refreshTokenHash = null;
+          user.passwordChangedAt = new Date();
+        }
       }
     }
 
@@ -349,25 +413,46 @@ export class UsuarioService {
     if (actorId != null && id === actorId) {
       throw new BadRequestException('No puede inactivar su propia cuenta.');
     }
-    const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
+    const user = await this.usuarioRepository.findOneBy({ id });
 
     if (!user) {
       throw new NotFoundException(`El usuario con el id ${id} no existe`);
     }
 
+    // Cuenta ya inactiva: se borra del todo (libera el correo para un alta nueva).
+    if (!user.isActive) {
+      await this.usuarioRepository.manager.query(
+        'DELETE FROM usuario_roles WHERE usuario_id = $1',
+        [id],
+      );
+      await this.usuarioRepository.remove(user);
+      return plainToInstance(UsuarioRespuestaDto, {
+        ...user,
+        roles: [],
+      });
+    }
+
     user.isActive = false;
+    // Igual que al desactivar desde el formulario: se revocan las sesiones
+    // abiertas para que no vuelvan a servir si la cuenta se reactiva.
+    user.refreshTokenHash = null;
+    user.passwordChangedAt = new Date();
     const guardado = await this.usuarioRepository.save(user);
     const [conRol] = await this.conRoles([guardado]);
     return plainToInstance(UsuarioRespuestaDto, conRol);
   }
 
   // Consulta GoMeta una sola vez por cédula mientras la respuesta siga fresca.
-  async obtenerNombrePorCedula(cedula: string): Promise<string | null> {
+  // Los aciertos se cachean 24 h; los "no encontrada" solo 5 min; los fallos del
+  // proveedor no se cachean, de modo que se puede reintentar.
+  async obtenerNombrePorCedula(
+    cedula: string,
+  ): Promise<ResultadoConsultaCedula> {
     const cedulaNormalizada = cedula.replace(/\D/g, '');
-    if (cedulaNormalizada.length !== 9) return null;
+    if (cedulaNormalizada.length !== 9) return { estado: 'no_encontrada' };
 
     const cacheada = this.cedulasCache.get(cedulaNormalizada);
-    if (cacheada && cacheada.venceEn > Date.now()) return cacheada.nombre;
+    if (cacheada && cacheada.venceEn > Date.now()) return cacheada.resultado;
 
     const enCurso = this.consultasCedula.get(cedulaNormalizada);
     if (enCurso) return enCurso;
@@ -376,12 +461,18 @@ export class UsuarioService {
     this.consultasCedula.set(cedulaNormalizada, consulta);
 
     try {
-      const nombre = await consulta;
-      this.cedulasCache.set(cedulaNormalizada, {
-        nombre,
-        venceEn: Date.now() + 86_400_000, // la identidad no cambia y así se evita castigar a GoMeta
-      });
-      return nombre;
+      const resultado = await consulta;
+      if (resultado.estado !== 'error') {
+        this.cedulasCache.set(cedulaNormalizada, {
+          resultado,
+          venceEn:
+            Date.now() +
+            (resultado.estado === 'encontrada'
+              ? TTL_CEDULA_ENCONTRADA_MS
+              : TTL_CEDULA_NO_ENCONTRADA_MS),
+        });
+      }
+      return resultado;
     } finally {
       this.consultasCedula.delete(cedulaNormalizada);
     }
@@ -390,7 +481,7 @@ export class UsuarioService {
   // Protege el endpoint si el proveedor externo queda colgado.
   private async consultarNombrePorCedula(
     cedula: string,
-  ): Promise<string | null> {
+  ): Promise<ResultadoConsultaCedula> {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), 7_000);
 
@@ -401,19 +492,20 @@ export class UsuarioService {
           signal: abortController.signal,
         },
       );
-      if (!respuesta.ok) return null;
+      if (!respuesta.ok) return { estado: 'error' };
       const data: unknown = await respuesta.json();
       if (
         typeof data === 'object' &&
         data !== null &&
         'nombre' in data &&
-        typeof data.nombre === 'string'
+        typeof data.nombre === 'string' &&
+        data.nombre.trim() !== ''
       ) {
-        return data.nombre;
+        return { estado: 'encontrada', nombre: data.nombre };
       }
-      return null;
+      return { estado: 'no_encontrada' };
     } catch {
-      return null;
+      return { estado: 'error' };
     } finally {
       clearTimeout(timeout);
     }

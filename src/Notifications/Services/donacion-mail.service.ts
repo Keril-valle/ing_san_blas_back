@@ -4,6 +4,7 @@ import {
   DATOS_CONTACTO_PARROQUIA,
   renderDonacionEstadoHtml,
   renderDonacionRechazadaHtml,
+  textoHorariosAtencionPlano,
 } from '../Templates/donacion-mail.templates';
 import type { Donacion } from '../../Modules/Donaciones/Entities/donacion.entity';
 
@@ -34,7 +35,7 @@ export class DonacionMailService {
           detalle: donacion.detalle,
           comentarioAprobacion: comentario,
         }),
-        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue ${donacion.estado}. Detalle: ${donacion.detalle}${comentario ? ` Comentario de la parroquia: ${comentario}` : ''}${donacion.estado === 'Aprobado' ? ` Lugar de entrega: ${DATOS_CONTACTO_PARROQUIA.lugar}. Teléfono: ${DATOS_CONTACTO_PARROQUIA.telefono}` : ` Consultas: oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}`}`,
+        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue ${donacion.estado}. Detalle: ${donacion.detalle}${comentario ? ` Comentario de la parroquia: ${comentario}` : ''}${donacion.estado === 'Aprobado' ? ` Lugar de entrega: ${DATOS_CONTACTO_PARROQUIA.lugar}. Teléfono: ${DATOS_CONTACTO_PARROQUIA.telefono}. ${textoHorariosAtencionPlano()}` : ` Consultas: oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}`}`,
         tags: ['donaciones', 'estado'],
       });
     } catch (error) {

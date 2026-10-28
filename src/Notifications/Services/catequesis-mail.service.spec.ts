@@ -40,6 +40,9 @@ describe('CatequesisMailService.notificarEstado', () => {
     expect(ultimoEnvio?.htmlContent).toContain('Juan López');
     expect(ultimoEnvio?.htmlContent).toContain('Primer nivel');
     expect(ultimoEnvio?.htmlContent).toContain('2685-3540');
+    expect(ultimoEnvio?.htmlContent).toContain('Horarios de atención');
+    expect(ultimoEnvio?.htmlContent).toContain('Miércoles: Cerrado');
+    expect(ultimoEnvio?.textContent).toContain('Horarios de atención');
   });
 
   it('incluye el motivo cuando la solicitud fue rechazada', async () => {

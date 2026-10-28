@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Post,
@@ -55,5 +58,12 @@ export class CatequesisBautismoController {
     @Req() req: RequestWithUser,
   ) {
     return this.servicio.actualizarEstado(id, dto, req.user?.sub);
+  }
+
+  @Delete(':id')
+  @Permisos('catequesis')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.servicio.remove(id);
   }
 }

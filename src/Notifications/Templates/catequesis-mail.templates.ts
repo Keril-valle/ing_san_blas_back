@@ -1,4 +1,7 @@
-import { DATOS_CONTACTO_PARROQUIA } from './donacion-mail.templates';
+import {
+  DATOS_CONTACTO_PARROQUIA,
+  renderBloqueHorariosAtencionHtml,
+} from './donacion-mail.templates';
 
 function escapeHtml(value: string): string {
   return value
@@ -81,6 +84,7 @@ export function renderInscripcionCatequesisEstadoHtml(input: {
                             </div>
 
                             ${bloqueObservacion}
+                            ${esAprobada ? renderBloqueHorariosAtencionHtml() : ''}
                             ${cierre}
                             <p style="font-size: 15px; line-height: 1.7; margin-bottom: 0;">Atentamente,<br><strong>Parroquia San Blas</strong></p>
                         </td>

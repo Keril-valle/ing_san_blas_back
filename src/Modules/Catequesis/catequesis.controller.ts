@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -315,6 +316,19 @@ export class CatequesisController {
     }
 
     return response;
+  }
+
+  @Delete(':id')
+  @Permisos('catequesis')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    if (!esIdValido(id)) {
+      throw new BadRequestException({ mensaje: MENSAJE_ID_INVALIDO });
+    }
+    const eliminado = await this.catequesisService.remove(id);
+    if (!eliminado) {
+      throw new NotFoundException({ mensaje: MENSAJE_NO_ENCONTRADO });
+    }
   }
 
   private async validateDto<T extends object>(

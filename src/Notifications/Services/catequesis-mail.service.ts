@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailService } from './mail.service';
-import { DATOS_CONTACTO_PARROQUIA } from '../Templates/donacion-mail.templates';
+import {
+  DATOS_CONTACTO_PARROQUIA,
+  textoHorariosAtencionPlano,
+} from '../Templates/donacion-mail.templates';
 import {
   etiquetaNivelCatequesis,
   renderInscripcionCatequesisEstadoHtml,
@@ -55,7 +58,7 @@ export class CatequesisMailService {
           estado: aviso.estado,
           observacion,
         }),
-        textContent: `Estimado/a ${aviso.nombreDestinatario || 'encargado'}, la solicitud de inscripción a catequesis de ${aviso.nombreCatequizando} fue ${resultado}. Nivel: ${nivel}. Centro: ${aviso.centroCatequesis}.${observacion ? ` ${esAprobada ? 'Comentario' : 'Motivo'}: ${observacion}.` : ''} Consultas: oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}.`,
+        textContent: `Estimado/a ${aviso.nombreDestinatario || 'encargado'}, la solicitud de inscripción a catequesis de ${aviso.nombreCatequizando} fue ${resultado}. Nivel: ${nivel}. Centro: ${aviso.centroCatequesis}.${observacion ? ` ${esAprobada ? 'Comentario' : 'Motivo'}: ${observacion}.` : ''}${esAprobada ? ` ${textoHorariosAtencionPlano()}.` : ''} Consultas: oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}.`,
         tags: ['catequesis', resultado],
       });
     } catch (error) {

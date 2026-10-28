@@ -28,7 +28,7 @@ export class Usuario {
   @Column({ select: false, nullable: true, type: 'varchar' })
   refreshTokenHash: string | null;
 
-  @Column({ default: true })
+  @Column({ default: false })
   isActive: boolean;
 
   @Column({ type: 'varchar', nullable: true })

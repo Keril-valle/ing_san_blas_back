@@ -21,6 +21,7 @@ export class AuthGuard implements CanActivate {
   ) {} //inyectamos el jwtService, el reflector y el usuarioService para poder usarlo en el guard
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
     // Antes de validar nada, preguntamos: ¿esta ruta está marcada como pública?
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(), // revisa el decorator a nivel de método (ej. @Public() en login())
@@ -28,11 +29,21 @@ export class AuthGuard implements CanActivate {
     ]);
 
     if (isPublic) {
-      return true; // si es pública, dejamos pasar sin pedir token
+      const token = this.extractToken(request);
+      if (token) {
+        try {
+          const payload = await this.jwtService.verifyAsync(token);
+          const vigente = await this.usuarioService.credencialesVigentes(
+            payload.sub,
+            payload.iat,
+          );
+          if (vigente) request['user'] = payload;
+        } catch {
+          // La ruta sigue siendo pública aunque la cookie esté vencida.
+        }
+      }
+      return true;
     }
-
-    //el request es lo que envia el cliente
-    const request = context.switchToHttp().getRequest<Request>();
 
     const token = this.extractToken(request);
 

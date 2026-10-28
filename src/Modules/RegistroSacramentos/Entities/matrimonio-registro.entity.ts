@@ -1,6 +1,8 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: 'matrimonio' })
+@Index('IDX_matrimonio_contrayente1', ['idContrayente1'])
+@Index('IDX_matrimonio_contrayente2', ['idContrayente2'])
 export class MatrimonioRegistro {
   @PrimaryColumn({ name: 'id_sacramento' })
   idSacramento: number;

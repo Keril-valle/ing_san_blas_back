@@ -13,9 +13,10 @@ import { LoginDto } from './DTO/login.dto';
 import { RecuperarContrasenaDto } from './DTO/recuperar-contrasena.dto';
 import { RestablecerContrasenaDto } from './DTO/restablecer-contrasena.dto';
 import { ValidarEnlaceRecuperacionDto } from './DTO/validar-enlace-recuperacion.dto';
-import { Auth } from './Decorators/auth.decorators';
+import { ValidarEnlaceActivacionDto } from './DTO/validar-enlace-activacion.dto';
+import { ActivarCuentaDto } from './DTO/activar-cuenta.dto';
+import { ReenviarActivacionDto } from './DTO/reenviar-activacion.dto';
 import { Role } from '../Common/Enums/Roles';
-import { AuthGuard } from './Guards/auth.guard';
 import { RefreshAuthGuard } from './Guards/refresh-auth.guard';
 import type { RequestWithUser } from '../Common/Interfaces/requestWithUser.interface';
 import { Public } from './Decorators/public.decorator';
@@ -27,7 +28,7 @@ import {
   REFRESH_TOKEN_COOKIE,
   refreshCookieOptions,
 } from './auth-cookies';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -69,10 +70,14 @@ export class AuthController {
     return { message: 'Sesión renovada' };
   }
 
-  // Devuelve el perfil ya validado sin exponer el JWT al JavaScript del navegador.
+  // Sin cookie responde 200 y user null, para que las páginas públicas
+  // no disparen un 401 al comprobar si hay sesión.
+  @Public()
   @Get('session')
-  session(@Req() req: RequestWithUser) {
-    return { user: this.authService.getSessionUser(req.user) };
+  session(@Req() req: Request) {
+    const user = (req as RequestWithUser).user;
+    if (!user?.sub) return { user: null };
+    return { user: this.authService.getSessionUser(user) };
   }
 
   @Public()
@@ -107,6 +112,27 @@ export class AuthController {
   @Post('restablecer-contrasena')
   restablecerContrasena(@Body() dto: RestablecerContrasenaDto) {
     return this.authService.restablecerContrasena(dto);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Public()
+  @Post('validar-enlace-activacion')
+  validarEnlaceActivacion(@Body() dto: ValidarEnlaceActivacionDto) {
+    return this.authService.validarEnlaceActivacion(dto);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Public()
+  @Post('activar-cuenta')
+  activarCuenta(@Body() dto: ActivarCuentaDto) {
+    return this.authService.activarCuenta(dto);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Public()
+  @Post('reenviar-activacion')
+  solicitarReenvioActivacion(@Body() dto: ReenviarActivacionDto) {
+    return this.authService.solicitarReenvioActivacion(dto.email);
   }
 
   // Centralizamos las opciones para que login y refresh roten ambas cookies igual.
