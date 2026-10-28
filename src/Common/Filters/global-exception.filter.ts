@@ -81,12 +81,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private resolveHttpExceptionMessage(exception: HttpException): string {
+    const status = exception.getStatus();
     const response = exception.getResponse();
+
+    // Mensajes de Nest/Throttler suelen traer la palabra "Exception" y el
+    // filtro de seguridad los descartaba; usamos el estado HTTP primero.
+    const porEstado = this.mensajePorEstadoHttp(status);
 
     if (typeof response === 'string') {
       return this.isSafeUserMessage(response)
         ? response
-        : 'La solicitud no pudo procesarse. Verifique los datos e intente de nuevo.';
+        : (porEstado ??
+            'La solicitud no pudo procesarse. Verifique los datos e intente de nuevo.');
     }
 
     if (typeof response === 'object' && response !== null) {
@@ -100,7 +106,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
 
       if (Array.isArray(payload.message)) {
-        return payload.message.join(' ');
+        const unido = payload.message.join(' ');
+        return this.isSafeUserMessage(unido)
+          ? unido
+          : (porEstado ?? unido);
       }
 
       if (
@@ -111,27 +120,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     }
 
-    if (exception.getStatus() === HttpStatus.NOT_FOUND) {
-      return 'El recurso solicitado no fue encontrado.';
-    }
+    return porEstado ?? 'Ocurrió un error al procesar la solicitud.';
+  }
 
-    if (exception.getStatus() === HttpStatus.BAD_REQUEST) {
-      return 'Los datos enviados no son válidos. Revise e intente de nuevo.';
+  private mensajePorEstadoHttp(status: number): string | null {
+    switch (status) {
+      case HttpStatus.NOT_FOUND:
+        return 'El recurso solicitado no fue encontrado.';
+      case HttpStatus.BAD_REQUEST:
+        return 'Los datos enviados no son válidos. Revise e intente de nuevo.';
+      case HttpStatus.UNAUTHORIZED:
+        return 'No autorizado, debés iniciar sesión para acceder a esta función';
+      case HttpStatus.FORBIDDEN:
+        return 'No tiene permisos para realizar esta acción.';
+      case HttpStatus.TOO_MANY_REQUESTS:
+        return 'Demasiadas solicitudes. Espere un momento e intente de nuevo.';
+      default:
+        return null;
     }
-
-    if (exception.getStatus() === HttpStatus.UNAUTHORIZED) {
-      return 'No autorizado, debés iniciar sesión para acceder a esta función';
-    }
-
-    if (exception.getStatus() === HttpStatus.FORBIDDEN) {
-      return 'No tiene permisos para realizar esta acción.';
-    }
-
-    if (exception.getStatus() === HttpStatus.TOO_MANY_REQUESTS) {
-      return 'Demasiadas solicitudes. Espere un momento e intente de nuevo.';
-    }
-
-    return 'Ocurrió un error al procesar la solicitud.';
   }
 
   private isConnectionError(exception: unknown): boolean {

@@ -114,14 +114,15 @@ export class AuthController {
     return this.authService.restablecerContrasena(dto);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  // Validar solo lee; un límite muy bajo bloquea al abrir el enlace (Strict Mode / reintentos).
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Public()
   @Post('validar-enlace-activacion')
   validarEnlaceActivacion(@Body() dto: ValidarEnlaceActivacionDto) {
     return this.authService.validarEnlaceActivacion(dto);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()
   @Post('activar-cuenta')
   activarCuenta(@Body() dto: ActivarCuentaDto) {
