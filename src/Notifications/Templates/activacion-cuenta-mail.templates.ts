@@ -29,7 +29,7 @@ export function renderActivacionCuentaHtml(input: {
           <p style="margin:0 0 12px;">Hola ${nombre},</p>
           <p style="margin:0 0 16px;line-height:1.6;">
             Se creó una cuenta para ti en el sistema de la Parroquia San Blas.
-            Para poder iniciar sesión debes activarla con el siguiente enlace.
+            Con el siguiente enlace activarás tu cuenta y elegirás tu contraseña.
             El enlace vence en ${input.horas} horas y solo puede usarse una vez.
           </p>
           <p style="margin:0 0 20px;">
@@ -57,7 +57,7 @@ export function renderActivacionCuentaTexto(input: {
     `Hola ${nombre},`,
     '',
     'Se creó una cuenta para ti en el sistema de la Parroquia San Blas.',
-    'Para poder iniciar sesión debes activarla con el siguiente enlace.',
+    'Con el siguiente enlace activarás tu cuenta y elegirás tu contraseña.',
     `El enlace vence en ${input.horas} horas y solo puede usarse una vez:`,
     input.enlace,
     '',

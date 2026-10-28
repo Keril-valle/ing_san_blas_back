@@ -20,7 +20,7 @@ export class RegisterDto {
   @Transform(transformarTexto)
   @IsEmail()
   @IsNotEmpty()
-  @MaxLength(100)
+  @MaxLength(254)
   email: string;
 
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))

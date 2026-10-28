@@ -195,6 +195,7 @@ const crearAuthService = (opts: {
             }
           },
         ),
+        query: jest.fn().mockResolvedValue(undefined),
         save: jest.fn(async (fila: FilaActivacion) => {
           const idx = filas.findIndex((f) => f.id === fila.id);
           if (idx >= 0) filas[idx] = { ...filas[idx], ...fila };
@@ -282,13 +283,50 @@ describe('AuthService — activación de cuenta', () => {
       ],
     });
 
-    await service.activarCuenta({ token });
+    await service.activarCuenta({
+      token,
+      password: 'Secreta123',
+      confirmPassword: 'Secreta123',
+    });
     expect(usuario.isActive).toBe(true);
     expect(filas[0].usedAt).toBeInstanceOf(Date);
 
-    await expect(service.activarCuenta({ token })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.activarCuenta({
+        token,
+        password: 'Secreta123',
+        confirmPassword: 'Secreta123',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rechaza activación si las contraseñas no coinciden', async () => {
+    const token = randomBytes(32).toString('base64url');
+    const { service } = crearAuthService({
+      usuario: {
+        id: 5,
+        email: 'nuevo@prueba.com',
+        nombre: 'Nuevo',
+        isActive: false,
+      },
+      filas: [
+        {
+          id: 1,
+          usuarioId: 5,
+          tokenHash: hashToken(token),
+          expiresAt: new Date(Date.now() + 60_000),
+          usedAt: null,
+        },
+      ],
+    });
+
+    await expect(
+      service.activarCuenta({
+        token,
+        password: 'Secreta123',
+        confirmPassword: 'Otra1234',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rechaza token expirado', async () => {

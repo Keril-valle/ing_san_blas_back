@@ -36,8 +36,6 @@ const crearService = (usuario: Fila | null) => {
 const createDto = (extra: Partial<CreateUsuarioDto> = {}) => ({
   nombre: 'Ana Pérez',
   email: 'ana@prueba.com',
-  password: 'Secreta123!',
-  confirmPassword: 'Secreta123!',
   telefono: '8888-8888',
   ...extra,
 });
@@ -63,6 +61,7 @@ describe('UsuarioService — ninguna respuesta de usuario expone la contraseña'
       email: 'ana@prueba.com',
       phoneNumber: '8888-8888',
       state: false,
+      pendienteActivacion: true,
       roles: ['user'],
     });
     expect(respuesta.creationDate).toBeInstanceOf(Date);
