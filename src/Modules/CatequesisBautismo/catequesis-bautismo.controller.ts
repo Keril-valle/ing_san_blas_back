@@ -13,6 +13,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { CatequesisBautismoService } from './catequesis-bautismo.service';
+import { ListarBautismoDto } from './DTO/listar-bautismo.dto';
 import {
   ActualizarEstadoCatequesisBautismoDto,
   CrearInscripcionCatequesisBautismoDto,
@@ -31,11 +32,11 @@ export class CatequesisBautismoController {
     return this.servicio.crear(dto);
   }
 
+  // El DTO limita tamaño, página y filtros antes de consultar la BD.
   @Get()
   @Permisos('catequesis')
-  listar(@Query('vista') vista?: string, @Query('estado') estado?: string) {
-    const grupo = vista === 'historial' ? 'historial' : 'solicitudes';
-    return this.servicio.listar(grupo, estado);
+  listar(@Query() filtros: ListarBautismoDto) {
+    return this.servicio.listar(filtros);
   }
 
   @Public()

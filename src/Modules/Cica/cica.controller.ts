@@ -13,6 +13,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { CicaService } from './cica.service';
+import { ListarCicaDto } from './DTO/listar-cica.dto';
 import {
   ActualizarEstadoCicaDto,
   CrearInscripcionCicaDto,
@@ -31,14 +32,11 @@ export class CicaController {
     return this.cicaService.crear(dto);
   }
 
+  // Consulta validada sin cambiar la ruta que ya usa el panel.
   @Get()
   @Permisos('catequesis')
-  listar(
-    @Query('vista') vista?: string,
-    @Query('estado') estado?: string,
-  ) {
-    const grupo = vista === 'historial' ? 'historial' : 'solicitudes';
-    return this.cicaService.listar(grupo, estado);
+  listar(@Query() filtros: ListarCicaDto) {
+    return this.cicaService.listar(filtros);
   }
 
   @Public()

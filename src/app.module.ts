@@ -72,6 +72,7 @@ import { NotificationsModule } from './Notifications/notifications.module';
         entities: [
           Usuario,
           RecuperacionContrasena,
+          ActivacionCuenta,
           Rol,
           LandingSection,
           SolicSacramento,

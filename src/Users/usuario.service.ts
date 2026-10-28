@@ -15,6 +15,7 @@ import { Usuario } from './Entities/usuario.entity';
 import { RolService } from './rol.service';
 import { Repository, ILike } from 'typeorm';
 import type { FindOptionsWhere } from 'typeorm';
+import { randomBytes } from 'node:crypto';
 import * as bcrypt from 'bcryptjs';
 
 // whitelist de columnas ordenables: mapea el param del DTO a la propiedad real de la entidad.
@@ -58,9 +59,7 @@ export class UsuarioService {
   ) {}
 
   async createUser(registerDto: RegisterDto | CreateUsuarioDto) {
-    if (registerDto.password !== registerDto.confirmPassword) {
-      throw new BadRequestException('Las contraseñas no coinciden');
-    }
+    const passwordPlano = this.passwordPlanoParaAlta(registerDto);
 
     const existingUser = await this.usuarioRepository.findOneBy({
       email: ILike(registerDto.email),
@@ -73,7 +72,7 @@ export class UsuarioService {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+    const hashedPassword = await bcrypt.hash(passwordPlano, 12);
     const rolesSolicitados = this.rolesSolicitadosDe(registerDto);
     const roles = await this.rolService.assertExisten(rolesSolicitados);
     const telefono =
@@ -95,10 +94,7 @@ export class UsuarioService {
       roles.map((rol) => rol.id),
     );
     // saved trae el hash en memoria: sin el DTO la respuesta lo filtra al frontend
-    return plainToInstance(UsuarioRespuestaDto, {
-      ...saved,
-      roles: roles.map((rol) => rol.clave),
-    });
+    return this.aRespuestaDto(saved, roles.map((rol) => rol.clave));
   }
 
   async obtenerRolesDeUsuario(id: number): Promise<string[]> {
@@ -111,15 +107,43 @@ export class UsuarioService {
     return rows.map((row) => row.clave);
   }
 
+  private pendienteActivacionDe(usuario: Usuario): boolean {
+    return !usuario.isActive && !usuario.passwordChangedAt;
+  }
+
+  private aRespuestaDto(usuario: Usuario, roles: string[]) {
+    return plainToInstance(UsuarioRespuestaDto, {
+      ...usuario,
+      roles,
+      pendienteActivacion: this.pendienteActivacionDe(usuario),
+    });
+  }
+
   private async conRoles(
     usuarios: Usuario[],
-  ): Promise<Array<Usuario & { roles: string[] }>> {
+  ): Promise<
+    Array<Usuario & { roles: string[]; pendienteActivacion: boolean }>
+  > {
     return Promise.all(
       usuarios.map(async (usuario) => ({
         ...usuario,
         roles: await this.obtenerRolesDeUsuario(usuario.id),
+        pendienteActivacion: this.pendienteActivacionDe(usuario),
       })),
     );
+  }
+
+  /** Alta por panel: placeholder aleatorio. Registro con password: valida confirmación. */
+  private passwordPlanoParaAlta(
+    dto: RegisterDto | CreateUsuarioDto,
+  ): string {
+    if ('password' in dto && typeof dto.password === 'string') {
+      if (dto.password !== dto.confirmPassword) {
+        throw new BadRequestException('Las contraseñas no coinciden');
+      }
+      return dto.password;
+    }
+    return randomBytes(32).toString('base64url');
   }
 
   private rolesSolicitadosDe(dto: RegisterDto | CreateUsuarioDto): string[] {
@@ -152,7 +176,9 @@ export class UsuarioService {
     return this.usuarioRepository
       .find({ where: { isActive: true } })
       .then(async (usuarios) =>
-        plainToInstance(UsuarioRespuestaDto, await this.conRoles(usuarios)),
+        (await this.conRoles(usuarios)).map((u) =>
+          this.aRespuestaDto(u, u.roles),
+        ),
       );
   }
 
@@ -215,8 +241,9 @@ export class UsuarioService {
 
     const [data, total] = await qb.getManyAndCount();
 
+    const conRoles = await this.conRoles(data);
     return {
-      data: plainToInstance(UsuarioRespuestaDto, await this.conRoles(data)),
+      data: conRoles.map((u) => this.aRespuestaDto(u, u.roles)),
       total,
       page: pagina,
       pages: Math.ceil(total / limite),
@@ -228,7 +255,7 @@ export class UsuarioService {
     const user = await this.usuarioRepository.findOneBy({ id, isActive: true });
     if (!user) return null;
     const [conRol] = await this.conRoles([user]);
-    return plainToInstance(UsuarioRespuestaDto, conRol);
+    return this.aRespuestaDto(conRol, conRol.roles);
   }
 
   async findOneByEmail(email: string) {
@@ -238,7 +265,7 @@ export class UsuarioService {
     });
     if (!user) return null;
     const [conRol] = await this.conRoles([user]);
-    return plainToInstance(UsuarioRespuestaDto, conRol);
+    return this.aRespuestaDto(conRol, conRol.roles);
   }
 
   findActivoParaRecuperacion(email: string) {
@@ -403,10 +430,10 @@ export class UsuarioService {
 
     const guardado = await this.usuarioRepository.save(user);
     // al cambiar la contraseña el hash queda en el objeto guardado: el DTO lo descarta
-    return plainToInstance(UsuarioRespuestaDto, {
-      ...guardado,
-      roles: await this.obtenerRolesDeUsuario(guardado.id),
-    });
+    return this.aRespuestaDto(
+      guardado,
+      await this.obtenerRolesDeUsuario(guardado.id),
+    );
   }
 
   async remove(id: number, actorId?: number) {
@@ -426,10 +453,7 @@ export class UsuarioService {
         [id],
       );
       await this.usuarioRepository.remove(user);
-      return plainToInstance(UsuarioRespuestaDto, {
-        ...user,
-        roles: [],
-      });
+      return this.aRespuestaDto(user, []);
     }
 
     user.isActive = false;
@@ -439,7 +463,7 @@ export class UsuarioService {
     user.passwordChangedAt = new Date();
     const guardado = await this.usuarioRepository.save(user);
     const [conRol] = await this.conRoles([guardado]);
-    return plainToInstance(UsuarioRespuestaDto, conRol);
+    return this.aRespuestaDto(conRol, conRol.roles);
   }
 
   // Consulta GoMeta una sola vez por cédula mientras la respuesta siga fresca.
@@ -521,6 +545,7 @@ export class UsuarioService {
     if (data.length === 0) {
       throw new NotFoundException('No existen coincidencias');
     }
-    return plainToInstance(UsuarioRespuestaDto, data);
+    const conRoles = await this.conRoles(data);
+    return conRoles.map((u) => this.aRespuestaDto(u, u.roles));
   }
 }

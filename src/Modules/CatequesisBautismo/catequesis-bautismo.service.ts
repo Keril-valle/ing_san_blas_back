@@ -6,6 +6,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { guardarMatricula } from '../../Common/Utils/guardar-matricula';
+import { listarMatriculas } from '../../Common/Utils/listar-matriculas';
+import type { ListarBautismoDto } from './DTO/listar-bautismo.dto';
 import { PATRON_CEDULA_CATEQUESIS } from '../../Common/DTO/identificacion-catequesis.dto';
 import { InscripcionCatequesisBautismo } from './Entities/inscripcion-catequesis-bautismo.entity';
 import {
@@ -20,8 +23,10 @@ export class CatequesisBautismoService {
     private readonly repositorio: Repository<InscripcionCatequesisBautismo>,
   ) {}
 
+  // Inscribe al interesado; las fechas y el responsable siguen quedando para la certificación del admin.
   async crear(dto: CrearInscripcionCatequesisBautismoDto) {
-    const guardada = await this.repositorio.save(
+    const guardada = await guardarMatricula(
+      this.repositorio,
       this.repositorio.create({
         nombre: dto.nombre,
         apellido1: dto.apellido1,
@@ -39,6 +44,7 @@ export class CatequesisBautismoService {
         condicion: dto.condicion,
         estado: 'Pendiente',
       }),
+      'UQ_bautismo_cedula_pendiente',
     );
 
     return {
@@ -49,23 +55,23 @@ export class CatequesisBautismoService {
     };
   }
 
-  listar(vista: 'solicitudes' | 'historial', estado?: string) {
-    const consulta = this.repositorio
-      .createQueryBuilder('inscripcion')
-      .orderBy('inscripcion.fechaSolicitud', 'DESC');
-
-    if (vista === 'historial') {
-      consulta.where('inscripcion.estado IN (:...finales)', {
-        finales: ['Aprobada', 'Rechazada'],
-      });
-      if (estado === 'Aprobada' || estado === 'Rechazada') {
-        consulta.andWhere('inscripcion.estado = :estado', { estado });
-      }
-    } else {
-      consulta.where('inscripcion.estado = :estado', { estado: 'Pendiente' });
-    }
-
-    return consulta.getMany();
+  // Mantiene el flujo de certificación y pagina solo la consulta del panel.
+  listar(filtros: ListarBautismoDto) {
+    return listarMatriculas(
+      this.repositorio,
+      filtros,
+      [
+        'nombre',
+        'apellido1',
+        'apellido2',
+        'cedula',
+        'telefono',
+        'parroquiaOrigen',
+      ],
+      filtros.condicion
+        ? { columna: 'condicion', valor: filtros.condicion }
+        : undefined,
+    );
   }
 
   async obtener(id: number) {
@@ -122,7 +128,10 @@ export class CatequesisBautismoService {
     if (!inscripcion) {
       throw new NotFoundException({ mensaje: 'La solicitud no existe.' });
     }
-    if (inscripcion.estado !== 'Aprobada' && inscripcion.estado !== 'Rechazada') {
+    if (
+      inscripcion.estado !== 'Aprobada' &&
+      inscripcion.estado !== 'Rechazada'
+    ) {
       throw new BadRequestException({
         mensaje: 'Solo se pueden eliminar solicitudes aprobadas o rechazadas.',
       });
