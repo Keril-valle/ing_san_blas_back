@@ -17,6 +17,11 @@ import { PartialType } from '@nestjs/mapped-types';
 import { TipoSacramentoRegistro } from '../../../Common/Enums/TipoSacramentoRegistro';
 import { ParentescoAbueloRegistro } from '../../../Common/Enums/ParentescoAbueloRegistro';
 
+// Texto libre permitido en observaciones y lugares: letras (incluye acentos y ñ),
+// números, espacios y puntuación básica. Excluye comillas, < >, ;, \, operadores
+// y secuencias de comentarios SQL para evitar inyecciones.
+const textoSeguro = /^(?!.*--)[\p{L}\p{N} .,:()\-/¿?¡!°]*$/u;
+
 // Datos de una persona tal como los envía el formulario (sin IDs).
 // El backend busca por cédula o crea la persona si no existe.
 export class PersonaInputDto {
@@ -104,6 +109,9 @@ export class BautismoDatosDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
+  @Matches(textoSeguro, {
+    message: 'El lugar de nacimiento contiene caracteres no permitidos.',
+  })
   lugarNacimiento?: string;
 
   @IsOptional()
@@ -200,6 +208,9 @@ export class CreateSacramentoNormalizadoDto {
   @IsOptional()
   @IsString()
   @MaxLength(2000)
+  @Matches(textoSeguro, {
+    message: 'Las observaciones contienen caracteres no permitidos.',
+  })
   observaciones?: string;
 
   @IsOptional()
