@@ -2,10 +2,15 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity({ name: 'inscripcion_cica' })
+@Index('UQ_cica_cedula_pendiente', ['cedula'], {
+  unique: true,
+  where: '"estado" = \'Pendiente\'',
+})
 export class InscripcionCica {
   @PrimaryGeneratedColumn()
   id: number;

@@ -58,6 +58,9 @@ for (const Servicio of [CicaService, CatequesisBautismoService]) {
         tipoCedula: 'extranjera',
         necesitaBautizo: true,
         esCatolico: true,
+        provincia: 'Guanacaste',
+        canton: 'Nicoya',
+        distrito: 'Nicoya', // la prueba de cédula también necesita una ubicación válida
       };
       const repositorio = {
         create: jest.fn().mockImplementation((valor: object) => valor),
