@@ -137,6 +137,24 @@ const errorInscripcion = async (
 };
 
 describe('CrearInscripcionCicaDto: estado civil y cónyuge', () => {
+  it('acepta letras acentuadas en la parte local del correo', async () => {
+    await expect(
+      erroresInscripcion({ correo: 'maríaangeljhjh@gmail.com' }),
+    ).resolves.toHaveLength(0);
+  });
+
+  it.each([
+    'm aría@gmail.com',
+    'maría@',
+    'maría@gmail',
+    'maría!@gmail.com',
+  ])('rechaza un correo con formato inválido: %s', async (correo) => {
+    const error = await errorInscripcion({ correo }, 'correo');
+    expect(error?.constraints?.matches).toBe(
+      'Ingrese un correo válido. Ej: nombre@dominio.com',
+    );
+  });
+
   it.each(['soltero', 'matrimonio_civil', 'matrimonio_catolico', 'union_libre', 'union_civil', 'divorciado'])(
     'acepta el estado civil %s',
     async (estadoCivil) => {
