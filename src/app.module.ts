@@ -50,6 +50,7 @@ import { CatequesisBautismoModule } from './Modules/CatequesisBautismo/catequesi
 import { InscripcionCatequesisBautismo } from './Modules/CatequesisBautismo/Entities/inscripcion-catequesis-bautismo.entity';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './Notifications/notifications.module';
+import { NetlifyRebuildModule } from './Common/netlify-rebuild.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { NotificationsModule } from './Notifications/notifications.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    NetlifyRebuildModule,
 
     // Configuración de TypeORM con Postgres (Supabase).
     // forRootAsync en vez de forRoot porque necesitamos inyectar ConfigService

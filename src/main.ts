@@ -1,6 +1,8 @@
 import helmet from 'helmet';
+import compression from 'compression';
 import { config as loadEnv } from 'dotenv';
 import * as tls from 'node:tls';
+import type { NextFunction, Request, Response } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
@@ -50,6 +52,13 @@ async function bootstrap() {
 
   // Helmet después de CORS — agrega cabeceras de seguridad sin interferir con CORS
   app.use(helmet());
+  // La API en Railway no debe indexarse (el sitio canónico es parroquiasanblas.org)
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    next();
+  });
+  // gzip si el cliente lo acepta (Railway no siempre comprime por delante)
+  app.use(compression());
   //esto sirve para usar class validator
   app.useGlobalPipes(
     new ValidationPipe({
