@@ -22,6 +22,7 @@ import { LimitarTextosCica1788000000034 } from '../../migrations/1788000000034-L
 import { LimitarDireccionCica1788000000035 } from '../../migrations/1788000000035-LimitarDireccionCica';
 import { LimitarTextosCatequesisBautismo1788000000036 } from '../../migrations/1788000000036-LimitarTextosCatequesisBautismo';
 import { AddUbicacionInscripcionCica1788000000039 } from '../../migrations/1788000000039-AddUbicacionInscripcionCica';
+import { AddNacionalidadCatequesisBautismo1788000000041 } from '../../migrations/1788000000041-AddNacionalidadCatequesisBautismo';
 
 // Solo se ejecuta contra una BD local explícita; nunca usa DATABASE_URL del .env.
 const url = process.env.TEST_DATABASE_URL;
@@ -61,6 +62,7 @@ suite('matrículas con PostgreSQL real', () => {
     nombre: 'Ana',
     apellido1: 'Pérez',
     fechaNacimiento: '1990-01-01',
+    nacionalidad: 'Costarricense',
     telefono: '8888-8888',
     estadoCivil: 'soltero',
     parroquiaOrigen: 'San Blas',
@@ -96,6 +98,7 @@ suite('matrículas con PostgreSQL real', () => {
         LimitarDireccionCica1788000000035,
         LimitarTextosCatequesisBautismo1788000000036,
         AddUbicacionInscripcionCica1788000000039,
+        AddNacionalidadCatequesisBautismo1788000000041,
         UnicidadMatriculasPendientes1793180000000,
       ],
     }).initialize();

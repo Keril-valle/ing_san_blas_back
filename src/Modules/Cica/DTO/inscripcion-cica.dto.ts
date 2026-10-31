@@ -62,7 +62,7 @@ export const requiereConyugeCica = (
 
 const LETRAS_CON_ESPACIO = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 const LETRAS_SIN_ESPACIO = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+$/;
-const CORREO_CICA = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const CORREO_CICA = /^[\p{L}0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/u;
 
 @ValidatorConstraint({ name: 'adultoCica', async: false })
 class AdultoCicaConstraint implements ValidatorConstraintInterface {
