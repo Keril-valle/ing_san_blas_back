@@ -10,6 +10,7 @@ import { CreateEventoDto } from './DTO/create-evento.dto';
 import { UpdateEventoDto } from './DTO/update-evento.dto';
 import { EventoFileStorageService } from './evento-file-storage.service';
 import { EstadoEvento } from '../../Common/Enums/EstadoEvento';
+import { NetlifyRebuildService } from '../../Common/netlify-rebuild.service';
 
 @Injectable()
 export class EventoService {
@@ -17,6 +18,7 @@ export class EventoService {
     @InjectRepository(Evento)
     private readonly eventoRepository: Repository<Evento>,
     private readonly fileStorageService: EventoFileStorageService,
+    private readonly netlifyRebuild: NetlifyRebuildService,
   ) {}
 
   async createWithImage(
@@ -43,7 +45,7 @@ export class EventoService {
     return this.update(id, updateEventoDto);
   }
 
-  create(createEventoDto: CreateEventoDto) {
+  async create(createEventoDto: CreateEventoDto) {
     this.validarFechas(createEventoDto.fechaInicio, createEventoDto.fechaFin);
     const evento = this.eventoRepository.create({
       ...createEventoDto,
@@ -55,7 +57,9 @@ export class EventoService {
       imagenUrl: this.soloTexto(createEventoDto.imagenUrl),
       estado: EstadoEvento.BORRADOR,
     });
-    return this.eventoRepository.save(evento);
+    const saved = await this.eventoRepository.save(evento);
+    this.netlifyRebuild.triggerPublicContentRebuild(`evento:create:${saved.id}`);
+    return saved;
   }
 
   findAll() {
@@ -103,7 +107,9 @@ export class EventoService {
           ? evento.imagenUrl
           : this.soloTexto(datos.imagenUrl),
     });
-    return this.eventoRepository.save(evento);
+    const saved = await this.eventoRepository.save(evento);
+    this.netlifyRebuild.triggerPublicContentRebuild(`evento:update:${id}`);
+    return saved;
   }
 
   async publicar(id: number) {
@@ -116,7 +122,9 @@ export class EventoService {
     this.validarFechas(evento.fechaInicio, evento.fechaFin);
 
     evento.estado = EstadoEvento.PUBLICADO;
-    return this.eventoRepository.save(evento);
+    const saved = await this.eventoRepository.save(evento);
+    this.netlifyRebuild.triggerPublicContentRebuild(`evento:publicar:${id}`);
+    return saved;
   }
 
   async activar(id: number) {
@@ -133,7 +141,9 @@ export class EventoService {
     }
 
     evento.estado = EstadoEvento.PUBLICADO;
-    return this.eventoRepository.save(evento);
+    const saved = await this.eventoRepository.save(evento);
+    this.netlifyRebuild.triggerPublicContentRebuild(`evento:activar:${id}`);
+    return saved;
   }
 
   async desactivar(id: number) {
@@ -150,12 +160,16 @@ export class EventoService {
     }
 
     evento.estado = EstadoEvento.DESACTIVADO;
-    return this.eventoRepository.save(evento);
+    const saved = await this.eventoRepository.save(evento);
+    this.netlifyRebuild.triggerPublicContentRebuild(`evento:desactivar:${id}`);
+    return saved;
   }
 
   async remove(id: number) {
     const evento = await this.findOne(id);
-    return this.eventoRepository.remove(evento);
+    const removed = await this.eventoRepository.remove(evento);
+    this.netlifyRebuild.triggerPublicContentRebuild(`evento:delete:${id}`);
+    return removed;
   }
 
   private soloFecha(fecha?: string | null) {

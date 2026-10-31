@@ -26,6 +26,7 @@ import {
   type LandingSectionKey,
 } from './landing.defaults';
 import { mapValidationErrors } from '../Common/validation-errors';
+import { NetlifyRebuildService } from '../Common/netlify-rebuild.service';
 
 export { LANDING_SECTION_KEYS, type LandingSectionKey };
 
@@ -35,6 +36,7 @@ export class LandingService {
     @InjectRepository(LandingSection)
     private readonly landingRepository: Repository<LandingSection>,
     private readonly fileStorageService: LandingFileStorageService,
+    private readonly netlifyRebuild: NetlifyRebuildService,
   ) {}
 
   async findAll() {
@@ -183,6 +185,7 @@ export class LandingService {
 
     section.data = current;
     const saved = await this.landingRepository.save(section);
+    this.netlifyRebuild.triggerPublicContentRebuild(`landing:${sectionKey}`);
     return this.toResponse(saved);
   }
 
@@ -216,6 +219,9 @@ export class LandingService {
       restablecidas.push(this.toResponse(saved));
     }
 
+    this.netlifyRebuild.triggerPublicContentRebuild(
+      `landing:restablecer:${claves.join(',')}`,
+    );
     return restablecidas;
   }
 
