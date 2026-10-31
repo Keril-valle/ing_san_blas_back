@@ -6,6 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { guardarMatricula } from '../../Common/Utils/guardar-matricula';
+import { listarMatriculas } from '../../Common/Utils/listar-matriculas';
+import { validarUbicacionCostaRica } from '../../Common/Utils/ubicacion-costa-rica';
+import type { ListarCicaDto } from './DTO/listar-cica.dto';
 import { PATRON_CEDULA_CATEQUESIS } from '../../Common/DTO/identificacion-catequesis.dto';
 import { InscripcionCica } from './Entities/inscripcion-cica.entity';
 import {
@@ -21,6 +25,7 @@ export class CicaService {
     private readonly repositorio: Repository<InscripcionCica>,
   ) {}
 
+  // Valida la ubicación y guarda sin permitir otra solicitud pendiente de la misma cédula.
   async crear(dto: CrearInscripcionCicaDto) {
     if (
       !dto.necesitaBautizo &&
@@ -32,9 +37,11 @@ export class CicaService {
       });
     }
 
+    validarUbicacionCostaRica(dto);
     const conyuge = requiereConyugeCica(dto.estadoCivil);
 
-    const guardada = await this.repositorio.save(
+    const guardada = await guardarMatricula(
+      this.repositorio,
       this.repositorio.create({
         nombre: dto.nombre,
         apellido1: dto.apellido1,
@@ -66,6 +73,7 @@ export class CicaService {
         observacion: dto.observacion ?? null,
         estado: 'Pendiente',
       }),
+      'UQ_cica_cedula_pendiente',
     );
 
     return {
@@ -76,23 +84,21 @@ export class CicaService {
     };
   }
 
-  listar(vista: 'solicitudes' | 'historial', estado?: string) {
-    const consulta = this.repositorio
-      .createQueryBuilder('inscripcion')
-      .orderBy('inscripcion.fechaSolicitud', 'DESC');
-
-    if (vista === 'historial') {
-      consulta.where('inscripcion.estado IN (:...finales)', {
-        finales: ['Aprobada', 'Rechazada'],
-      });
-      if (estado === 'Aprobada' || estado === 'Rechazada') {
-        consulta.andWhere('inscripcion.estado = :estado', { estado });
-      }
-    } else {
-      consulta.where('inscripcion.estado = :estado', { estado: 'Pendiente' });
-    }
-
-    return consulta.getMany();
+  // Filtra en servidor; los nombres de columna salen de este catálogo, no del usuario.
+  listar(filtros: ListarCicaDto) {
+    const columnas = {
+      bautizo: 'necesitaBautizo',
+      primeraComunion: 'necesitaPrimeraComunion',
+      confirmacion: 'necesitaConfirmacion',
+    };
+    return listarMatriculas(
+      this.repositorio,
+      filtros,
+      ['nombre', 'apellido1', 'apellido2', 'cedula', 'telefono', 'correo'],
+      filtros.sacramento
+        ? { columna: columnas[filtros.sacramento], valor: true }
+        : undefined,
+    );
   }
 
   async obtener(id: number) {
@@ -130,7 +136,10 @@ export class CicaService {
     if (!inscripcion) {
       throw new NotFoundException({ mensaje: 'La solicitud no existe.' });
     }
-    if (inscripcion.estado !== 'Aprobada' && inscripcion.estado !== 'Rechazada') {
+    if (
+      inscripcion.estado !== 'Aprobada' &&
+      inscripcion.estado !== 'Rechazada'
+    ) {
       throw new BadRequestException({
         mensaje: 'Solo se pueden eliminar solicitudes aprobadas o rechazadas.',
       });

@@ -23,6 +23,10 @@ export class UsuarioRespuestaDto {
   @Expose({ name: 'isActive' })
   state: boolean;
 
+  /** Cuenta creada por invitación que aún no activó ni eligió contraseña. */
+  @Expose()
+  pendienteActivacion: boolean;
+
   @Expose({ name: 'createdAt' })
   creationDate: Date;
 

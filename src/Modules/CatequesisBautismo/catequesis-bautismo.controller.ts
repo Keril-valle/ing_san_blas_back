@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
+  InternalServerErrorException,
   HttpCode,
   HttpStatus,
   Param,
@@ -11,8 +13,13 @@ import {
   Put,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { CatequesisBautismoService } from './catequesis-bautismo.service';
+import { BautismoExportService } from './bautismo-export.service';
+import { ExportarMatriculasDto } from '../../Common/DTO/exportar-matriculas.dto';
+import { ListarBautismoDto } from './DTO/listar-bautismo.dto';
 import {
   ActualizarEstadoCatequesisBautismoDto,
   CrearInscripcionCatequesisBautismoDto,
@@ -23,7 +30,10 @@ import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.in
 
 @Controller('catequesis-bautismo')
 export class CatequesisBautismoController {
-  constructor(private readonly servicio: CatequesisBautismoService) {}
+  constructor(
+    private readonly servicio: CatequesisBautismoService,
+    private readonly exportacion: BautismoExportService,
+  ) {}
 
   @Public()
   @Post()
@@ -31,17 +41,41 @@ export class CatequesisBautismoController {
     return this.servicio.crear(dto);
   }
 
+  // El DTO limita tamaño, página y filtros antes de consultar la BD.
   @Get()
   @Permisos('catequesis')
-  listar(@Query('vista') vista?: string, @Query('estado') estado?: string) {
-    const grupo = vista === 'historial' ? 'historial' : 'solicitudes';
-    return this.servicio.listar(grupo, estado);
+  listar(@Query() filtros: ListarBautismoDto) {
+    return this.servicio.listar(filtros);
   }
 
   @Public()
   @Get('consulta')
   consultar(@Query('cedula') cedula?: string) {
     return this.servicio.consultarPorCedula(cedula ?? '');
+  }
+
+  // Descarga protegida, con la misma validación de filtros que usa el modal.
+  @Get('exportar')
+  @Permisos('catequesis')
+  async exportar(
+    @Query() filtros: ExportarMatriculasDto,
+    @Res() response: Response,
+  ) {
+    try {
+      const { buffer, fileName } = await this.exportacion.exportar(filtros);
+      response.set({
+        'Content-Type':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Cache-Control': 'no-store', // no dejar datos de los inscritos en cachés compartidas
+      });
+      response.send(buffer);
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException({
+        mensaje: 'No se pudo generar el archivo de exportación.',
+      });
+    }
   }
 
   @Get(':id')

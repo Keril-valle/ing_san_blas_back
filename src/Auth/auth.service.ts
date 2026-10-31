@@ -199,7 +199,12 @@ export class AuthService {
   }
 
   async activarCuenta(dto: ActivarCuentaDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Las contraseñas no coinciden');
+    }
+
     const tokenHash = this.hashToken(dto.token);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
     await this.dataSource.transaction(async (manager) => {
       const fila = await manager
@@ -225,12 +230,23 @@ export class AuthService {
         throw new BadRequestException('Esta cuenta ya fue activada.');
       }
 
-      await manager.update(Usuario, fila.usuarioId, { isActive: true });
+      await manager.update(Usuario, fila.usuarioId, {
+        isActive: true,
+        password: passwordHash,
+        passwordChangedAt: new Date(),
+      });
+      await manager.query(
+        'UPDATE "usuario" SET "refreshTokenHash" = NULL WHERE id = $1',
+        [fila.usuarioId],
+      );
       fila.usedAt = new Date();
       await manager.save(fila);
     });
 
-    return { message: 'Tu cuenta fue activada correctamente.' };
+    return {
+      message:
+        'Tu cuenta fue activada correctamente. Ya puedes iniciar sesión con tu correo y la contraseña que elegiste.',
+    };
   }
 
   async solicitarReenvioActivacion(email: string) {

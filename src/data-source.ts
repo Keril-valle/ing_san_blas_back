@@ -44,6 +44,7 @@ export default new DataSource({
   entities: [
     Usuario,
     RecuperacionContrasena,
+    ActivacionCuenta,
     Rol,
     UsuarioRol,
     LandingSection,

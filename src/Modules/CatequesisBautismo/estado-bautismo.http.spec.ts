@@ -5,6 +5,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import request from 'supertest';
 import { CatequesisBautismoController } from './catequesis-bautismo.controller';
 import { CatequesisBautismoService } from './catequesis-bautismo.service';
+import { BautismoExportService } from './bautismo-export.service';
 import { InscripcionCatequesisBautismo } from './Entities/inscripcion-catequesis-bautismo.entity';
 
 // Controlador, DTO y servicio reales. Repositorio en memoria: no usa la BD.
@@ -28,6 +29,7 @@ describe('PUT /catequesis-bautismo/:id/estado', () => {
       controllers: [CatequesisBautismoController],
       providers: [
         CatequesisBautismoService,
+        { provide: BautismoExportService, useValue: { exportar: jest.fn() } },
         { provide: getRepositoryToken(InscripcionCatequesisBautismo), useValue: repositorio },
       ],
     }).compile();

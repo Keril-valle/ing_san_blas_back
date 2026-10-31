@@ -1,15 +1,34 @@
 import {
   IsArray,
+  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { RegisterDto } from '../../Auth/DTO/register.dto';
 import { transformarTexto } from '../../Common/Utils/normalizar-texto';
 
-export class CreateUsuarioDto extends RegisterDto {
+/**
+ * Alta por panel: el usuario define su contraseña al activar la cuenta.
+ * No se piden password/confirmPassword aquí.
+ */
+export class CreateUsuarioDto {
+  @Transform(transformarTexto)
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(100)
+  nombre: string;
+
+  @Transform(transformarTexto)
+  @IsEmail()
+  @IsNotEmpty()
+  @MaxLength(254)
+  email: string;
+
   @IsOptional()
   @IsArray({ message: 'Los roles deben venir como una lista.' })
   @IsString({ each: true, message: 'Cada rol debe ser texto.' })

@@ -98,8 +98,6 @@ describe('UsuarioService — reactivación de cuentas', () => {
       service.createUser({
         nombre: 'Otra Persona',
         email: 'ana@prueba.com',
-        password: 'Secreta123!',
-        confirmPassword: 'Secreta123!',
         telefono: '8888-8888',
       }),
     ).rejects.toBeInstanceOf(ConflictException);

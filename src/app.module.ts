@@ -72,6 +72,7 @@ import { NotificationsModule } from './Notifications/notifications.module';
         entities: [
           Usuario,
           RecuperacionContrasena,
+          ActivacionCuenta,
           Rol,
           LandingSection,
           SolicSacramento,
@@ -106,6 +107,12 @@ import { NotificationsModule } from './Notifications/notifications.module';
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL
+        },
+        // Supabase session mode limita ~15 clientes; no abrir más de los que caben.
+        extra: {
+          max: 8,
+          idleTimeoutMillis: 10_000,
+          connectionTimeoutMillis: 15_000,
         },
       }),
     }),
