@@ -28,48 +28,33 @@ export class AuthGuard implements CanActivate {
       context.getClass(), // revisa el decorator a nivel de controller completo
     ]);
 
-    if (isPublic) {
-      const token = this.extractToken(request);
-      if (token) {
-        try {
-          const payload = await this.jwtService.verifyAsync(token);
-          const vigente = await this.usuarioService.credencialesVigentes(
-            payload.sub,
-            payload.iat,
-          );
-          if (vigente) request['user'] = payload;
-        } catch {
-          // La ruta sigue siendo pública aunque la cookie esté vencida.
-        }
-      }
-      return true;
-    }
-
     const token = this.extractToken(request);
-
     if (!token) {
+      if (isPublic) return true;
       throw new UnauthorizedException();
     }
+    let payload: { sub: number; iat?: number; [key: string]: unknown };
     try {
-      const payload = await this.jwtService.verifyAsync(token);
-      request['user'] = payload;
-
-      // Si el usuario fue desactivado, los tokens emitidos en sesiones previas
-      // dejan de ser válidos para cualquier dispositivo.
-      const vigente = await this.usuarioService.credencialesVigentes(
-        payload.sub,
-        payload.iat,
-      );
-      if (!vigente) {
-        throw new UnauthorizedException();
-      }
-
-      // Si la validación es exitosa, devuelve true, permitiendo el acceso.
-      // Si la validación falla, devuelve false, denegando el acceso.
-      return true; // o false, dependiendo de la lógica de tu guard.
+      payload = await this.jwtService.verifyAsync(token);
     } catch {
+      if (isPublic) return true;
       throw new UnauthorizedException();
     }
+
+    // Los errores del servicio de datos deben llegar al filtro global (503),
+    // no convertirse en 401 ni en una sesión pública anónima.
+    const vigente = await this.usuarioService.credencialesVigentes(payload.sub, payload.iat);
+    if (!vigente) {
+      if (isPublic) return true;
+      throw new UnauthorizedException();
+    }
+    const acceso = await this.usuarioService.obtenerAccesoVigente(payload.sub);
+    if (!acceso) {
+      if (isPublic) return true;
+      throw new UnauthorizedException();
+    }
+    request['user'] = { ...payload, ...acceso };
+    return true;
   }
 
   // Acepta cookie para la web y header para clientes de API que lo necesiten.
