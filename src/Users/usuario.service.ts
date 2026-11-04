@@ -350,13 +350,16 @@ export class UsuarioService {
   findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
       // El correo no distingue mayúsculas/minúsculas al iniciar sesión.
-      where: { email: ILike(email.trim()), isActive: true },
+      where: { email: ILike(email.trim()) },
+      order: { isActive: 'DESC', id: 'DESC' },
       select: {
         id: true,
         nombre: true,
         email: true,
         password: true,
         role: true,
+        isActive: true,
+        passwordChangedAt: true,
       },
     });
   }
