@@ -56,7 +56,13 @@ describe('exportaciones HTTP protegidas', () => {
         },
         {
           provide: UsuarioService,
-          useValue: { credencialesVigentes: () => Promise.resolve(true) },
+          useValue: {
+            credencialesVigentes: () => Promise.resolve(true),
+            obtenerAccesoVigente: async (id: number) => ({
+              role: 'limitado', roles: ['limitado'],
+              permisos: id === 1 ? ['catequesis'] : [], accesoPanel: true,
+            }),
+          },
         },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_GUARD, useClass: RolesGuard },

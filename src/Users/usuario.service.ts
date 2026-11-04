@@ -107,6 +107,24 @@ export class UsuarioService {
     return rows.map((row) => row.clave);
   }
 
+  async obtenerAccesoVigente(id: number) {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { id, isActive: true },
+      select: { id: true, email: true, role: true },
+    });
+    if (!usuario) return null;
+    const asignados = await this.obtenerRolesDeUsuario(id);
+    const roles = asignados.length ? asignados : [usuario.role];
+    const permisos = await this.rolService.permisosDeRoles(roles);
+    return {
+      email: usuario.email,
+      role: roles[0],
+      roles,
+      permisos,
+      accesoPanel: roles.includes(Role.SECRETARIO) || permisos.includes('panel'),
+    };
+  }
+
   private pendienteActivacionDe(usuario: Usuario): boolean {
     return !usuario.isActive && !usuario.passwordChangedAt;
   }
@@ -332,13 +350,16 @@ export class UsuarioService {
   findByEmailWithPassword(email: string) {
     return this.usuarioRepository.findOne({
       // El correo no distingue mayúsculas/minúsculas al iniciar sesión.
-      where: { email: ILike(email.trim()), isActive: true },
+      where: { email: ILike(email.trim()) },
+      order: { isActive: 'DESC', id: 'DESC' },
       select: {
         id: true,
         nombre: true,
         email: true,
         password: true,
         role: true,
+        isActive: true,
+        passwordChangedAt: true,
       },
     });
   }

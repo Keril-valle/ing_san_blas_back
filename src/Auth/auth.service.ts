@@ -291,6 +291,17 @@ export class AuthService {
       throw new UnauthorizedException('Email o contraseña incorrecta');
     }
 
+    // Nunca revelar el estado de una cuenta antes de verificar su contraseña.
+    // passwordChangedAt distingue pendientes de cuentas desactivadas por administración.
+    if (!user.isActive) {
+      if (!user.passwordChangedAt) {
+        throw new ForbiddenException(
+          'Esta cuenta está pendiente de activación. Utiliza el enlace enviado a tu correo para crear tu contraseña.',
+        );
+      }
+      throw new UnauthorizedException('Email o contraseña incorrecta');
+    }
+
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
     return tokens;
