@@ -48,12 +48,14 @@ const crearAuthService = (opts: {
   });
 
   const findByEmailWithPassword = jest.fn(async () => {
-    if (!usuario || !usuario.isActive) return null;
+    if (!usuario) return null;
     return {
       id: usuario.id,
       email: usuario.email,
       password: usuario.password ?? 'hash',
       role: usuario.role ?? 'user',
+      isActive: usuario.isActive,
+      passwordChangedAt: usuario.passwordChangedAt,
     };
   });
 
