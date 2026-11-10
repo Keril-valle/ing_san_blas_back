@@ -4,6 +4,7 @@ import { config as loadEnv } from 'dotenv';
 import * as tls from 'node:tls';
 import type { NextFunction, Request, Response } from 'express';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 import { AppModule } from './app.module';
@@ -22,7 +23,10 @@ try {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Detrás del proxy de Railway, confiar en X-Forwarded-For para que el
+  // throttler cuente por IP real y no como si todas fueran la misma IP.
+  app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
   const configuredCorsOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())

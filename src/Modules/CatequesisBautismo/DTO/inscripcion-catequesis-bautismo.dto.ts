@@ -1,6 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IdentificacionCatequesisDto } from '../../../Common/DTO/identificacion-catequesis.dto';
 import {
+  IsEmail,
   IsIn,
   IsNotEmpty,
   IsOptional,
@@ -79,6 +80,33 @@ class AdultoCatequesisBautismoConstraint
   }
 }
 
+// Rechaza fechas inexistentes (2026-02-31) y futuras, sin depender del TZ del servidor.
+const fechaExiste = (value: string): boolean => {
+  if (!FECHA.test(value)) return false;
+  const [anio, mes, dia] = value.split('-').map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  return (
+    fecha.getUTCFullYear() === anio &&
+    fecha.getUTCMonth() === mes - 1 &&
+    fecha.getUTCDate() === dia
+  );
+};
+
+@ValidatorConstraint({ name: 'fechaRealNoFutura', async: false })
+class FechaRealNoFuturaConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (typeof value !== 'string' || !fechaExiste(value)) return false;
+    const hoy = new Date();
+    const hoyUTC = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const [anio, mes, dia] = value.split('-').map(Number);
+    return Date.UTC(anio, mes - 1, dia) <= hoyUTC;
+  }
+
+  defaultMessage(): string {
+    return 'La fecha debe existir y no puede ser futura.';
+  }
+}
+
 export class CrearInscripcionCatequesisBautismoDto extends IdentificacionCatequesisDto {
   @Transform(recortar)
   @IsString()
@@ -102,16 +130,16 @@ export class CrearInscripcionCatequesisBautismoDto extends IdentificacionCateque
   })
   apellido1: string;
 
-  @Transform(vacioANulo)
-  @IsOptional()
+  @Transform(recortar)
   @IsString()
+  @IsNotEmpty({ message: 'El segundo apellido es obligatorio.' })
   @MaxLength(25, {
     message: 'El segundo apellido no puede superar los 25 caracteres.',
   })
   @Matches(LETRAS_SIN_ESPACIO, {
     message: 'El segundo apellido solo puede contener letras.',
   })
-  apellido2?: string | null;
+  apellido2: string;
 
   @IsString()
   @IsNotEmpty({ message: 'La fecha de nacimiento es obligatoria.' })
@@ -136,6 +164,17 @@ export class CrearInscripcionCatequesisBautismoDto extends IdentificacionCateque
     message: 'El formato debe ser 8888-8888.',
   })
   telefono: string;
+
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsString()
+  @IsNotEmpty({ message: 'El correo electrónico es obligatorio.' })
+  @IsEmail({}, { message: 'El correo electrónico no es válido.' })
+  @MaxLength(120, {
+    message: 'El correo no puede superar los 120 caracteres.',
+  })
+  correo: string;
 
   @IsIn(ESTADOS_CIVILES_BAUTISMO, {
     message: 'Seleccione un estado civil válido.',
@@ -212,7 +251,9 @@ export class ActualizarEstadoCatequesisBautismoDto {
     message: 'La observación es obligatoria al rechazar la solicitud.',
   })
   @MinLength(5, { message: 'El motivo debe tener al menos 5 caracteres.' })
-  @MaxLength(500)
+  @MaxLength(500, {
+    message: 'La observación no puede superar los 500 caracteres.',
+  })
   observacionAdministrativa?: string | null;
 
   @ValidateIf(
@@ -220,7 +261,7 @@ export class ActualizarEstadoCatequesisBautismoDto {
   )
   @IsString()
   @IsNotEmpty({ message: 'Indique el inicio de las catequesis.' })
-  @Matches(FECHA, { message: 'El inicio de las catequesis no es una fecha válida.' })
+  @Validate(FechaRealNoFuturaConstraint)
   fechaInicioCatequesis?: string;
 
   @ValidateIf(
@@ -228,9 +269,7 @@ export class ActualizarEstadoCatequesisBautismoDto {
   )
   @IsString()
   @IsNotEmpty({ message: 'Indique la finalización de las catequesis.' })
-  @Matches(FECHA, {
-    message: 'La finalización de las catequesis no es una fecha válida.',
-  })
+  @Validate(FechaRealNoFuturaConstraint)
   fechaFinalizacionCatequesis?: string;
 
   @Transform(recortar)

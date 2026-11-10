@@ -11,14 +11,14 @@ import type {
   ValidatorConstraintInterface,
 } from 'class-validator';
 
-export const PATRON_CEDULA_CATEQUESIS = /^(?:\d{9}|\d{12})$/;
+export const PATRON_CEDULA_CATEQUESIS = /^(?:[1-9]\d{8}|\d{12})$/;
 
 @ValidatorConstraint({ name: 'cedulaPorTipo', async: false })
 class CedulaPorTipoConstraint implements ValidatorConstraintInterface {
   // No basta con aceptar cualquiera de las dos longitudes: debe corresponder al tipo elegido.
   validate(valor: unknown, args: ValidationArguments): boolean {
     const { tipoCedula } = args.object as IdentificacionCatequesisDto;
-    const patron = tipoCedula === 'extranjera' ? /^\d{12}$/ : /^\d{9}$/;
+    const patron = tipoCedula === 'extranjera' ? /^\d{12}$/ : /^[1-9]\d{8}$/;
     return typeof valor === 'string' && patron.test(valor);
   }
 

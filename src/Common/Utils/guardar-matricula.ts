@@ -16,7 +16,10 @@ export async function guardarMatricula<T extends ObjectLiteral>(
         code?: string;
         constraint?: string;
       };
-      if (detalle.code === '23505' && detalle.constraint === indice) {
+      if (
+        detalle.code === '23505' &&
+        esIndiceCedulaPendiente(detalle.constraint, indice)
+      ) {
         throw new ConflictException({
           mensaje:
             'Ya existe una solicitud pendiente con esta cédula en este módulo.',
@@ -25,4 +28,16 @@ export async function guardarMatricula<T extends ObjectLiteral>(
     }
     throw error; // no esconder caídas de BD como si fueran duplicados
   }
+}
+
+// El nombre exacto del índice puede variar (p. ej. si lo creó synchronize antes),
+// así que además del nombre pedido se acepta cualquier índice de cédula pendiente.
+function esIndiceCedulaPendiente(
+  constraint: string | undefined,
+  indice: string,
+): boolean {
+  if (!constraint) return false;
+  const valor = constraint.toLowerCase();
+  if (valor === indice.toLowerCase()) return true;
+  return valor.includes('cedula') && valor.includes('pendiente');
 }

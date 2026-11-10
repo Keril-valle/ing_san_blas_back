@@ -52,6 +52,25 @@ for (const Dto of [
 
 for (const Servicio of [CicaService, CatequesisBautismoService]) {
   describe(`Consulta completa en ${Servicio.name}`, () => {
+    const construir = (repositorio: object) =>
+      Servicio === CatequesisBautismoService
+        ? new CatequesisBautismoService(repositorio as never, {
+            notificarInscripcion: jest.fn(),
+            notificarEstado: jest.fn(),
+          } as never)
+        : new CicaService(repositorio as never);
+
+    const consultar = (
+      servicio: CicaService | CatequesisBautismoService,
+      cedula: string,
+    ) =>
+      Servicio === CatequesisBautismoService
+        ? (servicio as CatequesisBautismoService).consultarPorCedula(
+            cedula,
+            '1990-01-01',
+          )
+        : (servicio as CicaService).consultarPorCedula(cedula);
+
     it('guarda la cédula completa como texto al crear la inscripción', async () => {
       const datos = {
         cedula: '012345678901',
@@ -70,7 +89,7 @@ for (const Servicio of [CicaService, CatequesisBautismoService]) {
             Promise.resolve({ ...valor, id: 1 }),
           ),
       };
-      const servicio = new Servicio(repositorio as never);
+      const servicio = construir(repositorio);
       await servicio.crear(datos as never);
       expect(repositorio.save).toHaveBeenCalledWith(
         expect.objectContaining({ cedula: '012345678901' }),
@@ -79,17 +98,19 @@ for (const Servicio of [CicaService, CatequesisBautismoService]) {
 
     it('busca por los doce dígitos sin truncarlos', async () => {
       const repositorio = { find: jest.fn().mockResolvedValue([]) };
-      const servicio = new Servicio(repositorio as never);
-      await servicio.consultarPorCedula('012345678901');
+      const servicio = construir(repositorio);
+      await consultar(servicio, '012345678901');
       expect(repositorio.find).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { cedula: '012345678901' } }),
+        expect.objectContaining({
+          where: expect.objectContaining({ cedula: '012345678901' }),
+        }),
       );
     });
 
     it('rechaza longitudes intermedias antes de consultar la base', () => {
       const repositorio = { find: jest.fn() };
-      const servicio = new Servicio(repositorio as never);
-      expect(() => servicio.consultarPorCedula('12345678901')).toThrow();
+      const servicio = construir(repositorio);
+      expect(() => consultar(servicio, '12345678901')).toThrow();
       expect(repositorio.find).not.toHaveBeenCalled();
     });
   });

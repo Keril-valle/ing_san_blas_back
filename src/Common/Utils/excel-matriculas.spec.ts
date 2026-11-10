@@ -208,9 +208,9 @@ describe('Excel de CICA y bautismo', () => {
     const hoja = await abrir(buffer);
     expect(hoja.getCell('A2').value).toBe('Catequesis para el bautismo');
     expect(hoja.getCell('M6').value).toBe('Padre/Madre');
-    expect(hoja.getCell('P6').value ?? '').toBe('');
     expect(hoja.getCell('Q6').value ?? '').toBe('');
     expect(hoja.getCell('R6').value ?? '').toBe('');
+    expect(hoja.getCell('S6').value ?? '').toBe('');
     expect(findBautismo).toHaveBeenCalledWith({
       where: { estado: 'Pendiente' },
       order: { fechaSolicitud: 'DESC', id: 'DESC' },
@@ -233,9 +233,9 @@ describe('Excel de CICA y bautismo', () => {
     });
     const hoja = await abrir(buffer);
     expect(hoja.getCell('M6').value).toBe('Padrino/Madrina');
-    expect(hoja.getCell('P6').value).toEqual(new Date('2026-01-01T00:00:00Z'));
-    expect(hoja.getCell('Q6').value).toEqual(new Date('2026-02-01T00:00:00Z'));
-    expect(hoja.getCell('R6').value).toBe('Responsable Local');
+    expect(hoja.getCell('Q6').value).toEqual(new Date('2026-01-01T00:00:00Z'));
+    expect(hoja.getCell('R6').value).toEqual(new Date('2026-02-01T00:00:00Z'));
+    expect(hoja.getCell('S6').value).toBe('Responsable Local');
     expect(fileName).toMatch(
       /^inscripciones_bautismo_aprobada_\d{4}-\d{2}-\d{2}\.xlsx$/,
     );
