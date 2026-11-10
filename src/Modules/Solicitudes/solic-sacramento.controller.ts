@@ -16,7 +16,9 @@ import {
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
+import { CreateSolicSacramentoPublicaDto } from './DTO/create-solic-sacramento-publica.dto';
+import type { CreateSolicSacramentoDto } from './DTO/create-solic-sacramento.dto';
+import { RecaptchaService } from '../../Common/Recaptcha/recaptcha.service';
 import { UpdateSolicSacramentoDto } from './DTO/update-solic-sacramento.dto';
 import { CambiarEstadoSolicitudDto } from './DTO/cambiar-estado-solicitud.dto';
 import { RechazarSolicitudDto } from './DTO/rechazar-solicitud.dto';
@@ -31,15 +33,22 @@ import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.in
 
 @Controller('solic-sacramento')
 export class SolicSacramentoController {
-  constructor(private readonly solicSacraService: SolicSacramentoService) {}
+  constructor(
+    private readonly solicSacraService: SolicSacramentoService,
+    private readonly recaptcha: RecaptchaService,
+  ) {}
 
+  // No guardamos una solicitud pública sin verificar su token con Google.
   @Public()
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createSolicSacramentoDto: CreateSolicSacramentoDto) {
-    return this.solicSacraService.create(createSolicSacramentoDto);
+  async create(@Body() dto: CreateSolicSacramentoPublicaDto) {
+    const { recaptchaToken, ...solicitud } = dto;
+    await this.recaptcha.verificar(recaptchaToken);
+    return this.solicSacraService.create(solicitud);
   }
 
+  // También verifica el envío multipart antes de subir el comprobante a Cloudinary.
   @Public()
   @Post('con-imagen')
   @HttpCode(HttpStatus.CREATED)
@@ -64,10 +73,15 @@ export class SolicSacramentoController {
       });
     }
 
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new BadRequestException('Los datos de la solicitud no son válidos.');
+    }
+    const { recaptchaToken, ...solicitud } = parsed as Record<string, unknown>;
+    await this.recaptcha.verificar(recaptchaToken);
     return this.solicSacraService.createWithImage(
-      parsed as CreateSolicSacramentoDto,
+      solicitud as unknown as CreateSolicSacramentoDto,
       archivo,
-    );
+    ); // conserva el contrato multipart existente, pero nunca persiste el token
   }
 
   @SkipThrottle()

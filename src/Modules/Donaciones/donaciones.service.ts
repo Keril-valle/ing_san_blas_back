@@ -133,7 +133,9 @@ export class DonacionesService {
     return donacion ? this.toResponseDto(donacion) : null;
   }
 
-  async create(dto: CreateDonacionDto): Promise<DonacionResponseDto> {
+  async create(
+    dto: Omit<CreateDonacionDto, 'recaptchaToken'>,
+  ): Promise<DonacionResponseDto> {
     const donacion = this.donacionesRepository.create({
       fecha: new Date(),
       anonimo: dto.anonimo,
