@@ -4,10 +4,15 @@ import { InscripcionCatequesisBautismo } from './Entities/inscripcion-catequesis
 import { CatequesisBautismoService } from './catequesis-bautismo.service';
 import { CatequesisBautismoController } from './catequesis-bautismo.controller';
 import { BautismoExportService } from './bautismo-export.service';
+import { BautismoMailService } from './bautismo-mail.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([InscripcionCatequesisBautismo])],
   controllers: [CatequesisBautismoController],
-  providers: [CatequesisBautismoService, BautismoExportService],
+  providers: [
+    CatequesisBautismoService,
+    BautismoExportService,
+    BautismoMailService,
+  ],
 })
 export class CatequesisBautismoModule {}

@@ -50,8 +50,14 @@ export class CatequesisBautismoController {
 
   @Public()
   @Get('consulta')
-  consultar(@Query('cedula') cedula?: string) {
-    return this.servicio.consultarPorCedula(cedula ?? '');
+  consultar(
+    @Query('cedula') cedula?: string,
+    @Query('fechaNacimiento') fechaNacimiento?: string,
+  ) {
+    return this.servicio.consultarPorCedula(
+      cedula ?? '',
+      fechaNacimiento ?? '',
+    );
   }
 
   // Descarga protegida, con la misma validación de filtros que usa el modal.

@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   Index,
   PrimaryGeneratedColumn,
@@ -35,6 +36,9 @@ export class InscripcionCatequesisBautismo {
 
   @Column({ type: 'varchar', length: 20 })
   telefono: string;
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  correo: string | null;
 
   @Column({ type: 'varchar', length: 30 })
   estadoCivil: string;
@@ -80,4 +84,8 @@ export class InscripcionCatequesisBautismo {
 
   @Column({ type: 'int', nullable: true })
   revisadoPor: number | null;
+
+  // Soft delete: "eliminar" solo marca la fecha y el registro deja de mostrarse.
+  @DeleteDateColumn({ name: 'borrado_en', type: 'timestamptz', nullable: true })
+  borradoEn: Date | null;
 }

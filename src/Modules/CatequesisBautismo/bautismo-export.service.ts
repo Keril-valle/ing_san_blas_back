@@ -52,6 +52,12 @@ const COLUMNAS: ColumnaMatricula<InscripcionCatequesisBautismo>[] = [
     esEstado: true,
   },
   {
+    titulo: 'Motivo de rechazo',
+    ancho: 34,
+    valor: (f) => f.observacionAdministrativa,
+    limiteTexto: 120,
+  },
+  {
     titulo: 'Fecha de inscripción',
     ancho: 22,
     valor: (f) => fechaExcelMatricula(f.fechaSolicitud),
