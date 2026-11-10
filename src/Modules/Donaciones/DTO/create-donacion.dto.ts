@@ -30,7 +30,8 @@ export class CreateDonacionDto {
   })
   detalle: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'Completá el reCAPTCHA antes de enviar.' })
   @IsString()
-  recaptchaToken?: string;
+  @MaxLength(4096)
+  recaptchaToken: string;
 }
