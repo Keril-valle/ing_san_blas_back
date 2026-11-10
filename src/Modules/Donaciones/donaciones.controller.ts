@@ -24,10 +24,14 @@ import { RechazarDonacionDto } from './DTO/rechazar-donacion.dto';
 import { Public } from '../../Auth/Decorators/public.decorator';
 import { Permisos } from '../../Auth/Decorators/permisos.decorator';
 import type { RequestWithUser } from '../../Common/Interfaces/requestWithUser.interface';
+import { RecaptchaService } from '../../Common/Recaptcha/recaptcha.service';
 
 @Controller('Donacion')
 export class DonacionesController {
-  constructor(private readonly donacionesService: DonacionesService) {}
+  constructor(
+    private readonly donacionesService: DonacionesService,
+    private readonly recaptcha: RecaptchaService,
+  ) {}
 
   @Get()
   @Permisos('donaciones')
@@ -129,6 +133,7 @@ export class DonacionesController {
     return donacion;
   }
 
+  // Valida los datos y el captcha antes de crear una donación pública.
   @Public()
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -152,8 +157,11 @@ export class DonacionesController {
       throw new BadRequestException({ message, errores });
     }
 
+    const { recaptchaToken, ...donacion } = dto;
+    await this.recaptcha.verificar(recaptchaToken); // fuera del catch para conservar los 503 de Google/configuración
+
     try {
-      return await this.donacionesService.create(dto);
+      return await this.donacionesService.create(donacion);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'No se pudo crear la donación';
