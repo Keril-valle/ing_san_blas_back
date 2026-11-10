@@ -15,12 +15,14 @@ import {
   ActualizarEstadoCatequesisBautismoDto,
   CrearInscripcionCatequesisBautismoDto,
 } from './DTO/inscripcion-catequesis-bautismo.dto';
+import { BautismoMailService } from './bautismo-mail.service';
 
 @Injectable()
 export class CatequesisBautismoService {
   constructor(
     @InjectRepository(InscripcionCatequesisBautismo)
     private readonly repositorio: Repository<InscripcionCatequesisBautismo>,
+    private readonly mail: BautismoMailService,
   ) {}
 
   // Inscribe al interesado; las fechas y el responsable siguen quedando para la certificación del admin.
@@ -30,11 +32,12 @@ export class CatequesisBautismoService {
       this.repositorio.create({
         nombre: dto.nombre,
         apellido1: dto.apellido1,
-        apellido2: dto.apellido2 ?? null,
+        apellido2: dto.apellido2,
         fechaNacimiento: dto.fechaNacimiento,
         cedula: dto.cedula,
         nacionalidad: dto.nacionalidad ?? null,
         telefono: dto.telefono,
+        correo: dto.correo,
         estadoCivil: dto.estadoCivil,
         parroquiaOrigen: dto.parroquiaOrigen,
         provincia: dto.provincia,
@@ -46,6 +49,14 @@ export class CatequesisBautismoService {
       }),
       'UQ_bautismo_cedula_pendiente',
     );
+
+    // El aviso no bloquea la respuesta: si Brevo falla, la inscripción ya quedó.
+    void this.mail.notificarInscripcion({
+      id: guardada.id,
+      correo: guardada.correo,
+      nombre: this.nombreCompleto(guardada),
+      estado: guardada.estado,
+    });
 
     return {
       id: guardada.id,
@@ -120,9 +131,24 @@ export class CatequesisBautismoService {
       dto.estado === 'Aprobada' ? (dto.responsableCertifica ?? null) : null;
     inscripcion.fechaActualizacionEstado = new Date();
     inscripcion.revisadoPor = revisorId ?? null;
-    return this.repositorio.save(inscripcion);
+    const guardada = await this.repositorio.save(inscripcion);
+
+    // El aviso no bloquea la respuesta: si Brevo falla, el estado ya quedó guardado.
+    void this.mail.notificarEstado({
+      id: guardada.id,
+      correo: guardada.correo,
+      nombre: this.nombreCompleto(guardada),
+      estado: guardada.estado,
+      observacion: guardada.observacionAdministrativa,
+      fechaInicioCatequesis: guardada.fechaInicioCatequesis,
+      fechaFinalizacionCatequesis: guardada.fechaFinalizacionCatequesis,
+      responsableCertifica: guardada.responsableCertifica,
+    });
+
+    return guardada;
   }
 
+  // Soft delete: el registro deja de listarse, pero la constancia sigue en la BD.
   async remove(id: number) {
     const inscripcion = await this.repositorio.findOneBy({ id });
     if (!inscripcion) {
@@ -136,10 +162,12 @@ export class CatequesisBautismoService {
         mensaje: 'Solo se pueden eliminar solicitudes aprobadas o rechazadas.',
       });
     }
-    await this.repositorio.remove(inscripcion);
+    await this.repositorio.softRemove(inscripcion);
   }
 
-  consultarPorCedula(cedula: string) {
+  // La consulta pública exige cédula + fecha de nacimiento para evitar que
+  // cualquiera enumere cédulas y obtenga datos de terceros.
+  consultarPorCedula(cedula: string, fechaNacimiento: string) {
     const limpia = cedula?.trim() ?? '';
     if (!PATRON_CEDULA_CATEQUESIS.test(limpia)) {
       throw new BadRequestException({
@@ -147,8 +175,15 @@ export class CatequesisBautismoService {
       });
     }
 
+    const nacimiento = fechaNacimiento?.trim() ?? '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(nacimiento)) {
+      throw new BadRequestException({
+        mensaje: 'Indique la fecha de nacimiento para consultar la solicitud.',
+      });
+    }
+
     return this.repositorio.find({
-      where: { cedula: limpia },
+      where: { cedula: limpia, fechaNacimiento: nacimiento },
       order: { fechaSolicitud: 'DESC' },
       select: {
         id: true,
@@ -160,5 +195,11 @@ export class CatequesisBautismoService {
         fechaActualizacionEstado: true,
       },
     });
+  }
+
+  private nombreCompleto(inscripcion: InscripcionCatequesisBautismo): string {
+    return [inscripcion.nombre, inscripcion.apellido1, inscripcion.apellido2]
+      .filter(Boolean)
+      .join(' ');
   }
 }

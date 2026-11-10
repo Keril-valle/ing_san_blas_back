@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'node:path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './Auth/auth.module';
@@ -107,6 +108,10 @@ import { NetlifyRebuildModule } from './Common/netlify-rebuild.module';
           InscripcionCatequesisBautismo,
         ],
         synchronize: false, // false: en BD real con datos, el schema se maneja con migraciones, no automágicamente
+        // La app aplica sola las migraciones pendientes al arrancar; el deploy ya no
+        // depende de que alguien las corra a mano (y el índice único no se queda sin crear).
+        migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+        migrationsRun: true,
         ssl: {
           rejectUnauthorized: false, // Supabase exige conexión SSL
         },
