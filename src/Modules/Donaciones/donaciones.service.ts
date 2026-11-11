@@ -58,7 +58,7 @@ export class DonacionesService {
       return donaciones.map((donacion) => ({
         id: donacion.id,
         anonimo: donacion.anonimo,
-        nombre: donacion.anonimo ? 'Anónimo' : donacion.nombre, // nunca se filtra el nombre real de un donante anónimo
+        nombre: donacion.anonimo ? 'Sin nombre indicado' : donacion.nombre,
         correo: donacion.correo,
         telefono: donacion.telefono,
         detalle: donacion.detalle,
@@ -114,7 +114,7 @@ export class DonacionesService {
       historial: items.map((donacion) => ({
         id: donacion.id,
         anonimo: donacion.anonimo,
-        nombre: donacion.anonimo ? 'Anónimo' : donacion.nombre,
+        nombre: donacion.anonimo ? 'Sin nombre indicado' : donacion.nombre,
         correo: donacion.correo,
         telefono: donacion.telefono,
         detalle: donacion.detalle,
