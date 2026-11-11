@@ -373,15 +373,85 @@ export class BusquedaNormalizadaService {
       .catch((error: unknown) => this.convertirError(error));
   }
 
-  // Elimina el padre y deja que las claves en cascada eliminen su detalle.
+  // Elimina todos los sacramentos relacionados con las personas del acta.
+  // Así, al borrar un bautismo y registrarlo de nuevo con la misma cédula,
+  // no reaparecen comuniones o confirmaciones del registro anterior.
   async eliminar(id: number): Promise<void> {
     await this.dataSource
       .transaction(async (manager) => {
-        const result = await manager
-          .getRepository(SacramentoRegistro)
-          .delete(id);
-        if (!result.affected)
+        const personas = await manager.query(
+          `
+          SELECT DISTINCT persona_id
+          FROM (
+            SELECT b.id_bautizado AS persona_id
+            FROM sacramento s
+            JOIN bautismo b ON b.id_sacramento = s.id_sacramento
+            WHERE s.id_sacramento = $1
+
+            UNION
+
+            SELECT c.id_persona AS persona_id
+            FROM sacramento s
+            JOIN comunion c ON c.id_sacramento = s.id_sacramento
+            WHERE s.id_sacramento = $1
+
+            UNION
+
+            SELECT cf.id_persona AS persona_id
+            FROM sacramento s
+            JOIN confirmacion cf ON cf.id_sacramento = s.id_sacramento
+            WHERE s.id_sacramento = $1
+
+            UNION
+
+            SELECT m.id_contrayente1 AS persona_id
+            FROM sacramento s
+            JOIN matrimonio m ON m.id_sacramento = s.id_sacramento
+            WHERE s.id_sacramento = $1
+
+            UNION
+
+            SELECT m.id_contrayente2 AS persona_id
+            FROM sacramento s
+            JOIN matrimonio m ON m.id_sacramento = s.id_sacramento
+            WHERE s.id_sacramento = $1
+          ) relacionados
+          WHERE persona_id IS NOT NULL
+          `,
+          [id],
+        );
+
+        const idsPersona = personas
+          .map((row: { persona_id?: number | string }) => Number(row.persona_id))
+          .filter((personaId: number) => Number.isInteger(personaId));
+
+        if (idsPersona.length === 0) {
           throw new NotFoundException('Sacramento no encontrado');
+        }
+
+        await manager.query(
+          `
+          DELETE FROM sacramento s
+          WHERE s.id_sacramento IN (
+            SELECT DISTINCT relacionado.id_sacramento
+            FROM sacramento relacionado
+            LEFT JOIN bautismo b
+              ON b.id_sacramento = relacionado.id_sacramento
+            LEFT JOIN comunion c
+              ON c.id_sacramento = relacionado.id_sacramento
+            LEFT JOIN confirmacion cf
+              ON cf.id_sacramento = relacionado.id_sacramento
+            LEFT JOIN matrimonio m
+              ON m.id_sacramento = relacionado.id_sacramento
+            WHERE b.id_bautizado = ANY($1::int[])
+               OR c.id_persona = ANY($1::int[])
+               OR cf.id_persona = ANY($1::int[])
+               OR m.id_contrayente1 = ANY($1::int[])
+               OR m.id_contrayente2 = ANY($1::int[])
+          )
+          `,
+          [idsPersona],
+        );
       })
       .catch((error: unknown) => this.convertirError(error));
   }
@@ -576,9 +646,12 @@ export class BusquedaNormalizadaService {
   ): Promise<void> {
     if (personas.tipo === TipoSacramentoRegistro.Bautismo) return;
 
+    // Para matrimonio solo se valida el Bautismo del primer contrayente,
+    // que es la persona dueña del expediente. El segundo contrayente puede
+    // no tener un Bautismo registrado en este sistema.
     const ids =
       personas.tipo === TipoSacramentoRegistro.Matrimonio
-        ? [personas.idContrayente1, personas.idContrayente2]
+        ? [personas.idContrayente1]
         : [personas.idPersona];
     await this.validarPersonasBautizadas(manager, ids);
   }
