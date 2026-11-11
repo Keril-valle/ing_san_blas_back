@@ -63,12 +63,21 @@ export class EventoService {
   }
 
   findAll() {
-    return this.eventoRepository.find();
+    return this.eventoRepository.find({
+      order: {
+        createdAt: 'DESC',
+        id: 'DESC',
+      },
+    });
   }
 
   findPublicos() {
     return this.eventoRepository.find({
       where: { estado: EstadoEvento.PUBLICADO },
+      order: {
+        createdAt: 'DESC',
+        id: 'DESC',
+      },
     });
   }
 

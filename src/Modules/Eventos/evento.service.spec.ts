@@ -10,10 +10,18 @@ describe('EventoService', () => {
     save: jest.fn(),
     find: jest.fn(),
     findOneBy: jest.fn(),
+    remove: jest.fn(),
+  };
+  const fileStorage = {
+    saveEventoImage: jest.fn(),
+  };
+  const netlifyRebuild = {
+    triggerPublicContentRebuild: jest.fn(),
   };
   const service = new EventoService(
     repository as unknown as Repository<Evento>,
-    {} as never,
+    fileStorage as never,
+    netlifyRebuild as never,
   );
 
   const fechaFutura = () =>
@@ -64,6 +72,7 @@ describe('EventoService', () => {
 
       expect(repository.find).toHaveBeenCalledWith({
         where: { estado: EstadoEvento.PUBLICADO },
+        order: { createdAt: 'DESC', id: 'DESC' },
       });
     });
   });

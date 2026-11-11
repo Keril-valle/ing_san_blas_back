@@ -27,15 +27,15 @@ export class DonacionMailService {
       const comentario = donacion.detalleAprobacion?.trim() || undefined; // lo que el admin escribió al aprobar, si es que escribió algo
       await this.mailService.sendMail({
         to: donacion.correo,
-        toName: donacion.anonimo ? undefined : donacion.nombre, // a los anónimos no les usamos el nombre ni en el correo
+        toName: donacion.anonimo ? undefined : donacion.nombre,
         subject: `Tu donación fue ${donacion.estado === 'Aprobado' ? 'aprobada' : 'rechazada'} - Parroquia San Blas`,
         htmlContent: renderDonacionEstadoHtml({
-          nombre: donacion.anonimo ? 'donante anónimo' : donacion.nombre,
+          nombre: donacion.anonimo ? 'donante sin nombre indicado' : donacion.nombre,
           estado: donacion.estado,
           detalle: donacion.detalle,
           comentarioAprobacion: comentario,
         }),
-        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue ${donacion.estado}. Detalle: ${donacion.detalle}${comentario ? ` Comentario de la parroquia: ${comentario}` : ''}${donacion.estado === 'Aprobado' ? ` Lugar de entrega: ${DATOS_CONTACTO_PARROQUIA.lugar}. Teléfono: ${DATOS_CONTACTO_PARROQUIA.telefono}. ${textoHorariosAtencionPlano()}` : ` Consultas: oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}`}`,
+        textContent: `Estimado/a ${donacion.anonimo ? 'donante sin nombre indicado' : donacion.nombre}, su solicitud de donación fue ${donacion.estado}. Detalle: ${donacion.detalle}${comentario ? ` Comentario de la parroquia: ${comentario}` : ''}${donacion.estado === 'Aprobado' ? ` Lugar de entrega: ${DATOS_CONTACTO_PARROQUIA.lugar}. Teléfono: ${DATOS_CONTACTO_PARROQUIA.telefono}. ${textoHorariosAtencionPlano()}` : ` Consultas: oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}`}`,
         tags: ['donaciones', 'estado'],
       });
     } catch (error) {
@@ -61,14 +61,14 @@ export class DonacionMailService {
     try {
       await this.mailService.sendMail({
         to: donacion.correo,
-        toName: donacion.anonimo ? undefined : donacion.nombre, // igual que arriba, el anonimato se respeta siempre
+        toName: donacion.anonimo ? undefined : donacion.nombre,
         subject: 'Tu solicitud de donación fue rechazada - Parroquia San Blas',
         htmlContent: renderDonacionRechazadaHtml({
-          nombre: donacion.anonimo ? 'donante anónimo' : donacion.nombre,
+          nombre: donacion.anonimo ? 'donante sin nombre indicado' : donacion.nombre,
           motivo,
           detalle,
         }),
-        textContent: `Estimado/a ${donacion.nombre}, su solicitud de donación fue rechazada. Motivo: ${motivo}${detalle ? ` Detalle: ${detalle}` : ''}. Si tiene alguna consulta, puede comunicarse con la oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}.`,
+        textContent: `Estimado/a ${donacion.anonimo ? 'donante sin nombre indicado' : donacion.nombre}, su solicitud de donación fue rechazada. Motivo: ${motivo}${detalle ? ` Detalle: ${detalle}` : ''}. Si tiene alguna consulta, puede comunicarse con la oficina parroquial al ${DATOS_CONTACTO_PARROQUIA.telefono}.`,
         tags: ['donaciones', 'rechazo'],
       });
     } catch (error) {
